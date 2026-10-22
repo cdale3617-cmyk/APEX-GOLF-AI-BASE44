@@ -4,9 +4,11 @@ import BottomNav from '@/components/BottomNav';
 import VoiceDock from '@/components/caddie/VoiceDock';
 import { useGolf } from '@/lib/GolfContext';
 import { useTheme } from '@/hooks/useTheme';
+import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 
 export default function AppShell() {
-  const { gpsStatus, gpsFix, gpsMode, gpsTrackingStatus, listening, toggleListening, units, setUnits } = useGolf();
+  const { gpsStatus, gpsFix, gpsMode, gpsTrackingStatus, listening, toggleListening, units, setUnits, keepScreenAwake } = useGolf();
+  const wakeStatus = useScreenWakeLock(keepScreenAwake);
   const { theme, toggle } = useTheme();
   const metric = units === 'metric';
   const gpsLabel = gpsMode === 'unverified'
@@ -55,7 +57,7 @@ export default function AppShell() {
           </div>
         </div>
         <p className="mt-1 truncate text-[10px] font-medium leading-tight text-muted-foreground">
-          {listening ? 'Voice caddie active' : gpsLabel}
+          {listening ? 'Voice caddie active' : gpsLabel}{keepScreenAwake ? (wakeStatus === 'active' ? ' · SCREEN AWAKE' : ' · WAKE LOCK ' + wakeStatus.toUpperCase()) : ''}
         </p>
       </header>
       <main className="relative isolate min-h-0 flex-1 overflow-hidden">
