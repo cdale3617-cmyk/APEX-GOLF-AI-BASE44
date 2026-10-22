@@ -20,6 +20,7 @@ export default function Scorecard() {
     strokes,
     activeHoleNumber,
     learnedClubs,
+    units,
     shots,
     logShot,
     removeShot,
@@ -70,7 +71,7 @@ export default function Scorecard() {
           </button>
         </PageHeader>
 
-        <RoundStats stats={stats} />
+        <RoundStats stats={stats} shots={shots} clubs={learnedClubs} units={units} />
 
         <section className="glass-panel rounded-2xl p-3">
           <h3 className="hud-label mb-2 font-bold text-muted-foreground">Strokes Gained Analytics</h3>
