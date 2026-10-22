@@ -9,11 +9,15 @@ import ShotLogger from '@/components/scorecard/ShotLogger';
 import StrokesGainedChart from '@/components/scorecard/StrokesGainedChart';
 import { useGolf } from '@/lib/GolfContext';
 import { exportScorecardCsv } from '@/lib/golfData';
+import { exportScorecardPdf } from '@/lib/scoreExports';
 
 export default function Scorecard() {
   const {
     scorecard,
     updateHole,
+    completeHole,
+    autoAdvance,
+    course,
     resetScorecard,
     saveRound,
     stats,
@@ -53,6 +57,11 @@ export default function Scorecard() {
             {saved ? 'Saved' : 'Save'}
           </button>
           <ShareRoundButton />
+          <button type="button"
+            onClick={() => exportScorecardPdf({ scorecard, courseName: course?.name }).catch(() => window.alert('PDF export failed on this device.'))}
+            disabled={!stats.holes}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-[11px] font-semibold text-foreground disabled:opacity-40"
+          >PDF</button>
           <button
             type="button"
             onClick={() => exportScorecardCsv(scorecard)}
@@ -102,7 +111,7 @@ export default function Scorecard() {
           />
         </section>
 
-        <QuickShotActions scorecard={scorecard} activeHole={activeHoleNumber} onUpdate={updateHole} />
+        <QuickShotActions scorecard={scorecard} activeHole={activeHoleNumber} onUpdate={updateHole} onComplete={completeHole} autoAdvance={autoAdvance} />
 
         <ScorecardTable scorecard={scorecard} activeHole={activeHoleNumber} onUpdate={updateHole} />
       </div>
