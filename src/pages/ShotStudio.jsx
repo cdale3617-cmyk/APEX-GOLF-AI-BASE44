@@ -4,6 +4,7 @@ import { Activity, ArrowLeft, Camera, Download } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useGolf } from '@/lib/GolfContext';
 import { toDisplayDistance, distanceUnit } from '@/lib/units';
+import { parseLaunchMonitorCsv } from '@/lib/launchImport';
 
 const INPUT = 'min-h-11 w-full rounded-lg border border-input bg-background px-2 text-sm text-foreground';
 const STORAGE = 'apex_shot_studio_v1';
@@ -55,6 +56,7 @@ export default function ShotStudio() {
   const [clubId, setClubId] = useState('dr');
   const [records, setRecords] = useState(getSaved);
   const [notice, setNotice] = useState('');
+  const [importedShot, setImportedShot] = useState(null);
   const mediaRef = useRef(null);
   const imageRef = useRef(null);
 
@@ -106,6 +108,29 @@ export default function ShotStudio() {
       setNotice('Traced image exported.');
     }, 'image/png');
   };
+  const importCsv = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > 2_000_000) throw new Error('CSV must be under 2 MB.');
+      const rows = parseLaunchMonitorCsv(await file.text());
+      const selected = rows[0];
+      setImportedShot({ ...selected, count: rows.length });
+      setSpeed(String(selected.speedKmh.toFixed(1)));
+      setAngle(String(selected.angle));
+      setDirection(String(selected.direction));
+      setSpin(String(selected.sideSpin));
+      const known = learnedClubs.find((club) => {
+        const a=club.name.toLowerCase().replace(/[^a-z0-9]/g,'');
+        const b=selected.club.toLowerCase().replace(/[^a-z0-9]/g,'');
+        return b && (a===b || a.includes(b) || b.includes(a));
+      });
+      if (known) setClubId(known.id);
+      setTab('trajectory');
+      setNotice('Imported ' + rows.length + ' measured shot(s). Showing the first. Trajectory is still simulated.');
+    } catch (error) { setNotice(error?.message || 'Could not import launch monitor data.'); }
+    event.target.value='';
+  };
   const saveEstimate = () => {
     const entry = {
       id: String(Date.now()), date: new Date().toISOString(), clubId, speed: Number(speed), angle: Number(angle),
@@ -153,6 +178,14 @@ export default function ShotStudio() {
           <p className="text-xs text-muted-foreground">Markers placed: {dots.length}/3. For video, tap a still frame outside the playback controls.</p>
         </section>}
         {tab === 'trajectory' && <section className="glass-panel space-y-3 rounded-2xl p-3">
+          <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-primary/40 bg-primary/15 px-3 text-xs font-bold text-primary">
+            Import launch-monitor CSV (ball speed, launch angle)
+            <input type="file" accept=".csv,text/csv" className="sr-only" onChange={importCsv} />
+          </label>
+          {importedShot && <p className="rounded-lg border border-border bg-muted/40 p-2 text-xs text-foreground">
+            Imported measured ball speed: {importedShot.speedKmh.toFixed(1)} km/h · Launch: {importedShot.angle}° · Backspin: {importedShot.spin === null ? 'not provided' : importedShot.spin + ' rpm'}
+            {importedShot.carry===null ? '' : ' · Source carry: '+importedShot.carry+' (check CSV units)'}
+          </p>}
           <p className="text-xs text-muted-foreground">Illustrative flight only. Enter launch values from a real launch monitor or your own estimates. The app does not measure ball speed, spin or true six-axis ball motion.</p>
           <label className="block text-xs text-foreground">Club
             <select className={INPUT} value={clubId} onChange={(e) => setClubId(e.target.value)}>

@@ -69,7 +69,7 @@ jobs:
           python android-build/generate_icons.py
 
       - name: Verify GPS, bag management and automatic club gapping
-        run: node --test android-build/shot-plan.test.mjs android-build/gps-tracking.test.mjs android-build/auto-gapping.test.mjs android-build/club-bag.test.mjs
+        run: node --test android-build/shot-plan.test.mjs android-build/launch-import.test.mjs android-build/gps-tracking.test.mjs android-build/auto-gapping.test.mjs android-build/club-bag.test.mjs
 
       - name: Build the actual Apex Golf AI web screens
         env:
@@ -120,7 +120,7 @@ jobs:
           TAG="apex-golf-ai-android-latest"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" APEX-GOLF-AI.apk --clobber
-            gh release edit "$TAG" --title "APEX Golf AI — Midnight Edition APK" --notes "Official Apex Midnight redesign: navy, teal and gold, with the approved gold Apex launcher icon. Built from the same Apex Golf AI Base44 project. GPS, Caddie, Bag, Scorecard, Swing and Course Lab preserved."
+            gh release edit "$TAG" --title "APEX Golf AI — Midnight Edition APK" --notes "APEX Golf AI: GPS and courses, Caddie, Club Bag, Scorecard and Shot History, Shot Studio manual tracer/trajectory/CSV, Green Reader tilt aid, Biometrics logging and experimental S24-Lenny pairing."
           else
             gh release create "$TAG" APEX-GOLF-AI.apk \
               --title "APEX Golf AI — Android APK" \
