@@ -13,6 +13,7 @@ export const HOLE_COUNT = HOLE_PARS.length;
 
 const COURSES_KEY = 'apex_golf_courses_v1';
 const HOLES_KEY = 'apex_golf_holes_v1';
+const FAVORITES_KEY = 'apex_golf_favourite_courses_v1';
 
 export const FEATURED_COURSES = [
   {
@@ -74,6 +75,39 @@ export function allCourses() {
 
 export function getCourse(courseId) {
   return allCourses().find((course) => course.id === courseId) ?? null;
+}
+
+/** Player-selected favourites, separate from automatically remembered searches. */
+export function getFavoriteCourseIds() {
+  const value = readJson(FAVORITES_KEY, []);
+  return Array.isArray(value) ? value.filter((id) => typeof id === 'string') : [];
+}
+
+export function isFavoriteCourse(courseId) {
+  return getFavoriteCourseIds().includes(courseId);
+}
+
+export function saveFavoriteCourse(course) {
+  if (!course?.id || !course.name || !Array.isArray(course.center)) {
+    throw new Error('Select a golf course before saving it.');
+  }
+  // Ensures previously searched courses remain selectable after reopening the app.
+  addCourse(course);
+  const ids = getFavoriteCourseIds();
+  if (!ids.includes(course.id)) {
+    try {
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify([course.id, ...ids].slice(0, 100)));
+    } catch {
+      throw new Error('This device cannot store the course. Check available storage.');
+    }
+  }
+  return true;
+}
+
+export function removeFavoriteCourse(courseId) {
+  const ids = getFavoriteCourseIds().filter((id) => id !== courseId);
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids));
+  return ids;
 }
 
 /** Keeps searched courses on the device so they stay one tap away. */
