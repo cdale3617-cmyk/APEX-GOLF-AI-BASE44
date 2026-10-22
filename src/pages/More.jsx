@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target, Gauge, ScanEye } from 'lucide-react';
+import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target, Gauge, ScanEye, History, Activity, HeartPulse } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 
 const TOOLS = [
+  { path: '/shot-history', title: 'Shot History', detail: 'Every current and saved club shot', icon: History },
+  { path: '/shot-studio', title: 'Shot Studio', detail: 'Shot tracer, estimated trajectory and swing metrics', icon: Activity },
+  { path: '/biometrics', title: 'Biometrics', detail: 'Heart rate, oxygen and optional Bluetooth HR sensor', icon: HeartPulse },
   { path: '/green-reader', title: 'Green Reader · Camera', detail: 'Live camera, green photo and putting-line guide', icon: ScanEye },
   { path: '/tour-suite', title: 'Tour Performance Suite', detail: 'Wake lock, auto-hole and offline course packs', icon: Gauge },
   {

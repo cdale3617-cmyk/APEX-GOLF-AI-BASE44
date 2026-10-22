@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Minus, Plus, History } from 'lucide-react';
 
 const BASE = 'flex items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-bold transition active:scale-95';
 const TONE_ON = 'border-primary/50 bg-primary/20 text-primary';
@@ -17,7 +18,6 @@ export default function QuickShotActions({ scorecard, activeHole, onUpdate, onCo
   const hole = scorecard[index];
   if (!hole) return null;
 
-  const putts = hole.putts ?? 0;
   const penalties = hole.penalties ?? 0;
   const step = (delta) => setSelected((prev) => Math.min(scorecard.length, Math.max(1, prev + delta)));
 
@@ -95,27 +95,10 @@ export default function QuickShotActions({ scorecard, activeHole, onUpdate, onCo
         </div>
 
         <div>
-          <span className="hud-label mb-1 block font-semibold text-muted-foreground">Putts</span>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onUpdate(index, { putts: Math.max(0, putts - 1) })}
-              disabled={putts === 0}
-              aria-label="Remove a putt"
-              className={`${BASE} px-2 disabled:opacity-30`}
-            >
-              <Minus className="h-3 w-3" />
-            </button>
-            <span className="flex-1 text-center text-xs font-bold tabular-nums text-sky-400">{putts}</span>
-            <button
-              type="button"
-              onClick={() => onUpdate(index, { putts: putts + 1 })}
-              aria-label="Add a putt"
-              className={`${BASE} px-2 ${TONE_OFF}`}
-            >
-              <Plus className="h-3 w-3" />
-            </button>
-          </div>
+          <span className="hud-label mb-1 block font-semibold text-muted-foreground">Shot History</span>
+          <Link to="/shot-history" className="flex min-h-9 items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/15 px-2 py-1.5 text-[11px] font-bold text-primary">
+            <History className="h-4 w-4" /> View Shots
+          </Link>
         </div>
 
         <div>
@@ -153,7 +136,7 @@ export default function QuickShotActions({ scorecard, activeHole, onUpdate, onCo
         {autoAdvance && index < scorecard.length - 1 ? 'Confirm score & next hole' : 'Confirm hole score'}
       </button>
       <p className="mt-2 border-t border-border/70 pt-1.5 text-[10px] text-muted-foreground">
-        Penalty strokes count toward your total score; putts feed your putting stats.
+        Enter putts once in the scorecard table below. View logged shots in Shot History.
       </p>
     </section>
   );

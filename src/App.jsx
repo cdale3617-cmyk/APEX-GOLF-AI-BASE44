@@ -20,6 +20,9 @@ import Drills from '@/pages/Drills';
 import CourseLab from '@/pages/CourseLab';
 import TourSuite from '@/pages/TourSuite';
 import GreenReader from '@/pages/GreenReader';
+import ShotHistory from '@/pages/ShotHistory';
+import ShotStudio from '@/pages/ShotStudio';
+import Biometrics from '@/pages/Biometrics';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -73,6 +76,9 @@ const AuthenticatedApp = () => {
         <Route path="/course-lab" element={<CourseLab />} />
         <Route path="/tour-suite" element={<TourSuite />} />
         <Route path="/green-reader" element={<GreenReader />} />
+          <Route path="/shot-history" element={<ShotHistory />} />
+          <Route path="/shot-studio" element={<ShotStudio />} />
+          <Route path="/biometrics" element={<Biometrics />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
