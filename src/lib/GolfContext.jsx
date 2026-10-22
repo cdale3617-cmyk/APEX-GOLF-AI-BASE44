@@ -26,7 +26,8 @@ import { answerVoiceQuery, describeScorePatch, parseVoiceIntent } from '@/lib/vo
 import { checkGpsPosition, courseGpsMode, selectShotOrigin } from '@/lib/gpsTracking';
 import { distanceUnitSpoken, toDisplayDistance } from '@/lib/units';
 import { offsetTarget } from '@/lib/targetPin';
-import { autoGapCarry, DEFAULT_GAP_REFERENCE_ID } from '@/lib/autoGapping';
+import { autoGapCarry, DEFAULT_GAP_REFERENCE_ID, preferredGapReference } from '@/lib/autoGapping';
+import { addClubToBag, removeClubFromBag, sortClubBag } from '@/lib/clubCatalog';
 
 const STORAGE_KEY = 'apex_golf_ai_device_v1';
 const newRoundSessionId = () => `round-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -49,7 +50,7 @@ export function GolfProvider({ children }) {
   const [units, setUnits] = useState(stored.units === 'imperial' ? 'imperial' : 'metric');
   // Earbuds / headset the caddie should speak through ('' = system default).
   const [audioSink, setAudioSink] = useState(stored.audioSink ?? '');
-  const [clubs, setClubs] = useState(stored.clubs ?? DEFAULT_CLUBS);
+  const [clubs, setClubs] = useState(() => sortClubBag(Array.isArray(stored.clubs) ? stored.clubs : DEFAULT_CLUBS));
   const [autoGapEnabled, setAutoGapEnabled] = useState(stored.autoGapEnabled ?? true);
   const [gapReferenceId, setGapReferenceId] = useState(stored.gapReferenceId ?? DEFAULT_GAP_REFERENCE_ID);
   const [caddie, setCaddie] = useState({ ...DEFAULT_CADDIE, ...(stored.caddie ?? {}) });
@@ -714,8 +715,30 @@ export function GolfProvider({ children }) {
     return { error: null };
   }, [clubs, autoGapEnabled, gapReferenceId]);
 
+  /** Equip exactly one club, in its normal distance order. Keeps all existing carries. */
+  const addBagClub = useCallback((clubId) => {
+    const result = addClubToBag(clubs, clubId);
+    if (result.error) return { error: result.error };
+    setClubs(result.clubs);
+    setGapReferenceId(preferredGapReference(result.clubs, gapReferenceId));
+    return { error: null, club: result.club };
+  }, [clubs, gapReferenceId]);
+
+  /** Removing a club does NOT delete shots already logged with that club. */
+  const removeBagClub = useCallback((clubId) => {
+    const result = removeClubFromBag(clubs, clubId);
+    if (result.error) return { error: result.error };
+    setClubs(result.clubs);
+    setGapReferenceId(preferredGapReference(result.clubs, gapReferenceId));
+    return { error: null };
+  }, [clubs, gapReferenceId]);
+
+  const sortBagClubs = useCallback(() => {
+    setClubs((prev) => sortClubBag(prev));
+  }, []);
+
   const resetBag = useCallback(() => {
-    setClubs(DEFAULT_CLUBS);
+    setClubs(sortClubBag(DEFAULT_CLUBS));
     setGapReferenceId(DEFAULT_GAP_REFERENCE_ID);
   }, []);
 
@@ -830,6 +853,9 @@ export function GolfProvider({ children }) {
       focusCourse,
       moveTarget,
       updateClub,
+      addBagClub,
+      removeBagClub,
+      sortBagClubs,
       resetBag,
       updateHole,
       completeHole,
@@ -901,6 +927,9 @@ export function GolfProvider({ children }) {
       focusCourse,
       moveTarget,
       updateClub,
+      addBagClub,
+      removeBagClub,
+      sortBagClubs,
       resetBag,
       updateHole,
       completeHole,
