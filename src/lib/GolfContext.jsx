@@ -466,7 +466,7 @@ export function GolfProvider({ children }) {
         return;
       }
 
-      if (hole?.estimated && !intent && /\\b(distance|far|yard|metres?|meters?|club|pin|green|layup|briefing)\\b/i.test(raw)) {
+      if (hole?.estimated && !intent && /\b(distance|far|yard|metres?|meters?|club|pin|green|layup|briefing)\b/i.test(raw)) {
         speak('This hole layout is only estimated. I cannot provide reliable GPS distance or club advice.');
         return;
       }
