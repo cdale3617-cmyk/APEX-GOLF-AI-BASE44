@@ -179,12 +179,33 @@ export async function searchGolfCourses(term) {
 
   const [fromDatabase, rows] = await Promise.all([
     databaseCourses(query),
-    fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=20&q=${encodeURIComponent(query)}`, {
+    // Photon provides a low-volume, free town lookup without requiring
+    // a personal token. Unlike the previous provider, its public demo API
+    // supports this kind of place search (subject to fair-use limits).
+    fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=20`, {
       headers: { Accept: 'application/json' },
     })
-      .then((response) => {
-        if (!response.ok) throw new Error('Course search unavailable');
-        return response.json();
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Town lookup unavailable');
+        const data = await response.json();
+        return (data.features || []).map((feature) => {
+          const props = feature.properties || {};
+          const position = feature.geometry?.coordinates || [];
+          const extent = props.extent;
+          return {
+            osm_type: props.osm_type === 'R' ? 'relation' : props.osm_type === 'W' ? 'way' : 'node',
+            osm_id: props.osm_id,
+            category: props.osm_key,
+            type: props.osm_value,
+            name: props.name,
+            display_name: [props.name, props.city, props.state, props.country].filter(Boolean).join(', '),
+            lat: position[1],
+            lon: position[0],
+            boundingbox: extent?.length === 4
+              ? [extent[3], extent[1], extent[0], extent[2]]
+              : null,
+          };
+        }).filter((row) => Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
       })
       .catch(() => []),
   ]);
