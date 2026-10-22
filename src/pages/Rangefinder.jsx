@@ -414,7 +414,7 @@ export default function Rangefinder() {
               />
               <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-[10px] text-muted-foreground">
                 <TriangleAlert className="h-3 w-3" />
-                Drag the TEE, TARGET and PIN markers to set your shot plan.
+                Yellow: your adjustable route. Red: direct aggressive line. Drag TEE, TARGET and PIN. Neither route is a verified safe path.
               </p>
             </>
           )}

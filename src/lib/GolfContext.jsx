@@ -26,6 +26,7 @@ import { answerVoiceQuery, describeScorePatch, parseVoiceIntent } from '@/lib/vo
 import { checkGpsPosition, courseGpsMode, selectShotOrigin } from '@/lib/gpsTracking';
 import { distanceUnitSpoken, toDisplayDistance } from '@/lib/units';
 import { offsetTarget } from '@/lib/targetPin';
+import { loadShotPlan, saveShotPlan } from '@/lib/shotPlanStore';
 import { autoGapCarry, DEFAULT_GAP_REFERENCE_ID, preferredGapReference } from '@/lib/autoGapping';
 import { addClubToBag, removeClubFromBag, sortClubBag } from '@/lib/clubCatalog';
 
@@ -111,8 +112,8 @@ export function GolfProvider({ children }) {
   // The markers always follow the hole that is loaded.
   useEffect(() => {
     if (!hole) return;
-    setCoords({ tee: hole.tee, layup: hole.layup, pin: hole.pin });
-  }, [hole]);
+    setCoords(loadShotPlan(courseId, hole.number) || { tee: hole.tee, layup: hole.layup, pin: hole.pin });
+  }, [hole, courseId]);
 
   // Scorecard pars come from the real holes once they arrive.
   useEffect(() => {
@@ -688,17 +689,22 @@ export function GolfProvider({ children }) {
   }, []);
 
   const moveTarget = useCallback((key, latlng) => {
+    if (!['tee', 'layup', 'pin'].includes(key) || !Number.isFinite(latlng.lat) || !Number.isFinite(latlng.lng)) return;
     if (key === 'pin') setPinOffsetMetres(0);
-    setCoords((prev) => ({ ...prev, [key]: [latlng.lat, latlng.lng] }));
-  }, []);
+    const next = { ...coords, [key]: [latlng.lat, latlng.lng] };
+    setCoords(next);
+    saveShotPlan(courseId, hole?.number, next);
+  }, [coords, courseId, hole?.number]);
 
   const choosePinOffset = useCallback((metres) => {
     if (!hole || hole.estimated || ![-10, 0, 10].includes(metres)) return false;
     // Estimated positions along tee-to-pin direction; not surveyed green edges.
     setPinOffsetMetres(metres);
-    setCoords((prev) => ({ ...prev, pin: offsetTarget(hole.tee, hole.pin, metres) }));
+    const next = { ...coords, pin: offsetTarget(hole.tee, hole.pin, metres) };
+    setCoords(next);
+    saveShotPlan(courseId, hole.number, next);
     return true;
-  }, [hole]);
+  }, [hole, coords, courseId]);
 
   /* ---------------- Bag ---------------- */
   const updateClub = useCallback((index, patch) => {

@@ -166,8 +166,8 @@ export default function MapLibreHoleMap({
         source: 'shot-plan',
         layout: { 'line-cap': 'round' },
         paint: {
-          'line-color': ['match', ['get', 'leg'], 'tee', '#f59e0b', '#10b981'],
-          'line-width': 2.5,
+          'line-color': ['match', ['get', 'leg'], 'aggressive', '#ef4444', '#facc15'],
+          'line-width': ['match', ['get', 'leg'], 'aggressive', 2.2, 3.2],
           'line-dasharray': [2, 1.2],
         },
       });
