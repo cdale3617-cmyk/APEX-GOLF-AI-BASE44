@@ -18,7 +18,7 @@ function when(at) {
 export default function Caddie() {
   const {
     caddie, updateCaddie, voices, briefing, speak, lastHeard,
-    listening, voiceSupported, toggleListening, voiceHistory, clearVoiceHistory,
+    listening, voiceSupported, voiceHistory, clearVoiceHistory,
   } = useGolf();
   const feedRef = useRef(null);
   const [notice, setNotice] = useState('');
