@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target } from 'lucide-react';
+import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target, Gauge } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 
 const TOOLS = [
+  { path: '/tour-suite', title: 'Tour Performance Suite', detail: 'Wake lock, auto-hole and offline course packs', icon: Gauge },
   {
     path: '/rounds',
     title: 'Round History',
