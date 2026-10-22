@@ -80,7 +80,7 @@ export function getCourse(courseId) {
 export function addCourse(course) {
   const existing = getCourse(course.id);
   if (existing) return existing;
-  customCourses = [course, ...customCourses].slice(0, 12);
+  customCourses = [course, ...customCourses].slice(0, 100);
   try {
     localStorage.setItem(COURSES_KEY, JSON.stringify(customCourses));
   } catch {
@@ -100,6 +100,14 @@ function rememberHoles(course, holes) {
   } catch {
     /* too big for storage — holes stay in memory */
   }
+}
+
+/** Store a user-created or imported mapped course for offline hole navigation. */
+export function cacheCourseHoles(course, holes) {
+  if (!course?.id || !Array.isArray(holes) || !holes.length) {
+    throw new Error('Cannot cache a course without valid holes.');
+  }
+  rememberHoles(course, holes);
 }
 
 export async function loadCourseHoles(course) {
