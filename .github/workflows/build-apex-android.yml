@@ -68,6 +68,9 @@ jobs:
           python -m pip install --quiet pillow
           python android-build/generate_icons.py
 
+      - name: Verify tee-target-pin geometry regression
+        run: node --test android-build/shot-plan.test.mjs
+
       - name: Build the actual Apex Golf AI web screens
         env:
           VITE_BASE44_APP_ID: 6ad8bc88f9e44631e3842d43

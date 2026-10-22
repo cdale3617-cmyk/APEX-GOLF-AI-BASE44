@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { TriangleAlert } from 'lucide-react';
 import { bearingBetween, haversineYards } from '@/lib/golfData';
 import { distanceUnit, toDisplayDistance } from '@/lib/units';
+import { buildShotPlan } from '@/lib/shotPlanGeometry';
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
@@ -54,10 +55,8 @@ const markerElement = (key, color, name) => {
   hitArea.setAttribute('title', `Drag ${name} to reposition`);
   hitArea.setAttribute('aria-label', name);
 
-  const dot = document.createElement('span');
-  dot.setAttribute('aria-hidden', 'true');
-  dot.style.cssText = `display:block;width:12px;height:12px;flex:none;border-radius:50%;background:${color};border:1px solid #ffffff;box-shadow:0 1px 3px rgba(0,0,0,.65);pointer-events:none;`;
-  hitArea.appendChild(dot);
+  // The coloured dot is rendered by the map's own GeoJSON circle layer.
+  // This element is an invisible, touch-friendly handle only.
 
   if (key === 'layup') {
     // This separate readout stays beside the target rather than expanding
@@ -80,18 +79,6 @@ function setTargetDistance(marker, tee, target, units) {
   if (distance) distance.textContent = text;
   element.setAttribute('aria-label', `Target ${text} from tee; drag to change`);
 }
-
-const legFeature = (from, to, leg) => ({
-  type: 'Feature',
-  properties: { leg },
-  geometry: {
-    type: 'LineString',
-    coordinates: [
-      [from[1], from[0]],
-      [to[1], to[0]],
-    ],
-  },
-});
 
 export default function MapLibreHoleMap({
   coords,
@@ -168,6 +155,25 @@ export default function MapLibreHoleMap({
           'line-dasharray': [2, 1.2],
         },
       });
+      // Draw the red pin and both other dots in the SAME geographic source.
+      // An independent HTML marker can lag behind a GeoJSON line on Android.
+      map.addLayer({
+        id: 'shot-plan-dots',
+        type: 'circle',
+        source: 'shot-plan',
+        paint: {
+          'circle-radius': 5.5,
+          'circle-color': [
+            'match', ['get', 'key'],
+            'tee', '#18C2B8',
+            'layup', '#D7A441',
+            'pin', '#D94B4B',
+            '#FFFFFF',
+          ],
+          'circle-stroke-width': 1.3,
+          'circle-stroke-color': '#FFFFFF',
+        },
+      });
 
       setReady(true);
     });
@@ -182,7 +188,32 @@ export default function MapLibreHoleMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Draggable TEE / TARGET / PIN markers, wired to the shot plan.
+  // GeoJSON line and dot geometry update together from the same positions.
+  // Marker DOM elements remain invisible 34px drag handles.
+  const paintShotPlan = () => {
+    const map = mapRef.current;
+    const source = map?.getSource('shot-plan');
+    if (!source) return;
+    const live = {};
+    for (const { key } of MARKERS) {
+      const marker = markersRef.current[key];
+      if (marker) {
+        const point = marker.getLngLat();
+        live[key] = [point.lat, point.lng];
+      } else {
+        live[key] = latest.current.coords[key];
+      }
+    }
+    source.setData(buildShotPlan(live));
+    setTargetDistance(
+      markersRef.current.layup,
+      live.tee,
+      live.layup,
+      latest.current.units,
+    );
+  };
+
+  // Draggable TEE / TARGET / PIN handles, wired to the shot plan.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || !holeReady) return undefined;
@@ -193,22 +224,12 @@ export default function MapLibreHoleMap({
         anchor: 'center',
         draggable: true,
       });
-      if (key === 'tee' || key === 'layup') {
-        // Refresh the distance while the tee or yellow target is being dragged.
-        marker.on('drag', () => {
-          const position = marker.getLngLat();
-          const point = [position.lat, position.lng];
-          const current = latest.current.coords;
-          setTargetDistance(
-            markersRef.current.layup,
-            key === 'tee' ? point : current.tee,
-            key === 'layup' ? point : current.layup,
-            latest.current.units,
-          );
-        });
-      }
+      // Red endpoint and green line follow *during* the drag, rather than
+      // waiting for React to commit the new coordinates at dragend.
+      marker.on('drag', paintShotPlan);
       marker.on('dragend', () => {
         const position = marker.getLngLat();
+        paintShotPlan();
         latest.current.onMoveTarget(key, { lat: position.lat, lng: position.lng });
         if (key === 'pin') latest.current.onPinSettled?.();
       });
@@ -216,12 +237,7 @@ export default function MapLibreHoleMap({
       marker.setLngLat([position[1], position[0]]).addTo(map);
       markersRef.current[key] = marker;
     });
-    setTargetDistance(
-      markersRef.current.layup,
-      latest.current.coords.tee,
-      latest.current.coords.layup,
-      latest.current.units,
-    );
+    paintShotPlan();
 
     return () => {
       Object.values(markersRef.current).forEach((marker) => marker.remove());
@@ -238,7 +254,7 @@ export default function MapLibreHoleMap({
       const valid = Array.isArray(position) && Number.isFinite(position[0]) && Number.isFinite(position[1]);
       if (marker && valid) marker.setLngLat([position[1], position[0]]);
     });
-    if (holeReady) setTargetDistance(markersRef.current.layup, coords.tee, coords.layup, units);
+    if (holeReady) paintShotPlan();
   }, [coords, units, holeReady, ready]);
 
   // Course turf: fairway, green, bunker, water shapes from OpenStreetMap.
@@ -251,19 +267,12 @@ export default function MapLibreHoleMap({
     });
   }, [graphics, ready]);
 
-  // The tee-to-target and target-to-pin legs.
+  // Clear old course geometry when no active mapped hole is available.
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready) return;
-    const source = map.getSource('shot-plan');
+    const source = mapRef.current?.getSource('shot-plan');
     if (!source) return;
-    source.setData({
-      type: 'FeatureCollection',
-      features: holeReady ? [
-        legFeature(coords.tee, coords.layup, 'tee'),
-        legFeature(coords.layup, coords.pin, 'pin'),
-      ] : [],
-    });
+    if (!holeReady) source.setData(EMPTY);
+    else paintShotPlan();
   }, [coords, ready, holeReady]);
 
   // First jump to the new course location, even while hole data is loading.
@@ -300,7 +309,7 @@ export default function MapLibreHoleMap({
       bearing: 0,
       duration: 500,
     });
-  }, [coords, focus?.nonce, holeReady, ready, courseCenter]);
+  }, [focus?.nonce, holeReady, ready, courseCenter]);
 
   useEffect(() => {
     const map = mapRef.current;
