@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Trash2 } from 'lucide-react';
 import { MISS_PROFILES } from '@/lib/golfData';
 import { useGolf } from '@/lib/GolfContext';
 import { distanceUnit, fromDisplayDistance, toDisplayDistance } from '@/lib/units';
 
-export default function ClubRow({ club, learned, onToggle, onCarry, onMiss }) {
+export default function ClubRow({ club, learned, onToggle, onCarry, onMiss, onRemove }) {
   const { units, autoGapEnabled, gapReferenceId } = useGolf();
   const [carryDraft, setCarryDraft] = useState(() => String(toDisplayDistance(club.carry, units)));
   const [carryError, setCarryError] = useState('');
@@ -79,6 +79,12 @@ export default function ClubRow({ club, learned, onToggle, onCarry, onMiss }) {
         </select>
       </div>
 
+      <div className="mt-2 flex justify-end border-t border-border/60 pt-1.5">
+        <button type="button" onClick={onRemove} aria-label={'Remove ' + club.name}
+          className="flex min-h-9 items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 text-[11px] font-semibold text-destructive transition active:bg-destructive/20">
+          <Trash2 className="h-3.5 w-3.5" /> Remove
+        </button>
+      </div>
       {carryError && (
         <p role="alert" className="mt-1.5 text-[11px] font-semibold text-destructive">{carryError}</p>
       )}
