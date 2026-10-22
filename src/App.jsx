@@ -15,6 +15,7 @@ import Caddie from '@/pages/Caddie';
 import Scorecard from '@/pages/Scorecard';
 import Swing from '@/pages/Swing';
 import Rounds from '@/pages/Rounds';
+import More from '@/pages/More';
 import Drills from '@/pages/Drills';
 import CourseLab from '@/pages/CourseLab';
 import Login from '@/pages/Login';
@@ -65,6 +66,7 @@ const AuthenticatedApp = () => {
         <Route path="/scorecard" element={<Scorecard />} />
         <Route path="/swing" element={<Swing />} />
         <Route path="/rounds" element={<Rounds />} />
+        <Route path="/more" element={<More />} />
         <Route path="/drills" element={<Drills />} />
         <Route path="/course-lab" element={<CourseLab />} />
       </Route>

@@ -47,7 +47,9 @@ const MARKERS = [
 
 const markerElement = (color, label) => {
   const element = document.createElement('div');
-  element.style.cssText = `width:${label.length > 1 ? 30 : 22}px;height:22px;border-radius:9999px;background:${color};border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:8px;font-weight:800;color:#08111f;box-shadow:0 2px 6px rgba(0,0,0,0.45);line-height:1`;
+  // Compact tee, target and pin markers leave the satellite fairway visible.
+  const wide = label.length > 1;
+  element.style.cssText = `width:${wide ? 24 : 18}px;height:18px;border-radius:9999px;background:${color};border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:${wide ? 7 : 9}px;font-weight:800;color:#08111f;box-shadow:0 1px 3px rgba(0,0,0,0.32);line-height:1`;
   element.textContent = label;
   return element;
 };
