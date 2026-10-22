@@ -1,10 +1,14 @@
-import { Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { formatRelativeToPar } from '@/lib/golfData';
 
 const STROKE_LABELS = ['Tee', 'Appr', 'ARG', 'Putt'];
 
 export default function RoundCard({ round, onDelete }) {
   const { stats, strokes } = round;
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const savedHoles = Array.isArray(round.scorecard) ? round.scorecard : [];
+  const savedShots = Array.isArray(round.shotDetails) ? round.shotDetails : [];
   const total = strokes.reduce((sum, value) => sum + value, 0);
 
   const handleDelete = () => {
@@ -73,6 +77,53 @@ export default function RoundCard({ round, onDelete }) {
           </div>
         ))}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setDetailsOpen((open) => !open)}
+        aria-expanded={detailsOpen}
+        className="mt-3 flex w-full items-center justify-between rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-left text-xs font-semibold text-primary"
+      >
+        Hole & shot history
+        {detailsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </button>
+
+      {detailsOpen && (
+        <div className="mt-2 space-y-3 text-xs text-foreground">
+          <div>
+            <p className="mb-1 font-bold text-muted-foreground">Hole scores</p>
+            {savedHoles.length ? (
+              <div className="space-y-1">
+                {savedHoles.map((hole) => (
+                  <div key={hole.hole} className="flex justify-between rounded-lg bg-muted/40 px-2 py-1.5">
+                    <span>Hole {hole.hole} · Par {hole.par}</span>
+                    <span className="font-semibold tabular-nums">
+                      {hole.score + (hole.penalties ?? 0)} strokes · {hole.putts ?? 0} putts
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Hole-by-hole detail was not stored in this older saved round.</p>
+            )}
+          </div>
+          <div>
+            <p className="mb-1 font-bold text-muted-foreground">Individual logged shots</p>
+            {savedShots.length ? (
+              <div className="space-y-1">
+                {savedShots.map((shot, i) => (
+                  <div key={shot.id ?? i} className="flex justify-between gap-2 rounded-lg bg-muted/40 px-2 py-1.5">
+                    <span>{shot.holeNumber ? `Hole ${shot.holeNumber} · ` : ''}{shot.clubName || shot.clubId || 'Club'}</span>
+                    <span className="font-semibold tabular-nums">{shot.distance} yds</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">No individual shots were logged for this round. Score and putts are recorded separately.</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
