@@ -6,9 +6,24 @@ import { useGolf } from '@/lib/GolfContext';
 import { useTheme } from '@/hooks/useTheme';
 
 export default function AppShell() {
-  const { gpsStatus, listening, toggleListening, units, setUnits } = useGolf();
+  const { gpsStatus, gpsFix, gpsMode, gpsTrackingStatus, listening, toggleListening, units, setUnits } = useGolf();
   const { theme, toggle } = useTheme();
   const metric = units === 'metric';
+  const gpsLabel = gpsMode === 'unverified'
+    ? 'UNVERIFIED HOLE · Map for orientation only'
+    : gpsMode === 'live'
+      ? `GPS LIVE · ±${Math.round(gpsFix?.accuracy ?? 0)} m accuracy`
+      : gpsTrackingStatus === 'denied'
+        ? 'LOCATION BLOCKED · Tee preview'
+        : gpsTrackingStatus === 'unsupported'
+          ? 'GPS UNAVAILABLE · Tee preview'
+          : gpsTrackingStatus === 'weak'
+            ? 'WEAK GPS SIGNAL · Tee preview'
+            : gpsTrackingStatus === 'locating' || gpsTrackingStatus === 'starting'
+              ? 'LOCATING GPS · Tee preview'
+              : gpsTrackingStatus === 'tracking'
+                ? 'OFF COURSE · Tee preview'
+                : `TEE PREVIEW · ${gpsStatus}`;
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background text-foreground">
@@ -40,7 +55,7 @@ export default function AppShell() {
           </div>
         </div>
         <p className="mt-1 truncate text-[10px] font-medium leading-tight text-muted-foreground">
-          {gpsStatus}
+          {listening ? 'Voice caddie active' : gpsLabel}
         </p>
       </header>
       <main className="relative isolate min-h-0 flex-1 overflow-hidden">

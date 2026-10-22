@@ -28,23 +28,24 @@ function greenRing(graphics, pin) {
 }
 
 export default function GreenDistances({ graphics }) {
-  const { coords, units } = useGolf();
-
-  const centre = haversineYards(coords.tee, coords.pin);
+  const { coords, units, distances } = useGolf();
+  const source = distances.origin;
+  const centre = haversineYards(source, coords.pin);
   const ring = greenRing(graphics, coords.pin);
-  const spans = ring ? ring.map(([lng, lat]) => haversineYards(coords.tee, [lat, lng])) : [];
+  const spans = ring ? ring.map(([lng, lat]) => haversineYards(source, [lat, lng])) : [];
 
-  const front = spans.length ? Math.max(0, Math.min(...spans)) : Math.max(0, centre - 15);
-  const back = spans.length ? Math.max(...spans) : centre + 15;
+  // No real green boundary means no defensible front/back measurements.
+  const front = spans.length ? Math.max(0, Math.min(...spans)) : null;
+  const back = spans.length ? Math.max(...spans) : null;
   const unit = distanceUnit(units);
 
   return (
     <div className="glass-hud w-[74px] shrink-0 rounded-xl border-l-2 border-l-primary/70 px-1.5 py-2 text-center shadow-xl">
-      <span className="hud-label block font-bold text-muted-foreground">To green</span>
+      <span className="hud-label block font-bold text-muted-foreground">{distances.mode === 'live' ? 'From GPS' : 'From tee'}</span>
 
       <div className="mt-1">
         <span className="block text-[8px] font-bold uppercase text-muted-foreground">Back</span>
-        <span className="block text-xs font-bold tabular-nums text-foreground">{toDisplayDistance(back, units)}</span>
+        <span className="block text-xs font-bold tabular-nums text-foreground">{back === null ? '—' : toDisplayDistance(back, units)}</span>
       </div>
 
       <div className="my-1 border-y border-border/70 py-1">
@@ -57,7 +58,7 @@ export default function GreenDistances({ graphics }) {
 
       <div>
         <span className="block text-[8px] font-bold uppercase text-muted-foreground">Front</span>
-        <span className="block text-xs font-bold tabular-nums text-foreground">{toDisplayDistance(front, units)}</span>
+        <span className="block text-xs font-bold tabular-nums text-foreground">{front === null ? '—' : toDisplayDistance(front, units)}</span>
       </div>
     </div>
   );

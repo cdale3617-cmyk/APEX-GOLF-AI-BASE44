@@ -77,7 +77,7 @@ function setTargetDistance(marker, tee, target, units) {
   const element = marker.getElement();
   const distance = element.querySelector('.apex-target-distance');
   if (distance) distance.textContent = text;
-  element.setAttribute('aria-label', `Target ${text} from tee; drag to change`);
+  element.setAttribute('aria-label', `Target ${text}; drag to change`);
 }
 
 export default function MapLibreHoleMap({
@@ -86,6 +86,9 @@ export default function MapLibreHoleMap({
   courseCenter,
   holeReady = false,
   units = 'metric',
+  gpsFix = null,
+  gpsMode = 'preview',
+  playerFocusNonce = 0,
   graphics,
   pitchOn = true,
   satellite = true,
@@ -99,8 +102,8 @@ export default function MapLibreHoleMap({
   const [mapError, setMapError] = useState('');
 
   // Latest values the map's own event handlers need, without re-binding them.
-  const latest = useRef({ coords, onMoveTarget, onPinSettled, pitchOn, units });
-  latest.current = { coords, onMoveTarget, onPinSettled, pitchOn, units };
+  const latest = useRef({ coords, onMoveTarget, onPinSettled, pitchOn, units, gpsFix, gpsMode });
+  latest.current = { coords, onMoveTarget, onPinSettled, pitchOn, units, gpsFix, gpsMode };
 
   const validPoint = (point) =>
     Array.isArray(point) && point.length === 2 &&
@@ -144,6 +147,19 @@ export default function MapLibreHoleMap({
       });
 
       map.addSource('shot-plan', { type: 'geojson', data: EMPTY });
+      map.addSource('player-position', { type: 'geojson', data: EMPTY });
+      map.addLayer({
+        id: 'player-position-halo',
+        type: 'circle',
+        source: 'player-position',
+        paint: { 'circle-radius': 13, 'circle-color': '#4AA9DF', 'circle-opacity': .17, 'circle-stroke-width': 0 },
+      });
+      map.addLayer({
+        id: 'player-position-dot',
+        type: 'circle',
+        source: 'player-position',
+        paint: { 'circle-radius': 6, 'circle-color': '#4AA9DF', 'circle-stroke-color': '#FFFFFF', 'circle-stroke-width': 2 },
+      });
       map.addLayer({
         id: 'shot-plan-line',
         type: 'line',
@@ -207,7 +223,8 @@ export default function MapLibreHoleMap({
     source.setData(buildShotPlan(live));
     setTargetDistance(
       markersRef.current.layup,
-      live.tee,
+      latest.current.gpsMode === 'live' && latest.current.gpsFix
+        ? latest.current.gpsFix.coords : live.tee,
       live.layup,
       latest.current.units,
     );
@@ -255,7 +272,7 @@ export default function MapLibreHoleMap({
       if (marker && valid) marker.setLngLat([position[1], position[0]]);
     });
     if (holeReady) paintShotPlan();
-  }, [coords, units, holeReady, ready]);
+  }, [coords, units, gpsFix, gpsMode, holeReady, ready]);
 
   // Course turf: fairway, green, bunker, water shapes from OpenStreetMap.
   useEffect(() => {
@@ -266,6 +283,32 @@ export default function MapLibreHoleMap({
       if (source?.setData) source.setData(data);
     });
   }, [graphics, ready]);
+
+  // The live phone position is a separate dot, never an editable tee marker.
+  useEffect(() => {
+    const map = mapRef.current;
+    const source = map?.getSource('player-position');
+    if (!source) return;
+    source.setData(gpsMode === 'live' && gpsFix ? {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        properties: { accuracy: gpsFix.accuracy },
+        geometry: { type: 'Point', coordinates: [gpsFix.coords[1], gpsFix.coords[0]] },
+      }],
+    } : EMPTY);
+  }, [ready, gpsFix, gpsMode]);
+
+  // Locate button centres on the player without changing tee/target/pin.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !playerFocusNonce || gpsMode !== 'live' || !gpsFix) return;
+    map.easeTo({
+      center: [gpsFix.coords[1], gpsFix.coords[0]],
+      zoom: Math.max(map.getZoom(), 16.5),
+      duration: 450,
+    });
+  }, [playerFocusNonce, ready]);
 
   // Clear old course geometry when no active mapped hole is available.
   useEffect(() => {

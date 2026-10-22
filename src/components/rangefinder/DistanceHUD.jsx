@@ -11,10 +11,15 @@ export default function DistanceHUD({ distances, onLocate, expanded = false, onT
   const carry = toDisplayDistance(distances.club.carry, units);
   const shortUnit = distanceUnit(units);
   const longUnit = distanceUnitLong(units).toUpperCase();
+  const sourceLabel = distances.mode === 'live'
+    ? `GPS ±${Math.round(distances.accuracy ?? 0)}m`
+    : 'TEE PREVIEW';
 
   if (!expanded) {
     return (
-      <div className="glass-hud flex min-w-0 items-center gap-1 rounded-xl border-primary/30 p-1.5 px-2 shadow-2xl">
+      <div className="glass-hud min-w-0 rounded-xl border-primary/30 px-2 py-1.5 shadow-2xl">
+        <div className="mb-0.5 text-[9px] font-bold tracking-wide text-primary">{sourceLabel} · {shortUnit}</div>
+        <div className="flex min-w-0 items-center gap-1">
         <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-center justify-between gap-1.5 overflow-hidden text-left">
           <span className="flex items-baseline gap-1">
             <span className="text-xl font-black leading-none tabular-nums text-primary">{playsLike}</span>
@@ -40,12 +45,14 @@ export default function DistanceHUD({ distances, onLocate, expanded = false, onT
         >
           <LocateFixed className="h-4 w-4" />
         </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="glass-hud rounded-2xl border-primary/30 p-3 shadow-2xl">
+      <p className="mb-2 text-[10px] font-bold text-primary">{sourceLabel} · {shortUnit}</p>
       <div className="grid grid-cols-3 gap-2 border-b border-border/70 pb-2.5 text-center">
         <div className="flex flex-col justify-center">
           <span className="hud-label text-muted-foreground">Direct Pin</span>

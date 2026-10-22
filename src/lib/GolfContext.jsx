@@ -23,6 +23,8 @@ import { FEATURED_COURSES, HOLE_PARS, addCourse, cachedHoles, getCourse, loadCou
 import { addRound, buildRound, loadRounds, removeRound } from '@/lib/roundHistory';
 import { routeAudio } from '@/lib/audioRoute';
 import { answerVoiceQuery, describeScorePatch, parseVoiceIntent } from '@/lib/voiceEngine';
+import { checkGpsPosition, courseGpsMode, selectShotOrigin } from '@/lib/gpsTracking';
+import { distanceUnitSpoken, toDisplayDistance } from '@/lib/units';
 
 const STORAGE_KEY = 'apex_golf_ai_device_v1';
 
@@ -69,7 +71,13 @@ export function GolfProvider({ children }) {
   const [rounds, setRounds] = useState(loadRounds);
   const [lastSwing, setLastSwing] = useState(null);
 
-  const [gpsStatus, setGpsStatus] = useState('GPS Ready • High Accuracy');
+  const [gpsStatus, setGpsStatus] = useState('Course preview • GPS locating');
+  // The player location is deliberately independent from tee/target/green.
+  const [gpsFix, setGpsFix] = useState(null);
+  const [gpsTrackingStatus, setGpsTrackingStatus] = useState('starting');
+  const [gpsClock, setGpsClock] = useState(Date.now());
+  const [playerFocusNonce, setPlayerFocusNonce] = useState(0);
+  const watchIdRef = useRef(null);
   const [focusCenter, setFocusCenter] = useState(() => getCourse(startCourseId)?.center ?? null);
   const [focusNonce, setFocusNonce] = useState(0);
   const [listening, setListening] = useState(false);
@@ -104,22 +112,31 @@ export function GolfProvider({ children }) {
 
   const learnedClubs = useMemo(() => applyLearnedCarries(clubs, shots), [clubs, shots]);
 
+  const gpsMode = useMemo(
+    () => courseGpsMode(gpsFix, hole, gpsClock),
+    [gpsFix, hole, gpsClock],
+  );
+  const shotOrigin = selectShotOrigin(gpsFix, gpsMode, coords.tee);
+
   const distances = useMemo(() => {
-    const direct = haversineYards(coords.tee, coords.pin);
-    const bearing = bearingBetween(coords.tee, coords.pin);
+    const direct = haversineYards(shotOrigin, coords.pin);
+    const bearing = bearingBetween(shotOrigin, coords.pin);
     const playsLike = playsLikeYards(direct, env, bearing);
     const rec = recommendClub(learnedClubs, playsLike);
     return {
       direct,
       playsLike,
-      seg1: haversineYards(coords.tee, coords.layup),
+      seg1: haversineYards(shotOrigin, coords.layup),
       seg2: haversineYards(coords.layup, coords.pin),
       club: rec.club,
       reason: rec.reason,
       wind: windOnShot(env, bearing),
       factors: adjustmentSummary(env, bearing),
+      mode: gpsMode,
+      accuracy: gpsMode === 'live' ? gpsFix.accuracy : null,
+      origin: shotOrigin,
     };
-  }, [coords, env, learnedClubs]);
+  }, [shotOrigin, coords, env, learnedClubs, gpsMode, gpsFix]);
 
   // The hole the golfer is standing on drives the scorecard: the loaded map hole
   // while playing, otherwise the first hole still waiting for a score.
@@ -181,7 +198,13 @@ export function GolfProvider({ children }) {
 
   const briefing = useCallback(() => {
     const personality = PERSONALITIES[caddie.personality] ?? PERSONALITIES.veteran;
+    if (hole?.estimated) {
+      return `${personality.prefix}This hole layout is only estimated. Do not rely on the mapped distances or club advice until verified hole positions are available.`;
+    }
     const parts = [];
+    if (gpsMode !== 'live') {
+      parts.push('The distances are from the mapped tee, not your phone. This is course preview mode.');
+    }
     if (hole) {
       parts.push(`Hole ${hole.number}, par ${hole.par}, ${hole.yards} yards on ${hole.courseName}.`);
     }
@@ -192,8 +215,8 @@ export function GolfProvider({ children }) {
         : `Wind is ${env.windSpeed} from the ${env.windDir}, a ${distances.wind.label} worth ${Math.abs(distances.wind.yards)} yards`;
 
     parts.push(
-      `The pin is at ${distances.direct} yards, playing like ${distances.playsLike}, so I like your ${distances.club.name}.`,
-      `${windNote} at ${env.temp} degrees.`,
+      `The pin is at ${toDisplayDistance(distances.direct, units)} ${distanceUnitSpoken(units)}, playing like ${toDisplayDistance(distances.playsLike, units)}, so I like your ${distances.club.name}.`,
+      `${windNote} at ${env.temp} degrees Fahrenheit.`,
     );
 
     if (stats.holes) {
@@ -218,7 +241,7 @@ export function GolfProvider({ children }) {
 
     parts.push(`Tempo target stays at ${bpm} beats per minute.`);
     return `${personality.prefix}${parts.join(' ')}`;
-  }, [bpm, caddie.personality, distances, env, hole, lastSwing, learnedClubs, shots.length, stats, strokes]);
+  }, [bpm, caddie.personality, distances, env, gpsMode, units, hole, lastSwing, learnedClubs, shots.length, stats, strokes]);
 
   /* ---------------- Course & hole navigation (buttons and voice) ---------------- */
   const courseRequestRef = useRef(0);
@@ -307,7 +330,7 @@ export function GolfProvider({ children }) {
     if (!courseLoading) return undefined;
     const timer = setTimeout(() => {
       setCourseLoading(false);
-      setCourseError('Hole map is taking too long. Retry, or drag the PIN onto the green.');
+      setCourseError('Verified hole map is taking too long. Retry when the course mapping service is available.');
     }, 30000);
     return () => clearTimeout(timer);
   }, [courseLoading]);
@@ -443,6 +466,10 @@ export function GolfProvider({ children }) {
         return;
       }
 
+      if (hole?.estimated && !intent && /\\b(distance|far|yard|metres?|meters?|club|pin|green|layup|briefing)\\b/i.test(raw)) {
+        speak('This hole layout is only estimated. I cannot provide reliable GPS distance or club advice.');
+        return;
+      }
       speak(answer ?? `Got it. ${raw}`);
     },
     [
@@ -553,30 +580,84 @@ export function GolfProvider({ children }) {
     }
   }, [hole, speak]);
 
-  /* ---------------- GPS ---------------- */
-  const locate = useCallback(() => {
+  /* ---------------- Live GPS (foreground only) ---------------- */
+  const stopGpsTracking = useCallback(() => {
+    if (watchIdRef.current !== null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setGpsTrackingStatus('stopped');
+  }, []);
+
+  const startGpsTracking = useCallback(() => {
+    if (watchIdRef.current !== null) return;
     if (!navigator.geolocation) {
-      setGpsStatus('GPS Unavailable • Manual Mode');
+      setGpsTrackingStatus('unsupported');
       return;
     }
-    setGpsStatus('Locating…');
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        setCoords({
-          tee: [lat, lng],
-          layup: [lat + 0.0015, lng + 0.001],
-          pin: [lat + 0.0025, lng + 0.0018],
-        });
-        setFocusCenter([lat, lng]);
-        setFocusNonce((n) => n + 1);
-        setGpsStatus('GPS Active • High Precision');
-      },
-      () => setGpsStatus('GPS Offline • Manual Mode'),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-    );
+    setGpsTrackingStatus('locating');
+    try {
+      const id = navigator.geolocation.watchPosition(
+        (position) => {
+          const checked = checkGpsPosition(position);
+          setGpsClock(Date.now());
+          if (!checked.accepted) {
+            if (checked.reason === 'weak' || checked.reason === 'invalid') setGpsFix(null);
+            setGpsTrackingStatus(checked.reason === 'weak' ? 'weak' : 'locating');
+            return;
+          }
+          setGpsFix(checked.fix);
+          setGpsTrackingStatus('tracking');
+        },
+        (error) => {
+          if (error?.code === 1) {
+            setGpsFix(null);
+            setGpsTrackingStatus('denied');
+            if (watchIdRef.current !== null) {
+              navigator.geolocation.clearWatch(watchIdRef.current);
+              watchIdRef.current = null;
+            }
+          } else if (error?.code === 2) {
+            setGpsFix(null);
+            setGpsTrackingStatus('unavailable');
+          } else {
+            setGpsTrackingStatus('locating');
+          }
+        },
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 },
+      );
+      watchIdRef.current = id;
+    } catch {
+      setGpsTrackingStatus('unavailable');
+    }
   }, []);
+
+  // Run while Apex is open; keep the latest fix private and never store it.
+  // Closing the screen removes the browser geolocation watcher.
+  useEffect(() => {
+    startGpsTracking();
+    const timer = setInterval(() => setGpsClock(Date.now()), 5000);
+    return () => {
+      clearInterval(timer);
+      if (watchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
+  }, [startGpsTracking]);
+
+  const locate = useCallback(() => {
+    startGpsTracking();
+    if (gpsMode === 'live') {
+      setPlayerFocusNonce((n) => n + 1);
+      setGpsStatus('GPS position located');
+    } else if (gpsMode === 'unverified') {
+      setGpsStatus('Unverified course layout — GPS distance disabled');
+    } else {
+      setGpsStatus('Tee preview — GPS not at this hole or signal unavailable');
+    }
+    // Never change coords here: they describe the selected course, not us.
+  }, [gpsMode, startGpsTracking]);
 
   const focusCourse = useCallback((lat, lng, label = 'Searched area') => {
     // Invalidate a course request so an old server reply cannot move us back.
@@ -676,6 +757,13 @@ export function GolfProvider({ children }) {
       stats,
       strokes,
       gpsStatus,
+      gpsFix,
+      gpsMode,
+      gpsTrackingStatus,
+      playerFocusNonce,
+      startGpsTracking,
+      stopGpsTracking,
+      shotOrigin,
       focusCenter,
       focusNonce,
       voices,
@@ -731,6 +819,13 @@ export function GolfProvider({ children }) {
       stats,
       strokes,
       gpsStatus,
+      gpsFix,
+      gpsMode,
+      gpsTrackingStatus,
+      playerFocusNonce,
+      startGpsTracking,
+      stopGpsTracking,
+      shotOrigin,
       focusCenter,
       focusNonce,
       voices,

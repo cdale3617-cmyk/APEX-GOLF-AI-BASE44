@@ -19,7 +19,7 @@ export default function HoleBar({ course, hole, holeCount = 18, onPrev, onNext, 
           <Flag className="h-3 w-3 shrink-0" />
           {hole ? `Hole ${hole.number}/${holeCount} · Par ${hole.par}` : 'Choose hole'}
           {hole && <span className="truncate text-muted-foreground">
-            · {toDisplayDistance(hole.yards, units)} {distanceUnit(units)}
+            {hole.estimated ? '· Estimated layout' : `· ${toDisplayDistance(hole.yards, units)} ${distanceUnit(units)}`}
           </span>}
         </span>
       </button>
