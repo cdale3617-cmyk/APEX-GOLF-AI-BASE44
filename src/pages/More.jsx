@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target, Gauge, ScanEye, History, Activity, HeartPulse } from 'lucide-react';
+import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target, Gauge, ScanEye, History, Activity, HeartPulse, Smartphone } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 
 const TOOLS = [
+  { path: '/pairing', title: 'S24 to Lenny Pairing', detail: 'Local Wi-Fi live round display via WebRTC; manual pairing codes', icon: Smartphone },
   { path: '/shot-history', title: 'Shot History', detail: 'Every current and saved club shot', icon: History },
   { path: '/shot-studio', title: 'Shot Studio', detail: 'Shot tracer, estimated trajectory and swing metrics', icon: Activity },
   { path: '/biometrics', title: 'Biometrics', detail: 'Heart rate, oxygen and optional Bluetooth HR sensor', icon: HeartPulse },

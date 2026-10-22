@@ -23,6 +23,7 @@ import GreenReader from '@/pages/GreenReader';
 import ShotHistory from '@/pages/ShotHistory';
 import ShotStudio from '@/pages/ShotStudio';
 import Biometrics from '@/pages/Biometrics';
+import Pairing from '@/pages/Pairing';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -79,6 +80,7 @@ const AuthenticatedApp = () => {
           <Route path="/shot-history" element={<ShotHistory />} />
           <Route path="/shot-studio" element={<ShotStudio />} />
           <Route path="/biometrics" element={<Biometrics />} />
+          <Route path="/pairing" element={<Pairing />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -9,7 +9,7 @@ const TABS = [
   { to: '/more', label: 'More', icon: MoreHorizontal },
 ];
 
-const MORE_PAGES = ['/more', '/rounds', '/swing', '/drills', '/course-lab', '/green-reader', '/tour-suite', '/shot-history', '/shot-studio', '/biometrics'];
+const MORE_PAGES = ['/more', '/rounds', '/swing', '/drills', '/course-lab', '/green-reader', '/tour-suite', '/shot-history', '/shot-studio', '/biometrics', '/pairing'];
 
 export default function BottomNav() {
   const { pathname } = useLocation();

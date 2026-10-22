@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Camera, CameraOff, Download, RefreshCcw, SwitchCamera } from 'lucide-react';
+import { ArrowLeft, Camera, CameraOff, Download, RefreshCcw, SwitchCamera, Activity } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useGolf } from '@/lib/GolfContext';
 
@@ -22,6 +22,9 @@ export default function GreenReader() {
   const [facing, setFacing] = useState('environment');
   const [cameraOn, setCameraOn] = useState(false);
   const [status, setStatus] = useState('');
+  const [levelStatus, setLevelStatus] = useState('');
+  const [levelBusy, setLevelBusy] = useState(false);
+  const levelStopRef = useRef(null);
   const [photo, setPhoto] = useState('');
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -71,6 +74,7 @@ export default function GreenReader() {
   // Unmount cleanup: no camera running behind other pages.
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
+    levelStopRef.current?.();
   }, []);
 
   // Heuristic guide only. Real grain, green profile and putting dynamics unknown.
@@ -80,6 +84,64 @@ export default function GreenReader() {
   const aimX = 180 + signed * shift;
   const aimSide = direction === 'right' ? 'left' : 'right';
   const guidePath = 'M 180 470 Q ' + (180 + signed * shift * 2) + ' 270 180 70';
+
+  // A phone resting with its TOP pointing toward the hole can measure an approximate
+  // cross-tilt using its motion sensors. A camera image alone cannot infer slope.
+  const measureLevel = async () => {
+    if (typeof DeviceMotionEvent === 'undefined') {
+      setLevelStatus('Motion sensors not exposed in this app. Use manual slope controls.'); return;
+    }
+    levelStopRef.current?.();
+    setLevelBusy(true);
+    setLevelStatus('Place the phone flat with its top pointing toward the hole, then keep it still.');
+    try {
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        const granted = await DeviceMotionEvent.requestPermission();
+        if (granted !== 'granted') throw new Error('Motion permission denied.');
+      }
+    } catch (error) {
+      setLevelBusy(false); setLevelStatus(error?.message || 'Motion permission unavailable.'); return;
+    }
+    let done = false;
+    let values = [];
+    const stop = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('devicemotion', sample);
+      clearTimeout(timer);
+      setLevelBusy(false);
+      levelStopRef.current = null;
+    };
+    const sample = (event) => {
+      const g = event.accelerationIncludingGravity;
+      const x = Number(g?.x); const y = Number(g?.y); const z = Number(g?.z);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return;
+      const norm = Math.hypot(x, y, z);
+      if (norm < 7 || norm > 12 || Math.abs(z) < 6) return;
+      values.push({x,y,z});
+      if (values.length < 15) return;
+      const average = values.reduce((sum, value) => ({
+        x: sum.x + value.x, y: sum.y + value.y, z: sum.z + value.z,
+      }), {x:0,y:0,z:0});
+      const gx = average.x / values.length;
+      const gz = average.z / values.length;
+      const grade = Math.abs(gx / gz) * 100;
+      stop();
+      if (grade > 5) {
+        setLevelStatus('Measured cross-slope is above the 5% guide range. Check phone placement and adjust manually.');
+        return;
+      }
+      setSlope(clamp(grade, 0, 5));
+      setDirection(gx > 0 ? 'right' : 'left');
+      setLevelStatus('Sensor cross-tilt about ' + grade.toFixed(1) + '%; verify left/right direction by eye. This is not camera contour detection.');
+    };
+    const timer = setTimeout(() => {
+      stop();
+      setLevelStatus('No stable motion reading. Check Android sensor permission and try again.');
+    }, 6500);
+    levelStopRef.current = stop;
+    window.addEventListener('devicemotion', sample);
+  };
 
   const toggleCamera = () => {
     if (cameraOn) { setCameraOn(false); setStatus('Camera stopped.'); return; }
@@ -205,6 +267,12 @@ export default function GreenReader() {
         </section>
 
         <section className="glass-panel space-y-3 rounded-2xl p-3">
+          <button type="button" onClick={measureLevel} disabled={levelBusy}
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary/50 bg-primary/15 px-3 text-sm font-bold text-primary disabled:opacity-50">
+            <Activity className="h-4 w-4" />
+            {levelBusy ? 'Measuring phone tilt…' : 'Measure Cross-Slope with Phone Sensor'}
+          </button>
+          <p role="status" className="text-xs leading-relaxed text-muted-foreground">{levelStatus || 'Place the phone flat with its TOP facing the hole. Sensor tilt only; the camera cannot automatically map green contours.'}</p>
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-foreground">Putting-line adjustments</h3>
             <button type="button" onClick={reset} className={button} aria-label="Reset putting guide">
@@ -245,7 +313,7 @@ export default function GreenReader() {
               Approximate aim: {breakCm} cm {aimSide} of hole
             </p>
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              Training guide only. The camera does not measure contours, slope or grain.
+              Training guide only. The camera does not measure contours or grain. The optional phone tilt reading is a rough cross-slope aid and needs a stable placement.
               Confirm the line by walking and reading the green.
             </p>
           </div>
