@@ -28,6 +28,7 @@ import { searchGolfCourses } from '@/lib/osmCourses';
 export default function Rangefinder() {
   const {
     coords,
+    units,
     course,
     courseId,
     courseLoading,
@@ -129,6 +130,7 @@ export default function Rangefinder() {
         focus={{ center: focusCenter, nonce: focusNonce }}
         courseCenter={course?.center}
         holeReady={Boolean(hole)}
+        units={units}
         graphics={graphics}
         pitchOn={pitchOn}
         satellite={satellite}

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { TriangleAlert } from 'lucide-react';
-import { bearingBetween } from '@/lib/golfData';
+import { bearingBetween, haversineYards } from '@/lib/golfData';
+import { distanceUnit, toDisplayDistance } from '@/lib/units';
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
@@ -40,19 +41,45 @@ const FILLS = [
 ];
 
 const MARKERS = [
-  { key: 'tee', color: '#10b981', label: 'T' },
-  { key: 'layup', color: '#f59e0b', label: 'TGT' },
-  { key: 'pin', color: '#ef4444', label: 'P' },
+  { key: 'tee', color: '#18C2B8', name: 'Tee' },
+  { key: 'layup', color: '#D7A441', name: 'Target' },
+  { key: 'pin', color: '#D94B4B', name: 'Pin' },
 ];
 
-const markerElement = (color, label) => {
-  const element = document.createElement('div');
-  // Compact tee, target and pin markers leave the satellite fairway visible.
-  const wide = label.length > 1;
-  element.style.cssText = `width:${wide ? 24 : 18}px;height:18px;border-radius:9999px;background:${color};border:1.5px solid #fff;display:flex;align-items:center;justify-content:center;font-family:Inter,sans-serif;font-size:${wide ? 7 : 9}px;font-weight:800;color:#08111f;box-shadow:0 1px 3px rgba(0,0,0,0.32);line-height:1`;
-  element.textContent = label;
-  return element;
+// The large invisible hit area stays easy to drag on a phone; only the
+// small 12-pixel dot is painted over the satellite course.
+const markerElement = (key, color, name) => {
+  const hitArea = document.createElement('div');
+  hitArea.style.cssText = 'position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;';
+  hitArea.setAttribute('title', `Drag ${name} to reposition`);
+  hitArea.setAttribute('aria-label', name);
+
+  const dot = document.createElement('span');
+  dot.setAttribute('aria-hidden', 'true');
+  dot.style.cssText = `display:block;width:12px;height:12px;flex:none;border-radius:50%;background:${color};border:1px solid #ffffff;box-shadow:0 1px 3px rgba(0,0,0,.65);pointer-events:none;`;
+  hitArea.appendChild(dot);
+
+  if (key === 'layup') {
+    // This separate readout stays beside the target rather than expanding
+    // the yellow dot itself. It must never intercept dragging.
+    const distance = document.createElement('span');
+    distance.className = 'apex-target-distance';
+    distance.style.cssText = 'position:absolute;left:27px;top:50%;transform:translateY(-50%);white-space:nowrap;pointer-events:none;background:rgba(9,17,31,.94);border:1px solid #D7A441;border-radius:5px;color:#FFF4CF;padding:2px 4px;font-family:Inter,system-ui,sans-serif;font-size:10px;font-weight:800;line-height:14px;font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.5);';
+    distance.textContent = '—';
+    hitArea.appendChild(distance);
+  }
+  return hitArea;
 };
+
+function setTargetDistance(marker, tee, target, units) {
+  if (!marker || !Array.isArray(tee) || !Array.isArray(target)) return;
+  if (![...tee, ...target].every(Number.isFinite)) return;
+  const text = `${toDisplayDistance(haversineYards(tee, target), units)} ${distanceUnit(units)}`;
+  const element = marker.getElement();
+  const distance = element.querySelector('.apex-target-distance');
+  if (distance) distance.textContent = text;
+  element.setAttribute('aria-label', `Target ${text} from tee; drag to change`);
+}
 
 const legFeature = (from, to, leg) => ({
   type: 'Feature',
@@ -71,6 +98,7 @@ export default function MapLibreHoleMap({
   focus,
   courseCenter,
   holeReady = false,
+  units = 'metric',
   graphics,
   pitchOn = true,
   satellite = true,
@@ -84,8 +112,8 @@ export default function MapLibreHoleMap({
   const [mapError, setMapError] = useState('');
 
   // Latest values the map's own event handlers need, without re-binding them.
-  const latest = useRef({ coords, onMoveTarget, onPinSettled, pitchOn });
-  latest.current = { coords, onMoveTarget, onPinSettled, pitchOn };
+  const latest = useRef({ coords, onMoveTarget, onPinSettled, pitchOn, units });
+  latest.current = { coords, onMoveTarget, onPinSettled, pitchOn, units };
 
   const validPoint = (point) =>
     Array.isArray(point) && point.length === 2 &&
@@ -159,8 +187,26 @@ export default function MapLibreHoleMap({
     const map = mapRef.current;
     if (!map || !ready || !holeReady) return undefined;
 
-    MARKERS.forEach(({ key, color, label }) => {
-      const marker = new maplibregl.Marker({ element: markerElement(color, label), draggable: true });
+    MARKERS.forEach(({ key, color, name }) => {
+      const marker = new maplibregl.Marker({
+        element: markerElement(key, color, name),
+        anchor: 'center',
+        draggable: true,
+      });
+      if (key === 'tee' || key === 'layup') {
+        // Refresh the distance while the tee or yellow target is being dragged.
+        marker.on('drag', () => {
+          const position = marker.getLngLat();
+          const point = [position.lat, position.lng];
+          const current = latest.current.coords;
+          setTargetDistance(
+            markersRef.current.layup,
+            key === 'tee' ? point : current.tee,
+            key === 'layup' ? point : current.layup,
+            latest.current.units,
+          );
+        });
+      }
       marker.on('dragend', () => {
         const position = marker.getLngLat();
         latest.current.onMoveTarget(key, { lat: position.lat, lng: position.lng });
@@ -170,6 +216,12 @@ export default function MapLibreHoleMap({
       marker.setLngLat([position[1], position[0]]).addTo(map);
       markersRef.current[key] = marker;
     });
+    setTargetDistance(
+      markersRef.current.layup,
+      latest.current.coords.tee,
+      latest.current.coords.layup,
+      latest.current.units,
+    );
 
     return () => {
       Object.values(markersRef.current).forEach((marker) => marker.remove());
@@ -186,7 +238,8 @@ export default function MapLibreHoleMap({
       const valid = Array.isArray(position) && Number.isFinite(position[0]) && Number.isFinite(position[1]);
       if (marker && valid) marker.setLngLat([position[1], position[0]]);
     });
-  }, [coords, ready]);
+    if (holeReady) setTargetDistance(markersRef.current.layup, coords.tee, coords.layup, units);
+  }, [coords, units, holeReady, ready]);
 
   // Course turf: fairway, green, bunker, water shapes from OpenStreetMap.
   useEffect(() => {
