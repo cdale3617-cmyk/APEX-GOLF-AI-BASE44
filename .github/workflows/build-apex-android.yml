@@ -68,8 +68,8 @@ jobs:
           python -m pip install --quiet pillow
           python android-build/generate_icons.py
 
-      - name: Verify tee-target-pin geometry regression
-        run: node --test android-build/shot-plan.test.mjs android-build/gps-tracking.test.mjs
+      - name: Verify golf GPS and automatic club gapping regressions
+        run: node --test android-build/shot-plan.test.mjs android-build/gps-tracking.test.mjs android-build/auto-gapping.test.mjs
 
       - name: Build the actual Apex Golf AI web screens
         env:
