@@ -26,6 +26,7 @@ import { answerVoiceQuery, describeScorePatch, parseVoiceIntent } from '@/lib/vo
 import { checkGpsPosition, courseGpsMode, selectShotOrigin } from '@/lib/gpsTracking';
 import { distanceUnitSpoken, toDisplayDistance } from '@/lib/units';
 import { offsetTarget } from '@/lib/targetPin';
+import { autoGapCarry, DEFAULT_GAP_REFERENCE_ID } from '@/lib/autoGapping';
 
 const STORAGE_KEY = 'apex_golf_ai_device_v1';
 const newRoundSessionId = () => `round-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -49,6 +50,8 @@ export function GolfProvider({ children }) {
   // Earbuds / headset the caddie should speak through ('' = system default).
   const [audioSink, setAudioSink] = useState(stored.audioSink ?? '');
   const [clubs, setClubs] = useState(stored.clubs ?? DEFAULT_CLUBS);
+  const [autoGapEnabled, setAutoGapEnabled] = useState(stored.autoGapEnabled ?? true);
+  const [gapReferenceId, setGapReferenceId] = useState(stored.gapReferenceId ?? DEFAULT_GAP_REFERENCE_ID);
   const [caddie, setCaddie] = useState({ ...DEFAULT_CADDIE, ...(stored.caddie ?? {}) });
   const startCourseId = stored.courseId ?? FEATURED_COURSES[0].id;
   const [courseId, setCourseId] = useState(startCourseId);
@@ -95,12 +98,12 @@ export function GolfProvider({ children }) {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ env, units, audioSink, clubs, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, keepScreenAwake }),
+        JSON.stringify({ env, units, audioSink, clubs, autoGapEnabled, gapReferenceId, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, keepScreenAwake }),
       );
     } catch {
       /* storage full or blocked — the round still works in memory */
     }
-  }, [env, units, audioSink, clubs, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, keepScreenAwake]);
+  }, [env, units, audioSink, clubs, autoGapEnabled, gapReferenceId, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, keepScreenAwake]);
 
   const course = useMemo(() => (courseId ? getCourse(courseId) : null), [courseId]);
 
@@ -698,10 +701,23 @@ export function GolfProvider({ children }) {
 
   /* ---------------- Bag ---------------- */
   const updateClub = useCallback((index, patch) => {
-    setClubs((prev) => prev.map((club, i) => (i === index ? { ...club, ...patch } : club)));
-  }, []);
+    const club = clubs[index];
+    if (!club) return { error: 'Club not found.' };
+    if (Object.prototype.hasOwnProperty.call(patch, 'carry') && autoGapEnabled) {
+      const result = autoGapCarry(clubs, club.id, patch.carry, gapReferenceId);
+      if (result.error) return { error: result.error };
+      setClubs(result.clubs);
+      if (result.referenceId !== gapReferenceId) setGapReferenceId(result.referenceId);
+      return { error: null };
+    }
+    setClubs((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+    return { error: null };
+  }, [clubs, autoGapEnabled, gapReferenceId]);
 
-  const resetBag = useCallback(() => setClubs(DEFAULT_CLUBS), []);
+  const resetBag = useCallback(() => {
+    setClubs(DEFAULT_CLUBS);
+    setGapReferenceId(DEFAULT_GAP_REFERENCE_ID);
+  }, []);
 
   /* ---------------- Logged shots (what actually flew) ---------------- */
   const logShot = useCallback((shot) => {
@@ -779,6 +795,9 @@ export function GolfProvider({ children }) {
       prevHole,
       clubs,
       learnedClubs,
+      autoGapEnabled,
+      setAutoGapEnabled,
+      gapReferenceId,
       shots,
       logShot,
       removeShot,
@@ -849,6 +868,9 @@ export function GolfProvider({ children }) {
       prevHole,
       clubs,
       learnedClubs,
+      autoGapEnabled,
+      setAutoGapEnabled,
+      gapReferenceId,
       shots,
       lastSwing,
       logShot,
