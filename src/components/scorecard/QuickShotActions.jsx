@@ -5,7 +5,7 @@ const BASE = 'flex items-center justify-center gap-1 rounded-lg border px-2 py-1
 const TONE_ON = 'border-primary/50 bg-primary/20 text-primary';
 const TONE_OFF = 'border-border bg-muted/50 text-muted-foreground hover:text-foreground';
 
-export default function QuickShotActions({ scorecard, activeHole, onUpdate }) {
+export default function QuickShotActions({ scorecard, activeHole, onUpdate, onComplete, autoAdvance = true }) {
   const [selected, setSelected] = useState(activeHole ?? 1);
 
   // Follow the hole being played until the golfer picks another one.
@@ -145,6 +145,13 @@ export default function QuickShotActions({ scorecard, activeHole, onUpdate }) {
         </div>
       </div>
 
+      <button type="button"
+        onClick={() => onComplete?.(index)}
+        disabled={!(hole.score > 0)}
+        className="mt-3 w-full rounded-lg border border-primary/50 bg-primary/20 px-3 py-2.5 text-xs font-bold text-primary transition active:bg-primary/30 disabled:opacity-40"
+      >
+        {autoAdvance && index < scorecard.length - 1 ? 'Confirm score & next hole' : 'Confirm hole score'}
+      </button>
       <p className="mt-2 border-t border-border/70 pt-1.5 text-[10px] text-muted-foreground">
         Penalty strokes count toward your total score; putts feed your putting stats.
       </p>
