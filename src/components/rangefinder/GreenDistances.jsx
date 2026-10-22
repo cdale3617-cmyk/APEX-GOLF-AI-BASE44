@@ -28,7 +28,7 @@ function greenRing(graphics, pin) {
 }
 
 export default function GreenDistances({ graphics }) {
-  const { coords, units, distances } = useGolf();
+  const { coords, units, distances, pinOffsetMetres, choosePinOffset } = useGolf();
   const source = distances.origin;
   const centre = haversineYards(source, coords.pin);
   const ring = greenRing(graphics, coords.pin);
@@ -59,6 +59,20 @@ export default function GreenDistances({ graphics }) {
       <div>
         <span className="block text-[8px] font-bold uppercase text-muted-foreground">Front</span>
         <span className="block text-xs font-bold tabular-nums text-foreground">{front === null ? '—' : toDisplayDistance(front, units)}</span>
+      </div>
+      <div className="mt-2 border-t border-border/70 pt-1.5" aria-label="Approximate pin position">
+        <span className="block text-[7px] font-semibold uppercase text-muted-foreground">Target*</span>
+        <div className="mt-1 flex gap-0.5">
+          {[['F', -10], ['C', 0], ['B', 10]].map(([label, delta]) => (
+            <button key={label} type="button" onClick={() => choosePinOffset(delta)}
+              title={label === 'F' ? 'Approx. front target' : label === 'B' ? 'Approx. back target' : 'Mapped pin'}
+              aria-pressed={pinOffsetMetres === delta}
+              className={`min-w-0 flex-1 rounded border px-0.5 py-1 text-[9px] font-bold ${pinOffsetMetres === delta ? 'border-primary bg-primary/25 text-primary' : 'border-border bg-muted/50 text-foreground'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="mt-1 block text-[7px] text-muted-foreground">*±10 m estimate</span>
       </div>
     </div>
   );
