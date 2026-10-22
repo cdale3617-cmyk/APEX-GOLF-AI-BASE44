@@ -10,6 +10,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 // Cache course tiles and the app shell so a round keeps working with no signal.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => null)
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => null)
   })
 }
