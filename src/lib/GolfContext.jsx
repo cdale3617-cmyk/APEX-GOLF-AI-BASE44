@@ -25,6 +25,7 @@ import { routeAudio } from '@/lib/audioRoute';
 import { answerVoiceQuery, describeScorePatch, parseVoiceIntent } from '@/lib/voiceEngine';
 import { checkGpsPosition, courseGpsMode, selectShotOrigin } from '@/lib/gpsTracking';
 import { distanceUnitSpoken, toDisplayDistance } from '@/lib/units';
+import { offsetTarget } from '@/lib/targetPin';
 
 const STORAGE_KEY = 'apex_golf_ai_device_v1';
 const newRoundSessionId = () => `round-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -72,6 +73,9 @@ export function GolfProvider({ children }) {
   const [shots, setShots] = useState(stored.shots ?? []);
   const [rounds, setRounds] = useState(loadRounds);
   const [lastSwing, setLastSwing] = useState(null);
+  const [autoAdvance, setAutoAdvance] = useState(stored.autoAdvance ?? true);
+  const [keepScreenAwake, setKeepScreenAwake] = useState(stored.keepScreenAwake ?? false);
+  const [pinOffsetMetres, setPinOffsetMetres] = useState(0);
 
   const [gpsStatus, setGpsStatus] = useState('Course preview • GPS locating');
   // The player location is deliberately independent from tee/target/green.
@@ -91,12 +95,12 @@ export function GolfProvider({ children }) {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ env, units, audioSink, clubs, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex }),
+        JSON.stringify({ env, units, audioSink, clubs, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, keepScreenAwake }),
       );
     } catch {
       /* storage full or blocked — the round still works in memory */
     }
-  }, [env, units, audioSink, clubs, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex]);
+  }, [env, units, audioSink, clubs, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, keepScreenAwake]);
 
   const course = useMemo(() => (courseId ? getCourse(courseId) : null), [courseId]);
 
@@ -261,6 +265,7 @@ export function GolfProvider({ children }) {
     // Course switching is immediate. Hole geometry arrives separately.
     setCourseId(nextCourse.id);
     setHoleIndex(0);
+    setPinOffsetMetres(0);
     setCourseError('');
     setCoords(position);
     setHoles(initial ? cached : []);
@@ -302,6 +307,7 @@ export function GolfProvider({ children }) {
       const normalized = ((index % holes.length) + holes.length) % holes.length;
       const next = holes[normalized];
       setHoleIndex(normalized);
+      setPinOffsetMetres(0);
       setFocusCenter(next.tee);
       setFocusNonce((n) => n + 1);
       setGpsStatus(`Hole ${next.number} • Par ${next.par}`);
@@ -667,6 +673,7 @@ export function GolfProvider({ children }) {
     setCourseId(null);
     setHoles([]);
     setHoleIndex(0);
+    setPinOffsetMetres(0);
     setCourseLoading(false);
     setCourseError('');
     const position = [lat, lng];
@@ -677,8 +684,17 @@ export function GolfProvider({ children }) {
   }, []);
 
   const moveTarget = useCallback((key, latlng) => {
+    if (key === 'pin') setPinOffsetMetres(0);
     setCoords((prev) => ({ ...prev, [key]: [latlng.lat, latlng.lng] }));
   }, []);
+
+  const choosePinOffset = useCallback((metres) => {
+    if (!hole || hole.estimated || ![-10, 0, 10].includes(metres)) return false;
+    // Estimated positions along tee-to-pin direction; not surveyed green edges.
+    setPinOffsetMetres(metres);
+    setCoords((prev) => ({ ...prev, pin: offsetTarget(hole.tee, hole.pin, metres) }));
+    return true;
+  }, [hole]);
 
   /* ---------------- Bag ---------------- */
   const updateClub = useCallback((index, patch) => {
@@ -713,6 +729,13 @@ export function GolfProvider({ children }) {
     setScorecard((prev) => prev.map((hole, i) => (i === index ? { ...hole, ...patch } : hole)));
   }, []);
 
+  const completeHole = useCallback((index) => {
+    if (!Number.isInteger(index) || !(scorecard[index]?.score > 0)) return false;
+    // Advance on explicit score confirmation, never while a score is being typed.
+    if (autoAdvance && holes.length && index + 1 < holes.length) goToHole(index + 1);
+    return true;
+  }, [scorecard, autoAdvance, holes, goToHole]);
+
   const resetScorecard = useCallback(() => {
     setScorecard(createDefaultScorecard());
     setRoundSessionId(newRoundSessionId());
@@ -734,6 +757,12 @@ export function GolfProvider({ children }) {
       setEnv,
       units,
       setUnits,
+      autoAdvance,
+      setAutoAdvance,
+      keepScreenAwake,
+      setKeepScreenAwake,
+      pinOffsetMetres,
+      choosePinOffset,
       audioSink,
       setAudioSink,
       course,
@@ -784,6 +813,7 @@ export function GolfProvider({ children }) {
       updateClub,
       resetBag,
       updateHole,
+      completeHole,
       resetScorecard,
       rounds,
       saveRound,
@@ -799,6 +829,11 @@ export function GolfProvider({ children }) {
     [
       env,
       units,
+      autoAdvance,
+      keepScreenAwake,
+      pinOffsetMetres,
+      choosePinOffset,
+      completeHole,
       audioSink,
       course,
       courseId,
@@ -846,6 +881,7 @@ export function GolfProvider({ children }) {
       updateClub,
       resetBag,
       updateHole,
+      completeHole,
       resetScorecard,
       rounds,
       saveRound,
