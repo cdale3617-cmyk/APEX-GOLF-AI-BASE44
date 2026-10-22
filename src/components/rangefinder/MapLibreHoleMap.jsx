@@ -171,6 +171,20 @@ export default function MapLibreHoleMap({
           'line-dasharray': [2, 1.2],
         },
       });
+      // A transparent finger-sized corridor over ONLY the yellow safe-route legs.
+      // Without this, swiping the visible line pans the map instead of bending the plan.
+      map.addLayer({
+        id: 'shot-plan-drag-hit',
+        type: 'line',
+        source: 'shot-plan',
+        filter: ['!=', ['get', 'leg'], 'aggressive'],
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#facc15',
+          'line-width': 38,
+          'line-opacity': 0.01,
+        },
+      });
       // Draw the red pin and both other dots in the SAME geographic source.
       // An independent HTML marker can lag behind a GeoJSON line on Android.
       map.addLayer({
@@ -259,6 +273,94 @@ export default function MapLibreHoleMap({
     return () => {
       Object.values(markersRef.current).forEach((marker) => marker.remove());
       markersRef.current = {};
+    };
+  }, [ready, holeReady]);
+
+  // Swiping anywhere along the yellow line bends the saved route at TARGET.
+  // Stop MapLibre's pan and zoom handlers for this one gesture, then restore
+  // their original enabled state as soon as the finger is lifted.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !holeReady) return undefined;
+
+    let active = false;
+    let updated = null;
+    let initialTarget = null;
+    let panWasEnabled = false;
+    let zoomWasEnabled = false;
+
+    const restore = () => {
+      map.off('mousemove', dragMove);
+      map.off('touchmove', dragMove);
+      map.off('mouseup', finish);
+      map.off('touchend', finish);
+      map.off('touchcancel', cancel);
+      map.getCanvas().style.cursor = '';
+      if (panWasEnabled) map.dragPan.enable();
+      if (zoomWasEnabled) map.touchZoomRotate.enable();
+    };
+
+    const dragMove = (event) => {
+      if (!active || (event.type === 'touchmove' && event.points?.length !== 1)) return;
+      const { lat, lng } = event.lngLat ?? {};
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const target = markersRef.current.layup;
+      if (!target) return;
+      updated = { lat, lng };
+      target.setLngLat([lng, lat]);
+      paintShotPlan();
+    };
+
+    const endDrag = (commit) => {
+      if (!active) return;
+      active = false;
+      restore();
+      if (commit && updated) {
+        latest.current.onMoveTarget('layup', updated);
+      } else if (initialTarget && markersRef.current.layup) {
+        markersRef.current.layup.setLngLat(initialTarget);
+        paintShotPlan();
+      }
+      updated = null;
+      initialTarget = null;
+    };
+
+    function finish(event) {
+      // touchend includes the lifted finger's location in MapLibre's lngLat.
+      dragMove(event);
+      endDrag(true);
+    }
+    function cancel() { endDrag(false); }
+
+    const start = (event) => {
+      if (active || !markersRef.current.layup) return;
+      if (event.type === 'touchstart' && event.points?.length !== 1) return;
+      // Preserve native dragging when the actual TEE / TARGET / PIN dot is grabbed.
+      if (event.originalEvent?.target?.closest?.('.maplibregl-marker')) return;
+      event.preventDefault();
+      map.stop();
+      active = true;
+      updated = null;
+      const target = markersRef.current.layup.getLngLat();
+      initialTarget = [target.lng, target.lat];
+      panWasEnabled = map.dragPan.isEnabled();
+      zoomWasEnabled = map.touchZoomRotate.isEnabled();
+      map.dragPan.disable();
+      map.touchZoomRotate.disable();
+      map.getCanvas().style.cursor = 'grabbing';
+      map.on('mousemove', dragMove);
+      map.on('touchmove', dragMove);
+      map.on('mouseup', finish);
+      map.on('touchend', finish);
+      map.on('touchcancel', cancel);
+    };
+
+    map.on('mousedown', 'shot-plan-drag-hit', start);
+    map.on('touchstart', 'shot-plan-drag-hit', start);
+    return () => {
+      endDrag(false);
+      map.off('mousedown', 'shot-plan-drag-hit', start);
+      map.off('touchstart', 'shot-plan-drag-hit', start);
     };
   }, [ready, holeReady]);
 
