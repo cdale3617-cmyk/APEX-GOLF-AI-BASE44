@@ -12,6 +12,8 @@ import {
   Wind,
   X,
   Mountain,
+  Bookmark,
+  BookmarkCheck,
 } from 'lucide-react';
 import CoursePicker from '@/components/rangefinder/CoursePicker';
 import DistanceHUD from '@/components/rangefinder/DistanceHUD';
@@ -22,6 +24,7 @@ import MapLibreHoleMap from '@/components/rangefinder/MapLibreHoleMap';
 import ViewControls from '@/components/rangefinder/ViewControls';
 import ShotLogger from '@/components/scorecard/ShotLogger';
 import { fetchCourseGraphics } from '@/lib/courseGraphics';
+import { getFavoriteCourseIds, saveFavoriteCourse, removeFavoriteCourse } from '@/lib/courses';
 import { useGolf } from '@/lib/GolfContext';
 import { searchGolfCourses } from '@/lib/osmCourses';
 import { distanceUnitSpoken, toDisplayDistance, toDisplayWind, windUnit, toDisplayTemp, tempUnit, toDisplayElev, elevUnit } from '@/lib/units';
@@ -71,6 +74,8 @@ export default function Rangefinder() {
   const [graphics, setGraphics] = useState(null);
   const [satellite, setSatellite] = useState(true);
   const [pitchOn, setPitchOn] = useState(true);
+  const [favoriteIds, setFavoriteIds] = useState(getFavoriteCourseIds);
+  const [courseSaveMessage, setCourseSaveMessage] = useState('');
   const navigate = useNavigate();
 
   // Fairway, green, bunker and water shapes for the course being played.
@@ -114,6 +119,31 @@ export default function Rangefinder() {
     }
   };
 
+  const saveCourse = (picked) => {
+    if (!picked || picked.kind === 'place') return;
+    try {
+      saveFavoriteCourse(picked);
+      setFavoriteIds(getFavoriteCourseIds());
+      setCourseSaveMessage(picked.name + ' saved to your courses.');
+    } catch (error) {
+      setCourseSaveMessage(error?.message || 'Could not save this course.');
+    }
+  };
+
+  const toggleSavedCourse = (picked) => {
+    if (!picked || picked.kind === 'place') return;
+    try {
+      if (favoriteIds.includes(picked.id)) {
+        setFavoriteIds(removeFavoriteCourse(picked.id));
+        setCourseSaveMessage(picked.name + ' removed from saved courses.');
+      } else {
+        saveCourse(picked);
+      }
+    } catch (error) {
+      setCourseSaveMessage(error?.message || 'Could not update saved courses.');
+    }
+  };
+
   const loadCourse = (picked) => {
     if (picked.kind === 'place') {
       focusCourse(picked.center[0], picked.center[1], picked.name.replace(/^View /, '').replace(/ area$/, ''));
@@ -123,6 +153,7 @@ export default function Rangefinder() {
     setResults([]);
     setSearchError('');
     setSearchOpen(false);
+    setCourseSaveMessage('');
     setHudOpen(false);
   };
 
@@ -227,6 +258,26 @@ export default function Rangefinder() {
             </button>
           </div>
 
+          <div className="pointer-events-auto flex items-center gap-2">
+            {course ? (
+              <button type="button" onClick={() => saveCourse(course)}
+                aria-label={favoriteIds.includes(course.id) ? 'Course saved to favourites' : 'Save current course'}
+                className="glass-hud flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition active:bg-primary/20">
+                {favoriteIds.includes(course.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                {favoriteIds.includes(course.id) ? 'Course Saved' : 'Save Course'}
+              </button>
+            ) : null}
+            <button type="button" onClick={() => setCoursesOpen(true)}
+              className="glass-hud flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border/80 px-2 py-2 text-xs font-bold text-foreground transition active:bg-muted">
+              <Bookmark className="h-4 w-4 text-primary" /> Saved Courses ({favoriteIds.length})
+            </button>
+          </div>
+          {courseSaveMessage && (
+            <p role="status" className="pointer-events-auto rounded-lg border border-primary/30 bg-background/95 px-3 py-1.5 text-[11px] font-semibold text-primary">
+              {courseSaveMessage}
+            </p>
+          )}
+
           {searchOpen && (
             <div className="pointer-events-auto flex items-center gap-2">
               <div className="relative flex-1">
@@ -264,17 +315,21 @@ export default function Rangefinder() {
           {results.length > 0 && (
             <div className="pointer-events-auto glass-hud max-h-[42vh] overflow-y-auto rounded-xl p-1.5 shadow-xl">
               {results.slice(0, 10).map((result) => (
-                <button
-                  key={result.id}
-                  type="button"
-                  onClick={() => loadCourse(result)}
-                  className="block w-full rounded-lg px-2.5 py-2 text-left transition hover:bg-muted/60 active:scale-[0.99]"
-                >
-                  <p className="truncate text-xs font-bold text-foreground">{result.name}</p>
-                  <p className="truncate text-[10px] text-muted-foreground">
-                    {result.location || 'Golf course'}
-                  </p>
-                </button>
+                <div key={result.id} className="flex items-stretch gap-1 rounded-lg transition hover:bg-muted/60">
+                  <button type="button" onClick={() => loadCourse(result)}
+                    className="min-w-0 flex-1 rounded-lg px-2.5 py-2 text-left transition active:scale-[0.99]">
+                    <p className="truncate text-xs font-bold text-foreground">{result.name}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{result.location || 'Golf course'}</p>
+                  </button>
+                  {result.kind !== 'place' && (
+                    <button type="button" onClick={() => toggleSavedCourse(result)}
+                      aria-label={favoriteIds.includes(result.id) ? 'Remove ' + result.name + ' from saved courses' : 'Save ' + result.name}
+                      title={favoriteIds.includes(result.id) ? 'Remove saved course' : 'Save course'}
+                      className="flex min-h-11 min-w-12 items-center justify-center rounded-lg border border-border/70 text-primary active:bg-primary/20">
+                      {favoriteIds.includes(result.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -372,8 +427,11 @@ export default function Rangefinder() {
         open={coursesOpen}
         onOpenChange={setCoursesOpen}
         activeCourseId={courseId}
+        favoriteIds={favoriteIds}
+        onToggleFavorite={toggleSavedCourse}
         onSelect={(id) => {
           selectCourse(id);
+          setCourseSaveMessage('');
           setCoursesOpen(false);
         }}
       />
