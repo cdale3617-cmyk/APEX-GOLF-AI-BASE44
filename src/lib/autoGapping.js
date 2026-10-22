@@ -36,7 +36,7 @@ export function autoGapCarry(clubs, editedId, carryYards, referenceId = DEFAULT_
   const proposed = Math.round(carryYards);
   if (editedId === 'pt') {
     edited.carry = proposed;
-    return { clubs: next, referenceId, error: null };
+    return { clubs: next, referenceId };
   }
   if (!clubTemplate(editedId)) return { clubs, referenceId, error: 'Unknown club.' };
 
