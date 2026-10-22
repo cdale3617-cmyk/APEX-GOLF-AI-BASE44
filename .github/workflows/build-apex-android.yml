@@ -71,6 +71,31 @@ jobs:
       - name: Verify GPS, bag management and automatic club gapping
         run: node --test android-build/shot-plan.test.mjs android-build/launch-import.test.mjs android-build/gps-tracking.test.mjs android-build/auto-gapping.test.mjs android-build/club-bag.test.mjs
 
+      - name: Verify approved add-on pages are included
+        run: |
+          node --input-type=module <<'JS'
+          import { existsSync, readFileSync } from 'node:fs';
+          const required = [
+            ['GPS', 'src/pages/Rangefinder.jsx', "path=\"/\""],
+            ['Club Bag', 'src/pages/Bag.jsx', 'path="/bag"'],
+            ['Caddie', 'src/pages/Caddie.jsx', 'path="/caddie"'],
+            ['Scorecard', 'src/pages/Scorecard.jsx', 'path="/scorecard"'],
+            ['Green Reader Camera', 'src/pages/GreenReader.jsx', 'path="/green-reader"'],
+            ['Shot History', 'src/pages/ShotHistory.jsx', 'path="/shot-history"'],
+            ['Shot Studio', 'src/pages/ShotStudio.jsx', 'path="/shot-studio"'],
+            ['Biometrics', 'src/pages/Biometrics.jsx', 'path="/biometrics"'],
+            ['S24-Lenny Pairing', 'src/pages/Pairing.jsx', 'path="/pairing"'],
+            ['Tour Suite', 'src/pages/TourSuite.jsx', 'path="/tour-suite"'],
+          ];
+          const app = readFileSync('src/App.jsx', 'utf8');
+          for (const [label, file, route] of required) {
+            if (!existsSync(file) || !app.includes(route)) {
+              throw new Error(label + ' is missing from the unified Apex app: ' + file + ', route ' + route);
+            }
+            console.log('Present: ' + label);
+          }
+          JS
+
       - name: Build the actual Apex Golf AI web screens
         env:
           VITE_BASE44_APP_ID: 6ad8bc88f9e44631e3842d43
