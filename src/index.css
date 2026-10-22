@@ -1,0 +1,254 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 35% 7%;
+    --foreground: 220 14% 96%;
+    --card: 222 42% 13%;
+    --card-foreground: 220 14% 96%;
+    --popover: 222 42% 11%;
+    --popover-foreground: 220 14% 96%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 220 45% 6%;
+    --secondary: 222 30% 16%;
+    --secondary-foreground: 220 14% 96%;
+    --muted: 222 30% 16%;
+    --muted-foreground: 220 12% 66%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 220 45% 6%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 28% 19%;
+    --input: 222 28% 19%;
+    --ring: 142 71% 45%;
+    --neon: 111 100% 54%;
+    --warm: 43 96% 56%;
+    --cool: 199 89% 48%;
+    --chart-1: 142 71% 45%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 199 89% 48%;
+    --chart-5: 350 89% 60%;
+    --radius: 0.85rem;
+    --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sidebar-background: 222 42% 11%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 142 71% 45%;
+    --sidebar-primary-foreground: 220 45% 6%;
+    --sidebar-accent: 222 30% 16%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 222 28% 19%;
+    --sidebar-ring: 142 71% 45%;
+  }
+
+  .dark {
+    --background: 220 35% 7%;
+    --foreground: 220 14% 96%;
+    --card: 222 42% 13%;
+    --card-foreground: 220 14% 96%;
+    --popover: 222 42% 11%;
+    --popover-foreground: 220 14% 96%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 220 45% 6%;
+    --secondary: 222 30% 16%;
+    --secondary-foreground: 220 14% 96%;
+    --muted: 222 30% 16%;
+    --muted-foreground: 220 12% 66%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 220 45% 6%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 222 28% 19%;
+    --input: 222 28% 19%;
+    --ring: 142 71% 45%;
+    --neon: 111 100% 54%;
+    --chart-1: 142 71% 45%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 43 96% 56%;
+    --chart-4: 199 89% 48%;
+    --chart-5: 350 89% 60%;
+    --sidebar-background: 222 42% 11%;
+    --sidebar-foreground: 220 14% 96%;
+    --sidebar-primary: 142 71% 45%;
+    --sidebar-primary-foreground: 220 45% 6%;
+    --sidebar-accent: 222 30% 16%;
+    --sidebar-accent-foreground: 220 14% 96%;
+    --sidebar-border: 222 28% 19%;
+    --sidebar-ring: 142 71% 45%;
+  }
+
+  /* Daylight mode — the same surfaces, tuned for sun on the screen. */
+  .light {
+    --background: 210 22% 96%;
+    --foreground: 220 32% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 32% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 32% 12%;
+    --primary: 149 68% 31%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 90%;
+    --secondary-foreground: 220 32% 14%;
+    --muted: 210 20% 90%;
+    --muted-foreground: 220 12% 38%;
+    --accent: 160 70% 29%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 43%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 20% 83%;
+    --input: 214 20% 83%;
+    --ring: 149 68% 31%;
+    --neon: 142 71% 40%;
+    --warm: 32 95% 40%;
+    --cool: 205 90% 36%;
+    --chart-1: 149 68% 31%;
+    --chart-2: 160 70% 29%;
+    --chart-3: 32 95% 40%;
+    --chart-4: 205 90% 36%;
+    --chart-5: 350 85% 44%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 32% 12%;
+    --sidebar-primary: 149 68% 31%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 90%;
+    --sidebar-accent-foreground: 220 32% 14%;
+    --sidebar-border: 214 20% 83%;
+    --sidebar-ring: 149 68% 31%;
+  }
+
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  color-scheme: dark;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Un-layered so it beats the dark default above. */
+.light body {
+  color-scheme: light;
+}
+
+@layer components {
+  .glass-panel {
+    background-color: hsl(var(--card) / 0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid hsl(var(--border) / 0.9);
+  }
+
+  .glass-card {
+    background-color: hsl(var(--card) / 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid hsl(var(--border) / 0.7);
+  }
+
+  /* Overlay panels on the map — lighter so the course shows through. */
+  .glass-hud {
+    background-color: hsl(var(--card) / 0.58);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+    border: 1px solid hsl(var(--border) / 0.8);
+  }
+
+  .hud-label {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.4);
+  border-radius: 999px;
+}
+
+/* Neon pulse for live indicators */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 10px hsl(var(--neon) / 0.35);
+  }
+  50% {
+    box-shadow: 0 0 22px hsl(var(--neon) / 0.75);
+  }
+}
+.neon-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Metronome beat flash on the camera view */
+@keyframes beat-pop {
+  0% {
+    transform: scale(1.4);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.beat-pop {
+  animation: beat-pop 200ms ease-out;
+}
+
+/* Wind arrows drifting across the hole on the map */
+@keyframes wind-drift {
+  0% {
+    transform: translateX(-6px);
+    opacity: 0.2;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(6px);
+    opacity: 0.2;
+  }
+}
+.wind-arrow-glyph {
+  animation: wind-drift var(--wind-dur, 2s) linear infinite;
+  animation-delay: var(--wind-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wind-arrow-glyph {
+    animation: none;
+  }
+}
+
+/* Leaflet chrome tuned to the app surface */
+.leaflet-container {
+  background-color: hsl(var(--background));
+  font-family: var(--font-body);
+}
+.leaflet-control-attribution {
+  background: hsl(var(--background) / 0.7) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  font-size: 9px;
+}
+.leaflet-control-attribution a {
+  color: hsl(var(--muted-foreground)) !important;
+}

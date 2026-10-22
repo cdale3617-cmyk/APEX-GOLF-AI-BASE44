@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/app-icon-180.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0f17" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Apex Golf" />
+    <meta name="application-name" content="Apex Golf AI" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="Apex Golf AI - tour caddie, GPS rangefinder, club gapping and strokes gained analytics." />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Apex Golf AI — Tour Caddie &amp; Rangefinder</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // If the app never starts on this device, say why instead of showing a blank page.
+      (function () {
+        function report(message) {
+          var root = document.getElementById('root');
+          if (!root || root.childElementCount > 0) return;
+          var safe = String(message || 'Unknown error').replace(/[<>&]/g, ' ');
+          root.innerHTML =
+            '<div style="font-family:Inter,Arial,sans-serif;background:#0c1018;color:#f3f4f6;min-height:100vh;padding:24px;box-sizing:border-box">' +
+            '<h2 style="font-size:15px;margin:0 0 10px">Apex Golf could not start</h2>' +
+            '<pre style="white-space:pre-wrap;font-size:12px;line-height:1.5;color:#9ea5b3;margin:0">' +
+            safe +
+            '</pre></div>';
+        }
+        window.addEventListener('error', function (event) {
+          report((event.error && event.error.message) || event.message);
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+          report((event.reason && event.reason.message) || event.reason);
+        });
+      })();
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
