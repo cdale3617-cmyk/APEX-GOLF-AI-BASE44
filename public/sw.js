@@ -2,7 +2,7 @@
  * Offline support: course tiles a golfer has already seen stay available with
  * no signal, and the app shell reloads from cache when the network drops.
  */
-const CACHE = 'apex-golf-v3';
+const CACHE = 'apex-golf-v4';
 const TILE_HOSTS = ['server.arcgisonline.com', 'tile.openstreetmap.org', 'api.openstreetmap.org'];
 
 self.addEventListener('install', (event) => {

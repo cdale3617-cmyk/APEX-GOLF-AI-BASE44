@@ -18,7 +18,7 @@ export default function Caddie() {
             onClick={toggleListening}
             className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition ${
               listening
-                ? 'neon-glow border-primary/60 bg-primary/20 text-primary'
+                ? 'apex-caddie-button neon-glow border-primary/60 bg-primary/20 text-primary'
                 : 'border-border bg-muted/60 text-muted-foreground hover:text-primary'
             }`}
           >
@@ -27,8 +27,8 @@ export default function Caddie() {
           </button>
         </PageHeader>
 
-        <section className="glass-panel space-y-3 rounded-2xl p-4">
-          <h3 className="hud-label font-bold text-muted-foreground">Caddie Personality & Style</h3>
+        <section className="glass-panel space-y-3 rounded-2xl border border-warm/30 p-4">
+          <h3 className="hud-label apex-gold-title font-bold text-warm">Caddie Personality & Style</h3>
           <PersonalitySelector value={caddie.personality} onChange={(personality) => updateCaddie({ personality })} />
         </section>
 

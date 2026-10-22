@@ -46,6 +46,7 @@ module.exports = {
   			ring: 'hsl(var(--ring))',
   			neon: 'hsl(var(--neon))',
   			warm: 'hsl(var(--warm))',
+  			gold: 'hsl(var(--apex-gold))',
   			cool: 'hsl(var(--cool))',
   			chart: {
   				'1': 'hsl(var(--chart-1))',

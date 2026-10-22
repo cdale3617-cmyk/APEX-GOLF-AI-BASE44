@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom';
 import { Mic, Moon, Ruler, Sun, Volume2 } from 'lucide-react';
-import { Image } from '@/components/ui/image';
 import BottomNav from '@/components/BottomNav';
 import VoiceDock from '@/components/caddie/VoiceDock';
 import { useGolf } from '@/lib/GolfContext';
@@ -13,20 +12,15 @@ export default function AppShell() {
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background text-foreground">
-      <header className="glass-panel z-30 flex shrink-0 items-center justify-between border-b px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
+      <header className="apex-app-header glass-panel z-30 flex shrink-0 items-center justify-between border-b px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-primary/25 shadow-lg shadow-primary/20">
-            <Image
-              src="https://media.base44.com/images/public/6ad8bc88f9e44631e3842d43/3c542fb60_generated_b7f6ff0d.png"
-              alt="Apex Golf AI logo"
-              className="h-full w-full"
-              fittingType="fill"
-            />
+          <div className="apex-logo-frame h-10 w-10 shrink-0 overflow-hidden rounded-xl">
+            <img src="/apex-launcher.webp" alt="Apex Golf AI" className="h-full w-full object-cover" />
           </div>
           <div className="leading-none">
-            <h1 className="flex items-center gap-1.5 text-sm font-extrabold tracking-[0.14em] text-foreground">
-              APEX GOLF
-              <span className="rounded-md border border-primary/40 bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold tracking-normal text-primary">
+            <h1 className="apex-brand-name flex items-center gap-1.5 text-sm text-foreground">
+              APEX <span className="apex-gold">GOLF</span>
+              <span className="rounded-md border border-warm/50 bg-warm/10 px-1.5 py-0.5 text-[9px] font-bold tracking-normal text-warm">
                 AI TOUR
               </span>
             </h1>

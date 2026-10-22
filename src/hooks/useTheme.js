@@ -7,7 +7,7 @@ function applyTheme(theme) {
   root.classList.toggle('dark', theme === 'dark');
   root.classList.toggle('light', theme === 'light');
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'light' ? '#f1f4f7' : '#0b0f17');
+  if (meta) meta.setAttribute('content', theme === 'light' ? '#FAFCFF' : '#09111F');
 }
 
 /** Night range mode or daylight mode, remembered on the device. */
