@@ -26,7 +26,7 @@ function persist(rounds) {
   return rounds;
 }
 
-export function buildRound({ scorecard, courseName, shots }) {
+export function buildRound({ scorecard, courseName, shots, roundSessionId }) {
   const stats = computeRoundStats(scorecard);
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -34,13 +34,31 @@ export function buildRound({ scorecard, courseName, shots }) {
     courseName: courseName ?? 'Manual round',
     holes: stats.holes,
     shots: shots.length,
+    // Snapshot each scored hole and each logged shot for later review.
+    scorecard: scorecard.filter((h) => h.score > 0).map(({ hole, par, score, putts, penalties, fir, gir }) => ({
+      hole, par, score, putts, penalties, fir, gir,
+    })),
+    shotDetails: shots.map(({ id, date, clubId, clubName, distance, holeNumber }) => ({
+      id, date, clubId, clubName, distance, holeNumber,
+    })),
+    roundSessionId,
     stats,
     strokes: strokesGained(stats),
   };
 }
 
 export function addRound(round) {
-  return persist([round, ...loadRounds()].slice(0, MAX_ROUNDS));
+  const existing = loadRounds();
+  // A second Save updates this round rather than adding another card.
+  // Reset Scorecard creates a new session, even on the same course.
+  const previous = round.roundSessionId
+    ? existing.find((entry) => entry.roundSessionId === round.roundSessionId)
+    : null;
+  if (previous) {
+    const updated = { ...round, id: previous.id, date: previous.date };
+    return persist([updated, ...existing.filter((entry) => entry.id !== previous.id)].slice(0, MAX_ROUNDS));
+  }
+  return persist([round, ...existing].slice(0, MAX_ROUNDS));
 }
 
 export function removeRound(id) {
