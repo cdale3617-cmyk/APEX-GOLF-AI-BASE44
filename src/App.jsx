@@ -19,6 +19,7 @@ import More from '@/pages/More';
 import Drills from '@/pages/Drills';
 import CourseLab from '@/pages/CourseLab';
 import TourSuite from '@/pages/TourSuite';
+import GreenReader from '@/pages/GreenReader';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -71,6 +72,7 @@ const AuthenticatedApp = () => {
         <Route path="/drills" element={<Drills />} />
         <Route path="/course-lab" element={<CourseLab />} />
         <Route path="/tour-suite" element={<TourSuite />} />
+        <Route path="/green-reader" element={<GreenReader />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
