@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Camera, CameraOff, Download, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, Camera, CameraOff, Download, RefreshCcw, SwitchCamera } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useGolf } from '@/lib/GolfContext';
 
@@ -186,6 +186,10 @@ export default function GreenReader() {
             <button type="button" onClick={capturePhoto} disabled={!cameraOn}
               className={button + ' flex items-center justify-center gap-2 disabled:opacity-40'}>
               <Camera className="h-4 w-4" /> Capture Photo
+            </button>
+            <button type="button" onClick={() => { setFacing((old) => old === 'environment' ? 'user' : 'environment'); setCameraOn(true); }}
+              className={button + ' flex items-center justify-center gap-2'}>
+              <SwitchCamera className="h-4 w-4" /> Switch Camera
             </button>
             <button type="button" onClick={() => fileRef.current?.click()} className={button}>
               Take / Select Photo
