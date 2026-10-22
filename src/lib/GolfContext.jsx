@@ -29,6 +29,7 @@ import { offsetTarget } from '@/lib/targetPin';
 import { loadShotPlan, saveShotPlan } from '@/lib/shotPlanStore';
 import { autoGapCarry, DEFAULT_GAP_REFERENCE_ID, preferredGapReference } from '@/lib/autoGapping';
 import { addClubToBag, removeClubFromBag, sortClubBag } from '@/lib/clubCatalog';
+import { appendCaddieTurn, answerCaddieTurn, loadCaddieHistory, saveCaddieHistory } from '@/lib/caddieHistory';
 
 const STORAGE_KEY = 'apex_golf_ai_device_v1';
 const newRoundSessionId = () => `round-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -94,6 +95,11 @@ export function GolfProvider({ children }) {
   const [listening, setListening] = useState(false);
   const [lastHeard, setLastHeard] = useState('');
   const [voices, setVoices] = useState([]);
+  const [voiceHistory, setVoiceHistory] = useState(loadCaddieHistory);
+  const clearVoiceHistory = useCallback(() => setVoiceHistory([]), []);
+
+  // Save only recognized text and replies; never an audio recording.
+  useEffect(() => { saveCaddieHistory(voiceHistory); }, [voiceHistory]);
 
   // Everything the golfer sets up lives on this device only.
   useEffect(() => {
@@ -394,6 +400,18 @@ export function GolfProvider({ children }) {
 
   const handleCommand = useCallback(
     (raw) => {
+      // Every final recognized utterance gets one question and one matching reply.
+      const turnId = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
+      setVoiceHistory((prev) => appendCaddieTurn(prev, {
+        id: turnId,
+        question: raw,
+        courseName: course?.name,
+        holeNumber: hole?.number,
+      }));
+      const reply = (message) => {
+        setVoiceHistory((prev) => answerCaddieTurn(prev, turnId, message));
+        speak(message);
+      };
       const intent = parseVoiceIntent(raw, { par: activePar });
       const answer = answerVoiceQuery(raw, {
         clubs: learnedClubs,
@@ -409,52 +427,52 @@ export function GolfProvider({ children }) {
       });
 
       if (intent?.kind === 'repeat') {
-        speak(lastSpokenRef.current || 'Nothing to repeat yet.');
+        reply(lastSpokenRef.current || 'Nothing to repeat yet.');
         return;
       }
 
       if (intent?.kind === 'undo') {
         if (!undoRef.current) {
-          speak('Nothing to undo on the card.');
+          reply('Nothing to undo on the card.');
           return;
         }
         setScorecard(undoRef.current.scorecard);
-        speak(`Undone. Hole ${undoRef.current.hole} is back the way it was.`);
+        reply(`Undone. Hole ${undoRef.current.hole} is back the way it was.`);
         undoRef.current = null;
         return;
       }
 
       if (intent?.kind === 'clear') {
         setScoreDraft(null);
-        speak('Draft cleared.');
+        reply('Draft cleared.');
         return;
       }
 
       if (intent?.kind === 'commit') {
         const summary = commitDraft();
-        speak(summary ?? 'Nothing waiting to log. Tell me a score, like made a five with two putts.');
+        reply(summary ?? 'Nothing waiting to log. Tell me a score, like made a five with two putts.');
         return;
       }
 
       if (intent?.kind === 'score' && intent.commit) {
         const targetNumber = intent.hole ?? activeHoleNumber;
         if (!targetNumber) {
-          speak('Load a course and I will take your scores.');
+          reply('Load a course and I will take your scores.');
           return;
         }
         const index = targetNumber - 1;
         const carried = scoreDraft?.hole === index ? scoreDraft : {};
         const result = applyVoiceScore(index, { ...carried, ...intent.patch });
-        if (!result) return;
+        if (!result) { reply('Could not log that score. Check the hole and try again.'); return; }
         const landed = holes.length && index + 1 < holes.length ? goToHole(index + 1) : null;
-        speak(`${result.summary}${landed ? ` Moving you to hole ${landed.number}.` : ''}`);
+        reply(`${result.summary}${landed ? ` Moving you to hole ${landed.number}.` : ''}`);
         return;
       }
 
       if (intent?.kind === 'score') {
         const targetNumber = intent.hole ?? activeHoleNumber;
         if (!targetNumber) {
-          speak('Load a course and I will take your scores.');
+          reply('Load a course and I will take your scores.');
           return;
         }
         const index = targetNumber - 1;
@@ -463,27 +481,27 @@ export function GolfProvider({ children }) {
           hole: index,
           ...intent.patch,
         }));
-        speak(`${describeScorePatch(intent.patch)} on hole ${targetNumber}. Say log it to save it.`);
+        reply(`${describeScorePatch(intent.patch)} on hole ${targetNumber}. Say log it to save it.`);
         return;
       }
 
       if (intent?.kind === 'hole') {
         if (!courseId) {
-          speak('Pick a course first, then I will walk you hole to hole.');
+          reply('Pick a course first, then I will walk you hole to hole.');
           return;
         }
         const saved = commitDraft();
         const landed = intent.hole ? goToHole(intent.hole - 1) : goToHole(holeIndex + intent.delta);
-        if (!landed) return;
-        speak(`${saved ? `${saved} ` : ''}Hole ${landed.number}, par ${landed.par}, ${landed.yards} yards.`);
+        if (!landed) { reply('No hole is loaded yet. Select a course first.'); return; }
+        reply(`${saved ? `${saved} ` : ''}Hole ${landed.number}, par ${landed.par}, ${landed.yards} yards.`);
         return;
       }
 
       if (hole?.estimated && !intent && /\b(distance|far|yard|metres?|meters?|club|pin|green|layup|briefing)\b/i.test(raw)) {
-        speak('This hole layout is only estimated. I cannot provide reliable GPS distance or club advice.');
+        reply('This hole layout is only estimated. I cannot provide reliable GPS distance or club advice.');
         return;
       }
-      speak(answer ?? `Got it. ${raw}`);
+      reply(answer ?? `Got it. ${raw}`);
     },
     [
       activeHoleNumber,
@@ -493,6 +511,7 @@ export function GolfProvider({ children }) {
       briefing,
       commitDraft,
       courseId,
+      course,
       distances,
       env,
       goToHole,
@@ -855,6 +874,8 @@ export function GolfProvider({ children }) {
       voices,
       listening,
       lastHeard,
+      voiceHistory,
+      clearVoiceHistory,
       locate,
       focusCourse,
       moveTarget,
@@ -929,6 +950,8 @@ export function GolfProvider({ children }) {
       voices,
       listening,
       lastHeard,
+      voiceHistory,
+      clearVoiceHistory,
       locate,
       focusCourse,
       moveTarget,
