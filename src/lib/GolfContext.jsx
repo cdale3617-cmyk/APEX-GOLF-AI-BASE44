@@ -27,6 +27,7 @@ import { checkGpsPosition, courseGpsMode, selectShotOrigin } from '@/lib/gpsTrac
 import { distanceUnitSpoken, toDisplayDistance } from '@/lib/units';
 
 const STORAGE_KEY = 'apex_golf_ai_device_v1';
+const newRoundSessionId = () => `round-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
 const GolfContext = createContext(null);
 
@@ -66,6 +67,7 @@ export function GolfProvider({ children }) {
   });
   const hole = holes[holeIndex] ?? null;
   const [scorecard, setScorecard] = useState(stored.scorecard ?? createDefaultScorecard());
+  const [roundSessionId, setRoundSessionId] = useState(stored.roundSessionId ?? newRoundSessionId);
   const [bpm, setBpm] = useState(stored.bpm ?? 76);
   const [shots, setShots] = useState(stored.shots ?? []);
   const [rounds, setRounds] = useState(loadRounds);
@@ -89,12 +91,12 @@ export function GolfProvider({ children }) {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ env, units, audioSink, clubs, caddie, scorecard, bpm, shots, courseId, holeIndex }),
+        JSON.stringify({ env, units, audioSink, clubs, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex }),
       );
     } catch {
       /* storage full or blocked — the round still works in memory */
     }
-  }, [env, units, audioSink, clubs, caddie, scorecard, bpm, shots, courseId, holeIndex]);
+  }, [env, units, audioSink, clubs, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex]);
 
   const course = useMemo(() => (courseId ? getCourse(courseId) : null), [courseId]);
 
@@ -692,10 +694,13 @@ export function GolfProvider({ children }) {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         date: new Date().toISOString(),
         ...shot,
+        clubName: clubs.find((club) => club.id === shot.clubId)?.name ?? 'Club',
+        holeNumber: hole?.number ?? null,
+        roundSessionId,
       },
       ...prev,
     ]);
-  }, []);
+  }, [clubs, hole, roundSessionId]);
 
   const removeShot = useCallback((id) => {
     setShots((prev) => prev.filter((shot) => shot.id !== id));
@@ -708,14 +713,18 @@ export function GolfProvider({ children }) {
     setScorecard((prev) => prev.map((hole, i) => (i === index ? { ...hole, ...patch } : hole)));
   }, []);
 
-  const resetScorecard = useCallback(() => setScorecard(createDefaultScorecard()), []);
+  const resetScorecard = useCallback(() => {
+    setScorecard(createDefaultScorecard());
+    setRoundSessionId(newRoundSessionId());
+  }, []);
 
   /* ---------------- Round history (on this device) ---------------- */
   const saveRound = useCallback(() => {
     if (!stats.holes) return false;
-    setRounds(addRound(buildRound({ scorecard, courseName: course?.name, shots })));
+    const roundShots = shots.filter((shot) => shot.roundSessionId === roundSessionId);
+    setRounds(addRound(buildRound({ scorecard, courseName: course?.name, shots: roundShots, roundSessionId })));
     return true;
-  }, [course, scorecard, shots, stats.holes]);
+  }, [course, scorecard, shots, stats.holes, roundSessionId]);
 
   const deleteRound = useCallback((id) => setRounds(removeRound(id)), []);
 
