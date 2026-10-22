@@ -317,3 +317,8 @@ body {
   color: hsl(var(--primary));
   background: hsl(var(--primary) / .12);
 }
+
+/* Keep map licensing visible but never on top of the distance readout. */
+.maplibregl-ctrl-bottom-right,
+.maplibregl-ctrl-bottom-left { bottom: 64px !important; }
+.maplibregl-ctrl-attrib { max-width: 62vw; font-size: 8px !important; line-height: 1.2; }

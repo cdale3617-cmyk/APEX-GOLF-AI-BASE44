@@ -41,7 +41,7 @@ export function GolfProvider({ children }) {
   const [stored] = useState(loadStored);
 
   const [env, setEnv] = useState(stored.env ?? DEFAULT_ENV);
-  const [units, setUnits] = useState(stored.units === 'metric' ? 'metric' : 'imperial');
+  const [units, setUnits] = useState(stored.units === 'imperial' ? 'imperial' : 'metric');
   // Earbuds / headset the caddie should speak through ('' = system default).
   const [audioSink, setAudioSink] = useState(stored.audioSink ?? '');
   const [clubs, setClubs] = useState(stored.clubs ?? DEFAULT_CLUBS);
@@ -56,7 +56,11 @@ export function GolfProvider({ children }) {
   const [coords, setCoords] = useState(() => {
     const restored = cachedHoles(startCourseId);
     const start = restored?.[stored.holeIndex ?? 0] ?? restored?.[0];
-    return start ? { tee: start.tee, layup: start.layup, pin: start.pin } : DEFAULT_COORDS;
+    if (start) return { tee: start.tee, layup: start.layup, pin: start.pin };
+    // Never initialise on the unrelated demo map while fetching the selected course.
+    const center = getCourse(startCourseId)?.center;
+    const position = Array.isArray(center) && center.length === 2 ? center : DEFAULT_COORDS.tee;
+    return { tee: position, layup: position, pin: position };
   });
   const hole = holes[holeIndex] ?? null;
   const [scorecard, setScorecard] = useState(stored.scorecard ?? createDefaultScorecard());
@@ -66,7 +70,7 @@ export function GolfProvider({ children }) {
   const [lastSwing, setLastSwing] = useState(null);
 
   const [gpsStatus, setGpsStatus] = useState('GPS Ready • High Accuracy');
-  const [focusCenter, setFocusCenter] = useState(null);
+  const [focusCenter, setFocusCenter] = useState(() => getCourse(startCourseId)?.center ?? null);
   const [focusNonce, setFocusNonce] = useState(0);
   const [listening, setListening] = useState(false);
   const [lastHeard, setLastHeard] = useState('');
@@ -222,22 +226,28 @@ export function GolfProvider({ children }) {
   const openCourse = useCallback(async (nextCourse) => {
     const token = courseRequestRef.current + 1;
     courseRequestRef.current = token;
+    const cached = cachedHoles(nextCourse.id);
+    const center = nextCourse.center;
+    const initial = cached?.[0];
+    const position = initial
+      ? { tee: initial.tee, layup: initial.layup, pin: initial.pin }
+      : { tee: center, layup: center, pin: center };
+
+    // Course switching is immediate. Hole geometry arrives separately.
     setCourseId(nextCourse.id);
     setHoleIndex(0);
     setCourseError('');
-
-    const cached = cachedHoles(nextCourse.id);
-    if (cached?.length) {
-      setHoles(cached);
-      setFocusCenter(cached[0].tee);
-      setFocusNonce((n) => n + 1);
-      setGpsStatus(`Course Set • ${nextCourse.name}`);
+    setCoords(position);
+    setHoles(initial ? cached : []);
+    setFocusCenter(initial ? initial.tee : center);
+    setFocusNonce((n) => n + 1);
+    setGpsStatus(initial ? `Course Set • ${nextCourse.name}` : `Viewing ${nextCourse.name} • Loading holes`);
+    if (initial) {
+      setCourseLoading(false);
       return;
     }
 
-    setHoles([]);
     setCourseLoading(true);
-    setGpsStatus('Loading hole data…');
     try {
       const loaded = await loadCourseHoles(nextCourse);
       if (token !== courseRequestRef.current) return;
@@ -568,19 +578,19 @@ export function GolfProvider({ children }) {
     );
   }, []);
 
-  const focusCourse = useCallback((lat, lng) => {
+  const focusCourse = useCallback((lat, lng, label = 'Searched area') => {
+    // Invalidate a course request so an old server reply cannot move us back.
+    courseRequestRef.current += 1;
     setCourseId(null);
     setHoles([]);
     setHoleIndex(0);
+    setCourseLoading(false);
     setCourseError('');
-    setCoords({
-      tee: [lat, lng],
-      layup: [lat + 0.0015, lng + 0.001],
-      pin: [lat + 0.0025, lng + 0.0018],
-    });
-    setFocusCenter([lat, lng]);
+    const position = [lat, lng];
+    setCoords({ tee: position, layup: position, pin: position });
+    setFocusCenter(position);
     setFocusNonce((n) => n + 1);
-    setGpsStatus('Course Set • Manual Pin');
+    setGpsStatus(`Viewing ${label} • Select a golf course`);
   }, []);
 
   const moveTarget = useCallback((key, latlng) => {

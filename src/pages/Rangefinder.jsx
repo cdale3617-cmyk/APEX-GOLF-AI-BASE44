@@ -45,6 +45,7 @@ export default function Rangefinder() {
     focusCenter,
     focusNonce,
     locate,
+    focusCourse,
     moveTarget,
     speak,
     clubs,
@@ -92,8 +93,15 @@ export default function Rangefinder() {
     setResults([]);
     try {
       const found = await searchGolfCourses(term);
-      if (found.length) setResults(found);
-      else setSearchError('No course found for that search.');
+      if (found.length) {
+        setResults(found);
+        const area = found.find((result) => result.kind === 'place');
+        // The Find action navigates to the searched town immediately.
+        // Course results stay available below for precise hole selection.
+        if (area?.center) focusCourse(area.center[0], area.center[1], term);
+      } else {
+        setSearchError('No location or golf course found. Try a nearby town.');
+      }
     } catch (error) {
       setSearchError(error?.message ?? 'Course search is unavailable right now.');
     } finally {
@@ -102,7 +110,11 @@ export default function Rangefinder() {
   };
 
   const loadCourse = (picked) => {
-    selectCourse(picked);
+    if (picked.kind === 'place') {
+      focusCourse(picked.center[0], picked.center[1], picked.name.replace(/^View /, '').replace(/ area$/, ''));
+    } else {
+      selectCourse(picked);
+    }
     setResults([]);
     setSearchError('');
     setSearchOpen(false);
@@ -115,6 +127,8 @@ export default function Rangefinder() {
         key={courseId}
         coords={coords}
         focus={{ center: focusCenter, nonce: focusNonce }}
+        courseCenter={course?.center}
+        holeReady={Boolean(hole)}
         graphics={graphics}
         pitchOn={pitchOn}
         satellite={satellite}
@@ -125,7 +139,7 @@ export default function Rangefinder() {
       />
 
       {courseLoading && (
-        <div className="pointer-events-none absolute inset-x-0 top-[76px] z-[1050] flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-[110px] z-[1050] flex justify-center">
           <div className="glass-hud flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold text-muted-foreground shadow-lg">
             <Loader2 className="h-3 w-3 animate-spin text-primary" />
             Loading hole map…
@@ -260,23 +274,22 @@ export default function Rangefinder() {
             </p>
           )}
 
-          <div className="pointer-events-auto glass-hud flex items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 shadow-xl">
-            <div className="flex items-center gap-3 text-[11px]">
+          <div className="pointer-events-auto glass-hud flex items-center justify-between gap-1.5 rounded-xl px-2.5 py-1.5 shadow-xl">
+            <div className="flex min-w-0 items-center gap-2 text-[10px]">
               <span className="flex items-center gap-1.5" title="Wind">
                 <Wind className="h-3.5 w-3.5 text-primary" />
-                <span className="font-bold text-foreground">
+                <span className="font-bold text-foreground whitespace-nowrap">
                   {env.windSpeed} mph {env.windDir}
                 </span>
               </span>
               <span className="flex items-center gap-1.5" title="Temperature">
                 <Thermometer className="h-3.5 w-3.5 text-warm" />
-                <span className="font-bold text-foreground">{env.temp}°F</span>
+                <span className="font-bold text-foreground whitespace-nowrap">{env.temp}°F</span>
               </span>
               <span className="flex items-center gap-1.5" title="Elevation delta">
                 <Mountain className="h-3.5 w-3.5 text-cool" />
-                <span className="font-bold text-foreground">
-                  {env.elevDelta > 0 ? '+' : ''}
-                  {env.elevDelta} ft
+                <span className="font-bold text-foreground whitespace-nowrap">
+                  {env.elevDelta > 0 ? '+' : ''}{env.elevDelta} ft
                 </span>
               </span>
             </div>
@@ -291,7 +304,7 @@ export default function Rangefinder() {
           </div>
 
           <div className="pointer-events-auto flex items-start justify-between gap-2">
-            <GreenDistances graphics={graphics} />
+            {hole ? <GreenDistances graphics={graphics} /> : <span className="glass-hud max-w-[160px] rounded-xl p-2 text-[10px] font-semibold text-foreground">Choose a mapped hole for GPS distances</span>}
             <ViewControls
               pitchOn={pitchOn}
               satellite={satellite}
@@ -303,8 +316,8 @@ export default function Rangefinder() {
         </div>
       )}
 
-      {!uiHidden && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] p-3">
+      {!uiHidden && hole && (
+        <div className="absolute inset-x-0 bottom-0 z-[1000] p-2">
           <DistanceHUD
             distances={distances}
             onLocate={locate}

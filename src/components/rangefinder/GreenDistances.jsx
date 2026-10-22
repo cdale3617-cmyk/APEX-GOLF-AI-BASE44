@@ -39,7 +39,7 @@ export default function GreenDistances({ graphics }) {
   const unit = distanceUnit(units);
 
   return (
-    <div className="glass-hud w-[86px] shrink-0 rounded-2xl border-l-2 border-l-primary/70 p-2 text-center shadow-xl">
+    <div className="glass-hud w-[74px] shrink-0 rounded-xl border-l-2 border-l-primary/70 px-1.5 py-2 text-center shadow-xl">
       <span className="hud-label block font-bold text-muted-foreground">To green</span>
 
       <div className="mt-1">

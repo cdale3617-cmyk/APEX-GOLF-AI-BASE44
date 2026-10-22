@@ -199,13 +199,30 @@ export async function searchGolfCourses(term) {
       return list.findIndex((other) => other.name.toLowerCase().replace(/[^a-z0-9]/g, '') === key) === index;
     })
     .slice(0, 10);
-  if (named.length) return named;
+  // A town is not a golf course. Offer a clearly labelled map-location result
+  // so entering "Yeppoon" moves the satellite map even without hole data.
+  const place = rows.find((row) =>
+    !(row.category === 'leisure' && row.type === 'golf_course') &&
+    Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)),
+  );
+  const area = place ? {
+    id: `place-${place.osm_id ?? query.toLowerCase().replace(/\s+/g, '-')}`,
+    kind: 'place',
+    name: `View ${(place.display_name || query).split(',')[0]} area`,
+    location: 'Town map • choose a golf course below',
+    center: [Number(place.lat), Number(place.lon)],
+  } : null;
+  if (named.length) return [...(area ? [area] : []), ...named];
 
-  // Nothing is named like the search, so treat it as a place and list the
-  // courses around it.
-  const place = rows[0];
   if (!place) return [];
-  return coursesNear(Number(place.lat), Number(place.lon));
+
+  // Overpass mirrors can be slow. Give the player the town map within 6 s
+  // rather than leaving the previously selected course frozen indefinitely.
+  const nearby = await Promise.race([
+    coursesNear(Number(place.lat), Number(place.lon)).catch(() => []),
+    new Promise((resolve) => setTimeout(() => resolve([]), 6000)),
+  ]);
+  return [...(area ? [area] : []), ...nearby];
 }
 
 function holesFromGreens(elements, course) {

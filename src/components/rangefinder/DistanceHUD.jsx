@@ -14,10 +14,10 @@ export default function DistanceHUD({ distances, onLocate, expanded = false, onT
 
   if (!expanded) {
     return (
-      <div className="glass-hud flex items-center gap-1.5 rounded-2xl border-primary/30 p-1.5 pl-3 shadow-2xl">
-        <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+      <div className="glass-hud flex min-w-0 items-center gap-1 rounded-xl border-primary/30 p-1.5 px-2 shadow-2xl">
+        <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-center justify-between gap-1.5 overflow-hidden text-left">
           <span className="flex items-baseline gap-1">
-            <span className="text-2xl font-black leading-none tabular-nums text-primary">{playsLike}</span>
+            <span className="text-xl font-black leading-none tabular-nums text-primary">{playsLike}</span>
             <span className="text-[9px] font-bold uppercase tracking-wide text-primary/80">plays</span>
           </span>
           <span className="h-6 w-px bg-border" />
@@ -26,7 +26,7 @@ export default function DistanceHUD({ distances, onLocate, expanded = false, onT
             <span className="text-[9px] font-semibold uppercase text-muted-foreground">direct</span>
           </span>
           <span className="h-6 w-px bg-border" />
-          <span className="flex min-w-0 items-center gap-1">
+          <span className="hidden min-w-0 items-center gap-1 sm:flex">
             <span className="truncate text-xs font-extrabold text-foreground">{distances.club.name}</span>
             <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           </span>

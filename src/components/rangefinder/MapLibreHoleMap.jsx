@@ -67,6 +67,8 @@ const legFeature = (from, to, leg) => ({
 export default function MapLibreHoleMap({
   coords,
   focus,
+  courseCenter,
+  holeReady = false,
   graphics,
   pitchOn = true,
   satellite = true,
@@ -83,16 +85,23 @@ export default function MapLibreHoleMap({
   const latest = useRef({ coords, onMoveTarget, onPinSettled, pitchOn });
   latest.current = { coords, onMoveTarget, onPinSettled, pitchOn };
 
+  const validPoint = (point) =>
+    Array.isArray(point) && point.length === 2 &&
+    Number.isFinite(point[0]) && Number.isFinite(point[1]);
+
   useEffect(() => {
     let map;
     try {
       map = new maplibregl.Map({
         container: holderRef.current,
         style: baseStyle(satellite),
-        center: [coords.tee[1], coords.tee[0]],
-        zoom: 16.4,
-        pitch: pitchOn ? 48 : 0,
-        bearing: bearingBetween(coords.tee, coords.pin),
+        center: (() => {
+          const point = focus?.center || courseCenter || coords.tee;
+          return [point[1], point[0]];
+        })(),
+        zoom: holeReady ? 16.2 : 13.8,
+        pitch: 0,
+        bearing: 0,
         attributionControl: { compact: true },
       });
     } catch (error) {
@@ -146,7 +155,7 @@ export default function MapLibreHoleMap({
   // Draggable TEE / TARGET / PIN markers, wired to the shot plan.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready) return undefined;
+    if (!map || !ready || !holeReady) return undefined;
 
     MARKERS.forEach(({ key, color, label }) => {
       const marker = new maplibregl.Marker({ element: markerElement(color, label), draggable: true });
@@ -164,7 +173,7 @@ export default function MapLibreHoleMap({
       Object.values(markersRef.current).forEach((marker) => marker.remove());
       markersRef.current = {};
     };
-  }, [ready]);
+  }, [ready, holeReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -195,34 +204,59 @@ export default function MapLibreHoleMap({
     if (!source) return;
     source.setData({
       type: 'FeatureCollection',
-      features: [legFeature(coords.tee, coords.layup, 'tee'), legFeature(coords.layup, coords.pin, 'pin')],
+      features: holeReady ? [
+        legFeature(coords.tee, coords.layup, 'tee'),
+        legFeature(coords.layup, coords.pin, 'pin'),
+      ] : [],
     });
-  }, [coords, ready]);
+  }, [coords, ready, holeReady]);
 
-  // Frame the hole whenever the hole, course or location changes.
+  // First jump to the new course location, even while hole data is loading.
+  // Then fit just the selected hole, not the whole course or a stale demo map.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    const { tee, pin } = latest.current.coords;
-    map.flyTo({
-      center: [(tee[1] + pin[1]) / 2, (tee[0] + pin[0]) / 2],
-      zoom: 16.4,
-      pitch: latest.current.pitchOn ? 48 : 0,
-      bearing: latest.current.pitchOn ? bearingBetween(tee, pin) : 0,
-      duration: 1200,
+    const { tee, pin } = coords;
+    if (!holeReady || !validPoint(tee) || !validPoint(pin)) {
+      const center = focus?.center || courseCenter || tee;
+      if (validPoint(center)) {
+        map.jumpTo({ center: [center[1], center[0]], zoom: 13.8, pitch: 0, bearing: 0 });
+      }
+      return;
+    }
+    const samePoint = Math.abs(tee[0] - pin[0]) + Math.abs(tee[1] - pin[1]) < 0.00004;
+    if (samePoint) {
+      map.jumpTo({ center: [tee[1], tee[0]], zoom: 17, pitch: 0, bearing: 0 });
+      return;
+    }
+    // Fit with safety margins so the tee/green stay outside the HUD areas.
+    const width = map.getContainer().clientWidth || 390;
+    const height = map.getContainer().clientHeight || 600;
+    const side = Math.min(95, Math.max(34, width * 0.19));
+    const top = Math.min(190, Math.max(100, height * 0.25));
+    const bottom = Math.min(125, Math.max(75, height * 0.18));
+    map.fitBounds([
+      [Math.min(tee[1], pin[1]), Math.min(tee[0], pin[0])],
+      [Math.max(tee[1], pin[1]), Math.max(tee[0], pin[0])],
+    ], {
+      padding: { top, bottom, left: side, right: side },
+      maxZoom: 18.5,
+      pitch: 0,
+      bearing: 0,
+      duration: 500,
     });
-  }, [focus?.nonce, ready]);
+  }, [coords, focus?.nonce, holeReady, ready, courseCenter]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
     const { tee, pin } = latest.current.coords;
     map.easeTo({
-      pitch: pitchOn ? 48 : 0,
-      bearing: pitchOn ? bearingBetween(tee, pin) : 0,
+      pitch: pitchOn && holeReady ? 40 : 0,
+      bearing: pitchOn && holeReady ? bearingBetween(tee, pin) : 0,
       duration: 700,
     });
-  }, [pitchOn, ready]);
+  }, [pitchOn, holeReady, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
