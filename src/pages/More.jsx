@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target, Gauge, ScanEye, History, Activity, HeartPulse, Smartphone } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import { PALETTES, useTheme } from '@/hooks/useTheme';
 
 const TOOLS = [
   { path: '/pairing', title: 'S24 to Lenny Pairing', detail: 'Local Wi-Fi live round display via WebRTC; manual pairing codes', icon: Smartphone },
@@ -36,6 +37,7 @@ const TOOLS = [
 ];
 
 export default function More() {
+  const { palette, setPalette } = useTheme();
   return (
     <div className="absolute inset-0 overflow-y-auto px-4 pb-8 pt-4">
       <div className="mx-auto w-full max-w-3xl space-y-4">
@@ -58,6 +60,14 @@ export default function More() {
             </Link>
           ))}
         </div>
+        <section className="glass-panel space-y-2 rounded-xl p-3">
+          <label htmlFor="apex-theme-select" className="block text-xs font-bold text-foreground">APEX colour theme</label>
+          <select id="apex-theme-select" value={palette} onChange={(e) => setPalette(e.target.value)}
+            className="min-h-11 w-full rounded-lg border border-input bg-background p-2 text-sm text-foreground">
+            {PALETTES.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+          </select>
+          <p className="text-[11px] text-muted-foreground">Outdoor anti-glare stays one tap away in the top-right header, regardless of theme.</p>
+        </section>
         <div className="glass-card flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs text-muted-foreground">
           <Flag className="h-4 w-4 shrink-0 text-warm" />
           <span>GPS, Bag, Caddie and Score remain on the main navigation bar.</span>

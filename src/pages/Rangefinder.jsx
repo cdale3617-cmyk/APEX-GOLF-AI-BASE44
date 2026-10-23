@@ -14,8 +14,11 @@ import {
   Mountain,
   Bookmark,
   BookmarkCheck,
+  Volume2,
 } from 'lucide-react';
 import CoursePicker from '@/components/rangefinder/CoursePicker';
+import HoleNotes from '@/components/rangefinder/HoleNotes';
+import GpsShotTracker from '@/components/rangefinder/GpsShotTracker';
 import DistanceHUD from '@/components/rangefinder/DistanceHUD';
 import EnvModal from '@/components/rangefinder/EnvModal';
 import GreenDistances from '@/components/rangefinder/GreenDistances';
@@ -48,6 +51,8 @@ export default function Rangefinder() {
     nextHole,
     prevHole,
     distances,
+    scorecard,
+    briefing,
     env,
     setEnv,
     focusCenter,
@@ -157,7 +162,7 @@ export default function Rangefinder() {
 
   return (
     <div className={`apex-course-vibrant absolute inset-0 grid h-full min-h-0 w-full min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-background ${uiHidden ? 'grid-cols-1' : 'grid-cols-2'}`}>
-      <div className="col-span-full z-[1000] flex min-w-0 flex-col gap-2 border-b-2 border-primary/70 bg-background p-2">
+      <div className="col-span-full z-[1000] flex min-w-0 flex-col gap-1 border-b border-primary/70 bg-background p-1.5">
         <div className="flex w-full min-w-0 items-center gap-2">
         <div className="min-w-0 flex-1">
           <HoleBar
@@ -181,7 +186,7 @@ export default function Rangefinder() {
         </button>
         </div>
         <form
-          className="flex h-12 w-full min-w-0 overflow-hidden rounded-xl border-2 border-primary/50 bg-card shadow-lg focus-within:border-primary"
+          className="flex h-11 w-full min-w-0 overflow-hidden rounded-xl border-2 border-primary/50 bg-card shadow-lg focus-within:border-primary"
           role="search"
           onSubmit={(event) => { event.preventDefault(); runSearch(); }}
         >
@@ -192,7 +197,7 @@ export default function Rangefinder() {
             enterKeyHint="search"
             placeholder="Search golf course or town…"
             aria-label="Search golf course or town"
-            className="h-full min-w-0 flex-1 bg-transparent px-3 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
           />
           {query && (
             <button
@@ -208,7 +213,7 @@ export default function Rangefinder() {
             type="submit"
             disabled={searching || !query.trim()}
             aria-label="Find golf course or town"
-            className="flex h-full w-14 shrink-0 items-center justify-center bg-primary text-primary-foreground transition active:brightness-110 disabled:opacity-60"
+            className="flex h-full w-12 shrink-0 items-center justify-center bg-primary text-primary-foreground transition active:brightness-110 disabled:opacity-60"
           >
             {searching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
           </button>
@@ -296,6 +301,45 @@ export default function Rangefinder() {
             </p>
           )}
 
+
+          {results.length === 0 && hole && (
+            <section className="glass-hud space-y-1.5 rounded-xl border border-primary/30 p-2">
+              <div className="flex min-w-0 items-center justify-between gap-1">
+                <span className="text-[10px] font-black text-primary">CADDIE ADVICE</span>
+                <button type="button" onClick={() => speak(briefing())}
+                  aria-label="Speak Caddie advice" className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/40 text-primary">
+                  <Volume2 className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-[10px] leading-snug text-foreground">
+                {hole.estimated ? 'Estimated layout. Wait for verified hole positions before relying on distances.' : distances.reason}
+              </p>
+              <div className="grid grid-cols-2 gap-1">
+                <button type="button" onClick={() => navigate('/scorecard')}
+                  className="min-h-10 rounded-lg border border-border bg-muted/60 px-1 text-[10px] font-bold text-foreground">
+                  Score: {scorecard[holeIndex]?.score || '—'}
+                </button>
+                <button type="button" onClick={() => navigate('/scorecard')}
+                  className="min-h-10 rounded-lg border border-border bg-muted/60 px-1 text-[10px] font-bold text-foreground">
+                  Putts: {scorecard[holeIndex]?.putts ?? '—'}
+                </button>
+              </div>
+            </section>
+          )}
+          {results.length === 0 && hole && <>
+          <GpsShotTracker
+            courseId={courseId}
+            holeNumber={hole?.number}
+            gpsFix={gpsFix}
+            gpsMode={gpsMode}
+            clubs={clubs}
+            suggestedClubId={distances.club?.id}
+            units={units}
+            onLog={logShot}
+            speak={speak}
+          />
+          <HoleNotes courseId={courseId} holeNumber={hole?.number} />
+          </>}
 
           {results.length > 0 && (
             <div className="pointer-events-auto glass-hud max-h-[42vh] overflow-y-auto rounded-xl p-1.5 shadow-xl">

@@ -172,6 +172,9 @@ const RECENT_SHOT_WINDOW = 12;
 export function applyLearnedCarries(clubs, shots) {
   const byClub = {};
   for (const shot of shots) {
+    // Walk-to-ball GPS records TOTAL ground travel (possibly including roll).
+    // Never use them as carry-learning samples.
+    if (shot.kind === 'gps-total') continue;
     const distance = Number(shot.distance);
     if (!shot.clubId || !(distance > 0)) continue;
     if (!byClub[shot.clubId]) byClub[shot.clubId] = [];

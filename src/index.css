@@ -374,3 +374,58 @@ body {
   background: rgb(163 255 18 / 12%);
   box-shadow: inset 0 0 0 1px rgb(163 255 18 / 30%);
 }
+
+
+/* Original APEX palette choices; daylight anti-glare remains independent. */
+.dark[data-apex-palette="emerald"] {
+  --background: 156 66% 6%; --card: 157 60% 11%;
+  --secondary: 154 45% 15%; --muted: 154 45% 15%;
+  --primary: 151 82% 52%; --ring: 151 82% 52%; --neon: 151 82% 52%;
+  --warm: 42 79% 58%; --apex-gold: 42 79% 58%;
+}
+.dark[data-apex-palette="blue"] {
+  --background: 223 78% 8%; --card: 221 66% 14%;
+  --secondary: 219 55% 20%; --muted: 219 55% 20%;
+  --primary: 207 100% 60%; --ring: 207 100% 60%; --neon: 207 100% 60%;
+  --warm: 43 95% 60%; --apex-gold: 43 95% 60%;
+}
+.dark[data-apex-palette="copper"] {
+  --background: 18 28% 5%; --card: 20 26% 11%;
+  --secondary: 20 23% 18%; --muted: 20 23% 18%;
+  --primary: 26 93% 62%; --ring: 26 93% 62%; --neon: 26 93% 62%;
+  --warm: 38 78% 60%; --apex-gold: 38 78% 60%;
+}
+.dark[data-apex-palette="ice"] {
+  --background: 205 76% 6%; --card: 201 69% 12%;
+  --secondary: 196 55% 18%; --muted: 196 55% 18%;
+  --primary: 184 95% 65%; --ring: 184 95% 65%; --neon: 184 95% 65%;
+  --warm: 185 96% 71%; --apex-gold: 185 96% 71%;
+}
+.dark[data-apex-palette="emerald"] .apex-course-vibrant {
+  --background: 155 70% 5%; --card: 155 60% 9%; --muted: 153 54% 12%;
+  --primary: 151 93% 58%; --ring: 151 93% 58%; --neon: 151 93% 58%;
+  --border: 142 48% 29%; --input: 142 48% 29%;
+}
+.dark[data-apex-palette="blue"] .apex-course-vibrant {
+  --background: 222 78% 7%; --card: 220 68% 12%; --muted: 218 56% 17%;
+  --primary: 207 100% 65%; --ring: 207 100% 65%; --neon: 207 100% 65%;
+  --border: 211 58% 31%; --input: 211 58% 31%;
+}
+.dark[data-apex-palette="copper"] .apex-course-vibrant {
+  --background: 18 30% 5%; --card: 21 25% 11%; --muted: 21 29% 16%;
+  --primary: 28 96% 65%; --ring: 28 96% 65%; --neon: 28 96% 65%;
+  --border: 25 49% 30%; --input: 25 49% 30%;
+}
+.dark[data-apex-palette="ice"] .apex-course-vibrant {
+  --background: 206 74% 6%; --card: 202 66% 11%; --muted: 201 56% 16%;
+  --primary: 184 98% 67%; --ring: 184 98% 67%; --neon: 184 98% 67%;
+  --border: 187 60% 31%; --input: 187 60% 31%;
+}
+.dark[data-apex-palette="emerald"] .apex-app-header,
+.dark[data-apex-palette="emerald"] .apex-bottom-nav { background: #061f18; }
+.dark[data-apex-palette="blue"] .apex-app-header,
+.dark[data-apex-palette="blue"] .apex-bottom-nav { background: #07152c; }
+.dark[data-apex-palette="copper"] .apex-app-header,
+.dark[data-apex-palette="copper"] .apex-bottom-nav { background: #1b130f; }
+.dark[data-apex-palette="ice"] .apex-app-header,
+.dark[data-apex-palette="ice"] .apex-bottom-nav { background: #071f29; }

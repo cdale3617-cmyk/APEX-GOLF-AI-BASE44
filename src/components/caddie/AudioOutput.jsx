@@ -4,7 +4,7 @@ import { useGolf } from '@/lib/GolfContext';
 import { canPickOutput, hasOutputs, listOutputs, routeAudio } from '@/lib/audioRoute';
 
 export default function AudioOutput() {
-  const { audioSink, setAudioSink, speak } = useGolf();
+  const { audioSink, setAudioSink } = useGolf();
   const [outputs, setOutputs] = useState([]);
   const [scanning, setScanning] = useState(false);
 
@@ -12,12 +12,15 @@ export default function AudioOutput() {
     setScanning(true);
     try {
       setOutputs(await listOutputs());
+    } catch {
+      setOutputs([]);
     } finally {
       setScanning(false);
     }
   };
 
   useEffect(() => {
+    scan();
     const devices = navigator.mediaDevices;
     if (!devices?.addEventListener) return undefined;
     const onchange = () => scan();
@@ -27,12 +30,11 @@ export default function AudioOutput() {
 
   const choose = async (deviceId) => {
     setAudioSink(deviceId);
-    await routeAudio(deviceId).catch(() => null);
-    speak(
-      deviceId
-        ? 'Caddie audio is on your earbuds. I will keep the call in your ear for the whole round.'
-        : 'Caddie audio is back on the phone speaker.',
-    );
+    try {
+      await routeAudio(deviceId);
+    } catch {
+      // Android WebView often routes via the phone's Bluetooth setting instead.
+    }
   };
 
   return (
@@ -69,8 +71,8 @@ export default function AudioOutput() {
 
       <p className="text-[10px] leading-snug text-muted-foreground">
         {canPickOutput()
-          ? 'Pair your earbuds in Bluetooth first, tap Scan, then pick them here. The caddie keeps the audio channel open so calls stay in your ear mid-round.'
-          : 'This browser follows your phone’s audio route, so pair your earbuds in Bluetooth and the caddie comes through them automatically. The app keeps an audio channel open so the call never drops to the speaker mid-round.'}
+          ? 'Pair earbuds in S24 Bluetooth settings, then scan and select here if offered. Tap Test Caddie sound to verify the actual route.'
+          : 'Pair earbuds in S24 Bluetooth settings. This Android view normally follows the phone audio route. Tap Test Caddie sound to verify before your round.'}
       </p>
     </section>
   );

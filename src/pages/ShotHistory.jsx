@@ -64,7 +64,7 @@ export default function ShotHistory() {
               <div key={shot.id || index} className="flex min-h-12 items-center gap-2 rounded-lg bg-muted/40 px-3 py-2">
                 <History className="h-4 w-4 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-foreground">{clubName(shot.clubId)} · {format(shot)}</p>
+                  <p className="text-xs font-bold text-foreground">{clubName(shot.clubId)} · {format(shot)} · {shot.kind === 'gps-total' ? 'GPS total' : 'Carry'}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {shot.holeNumber ? 'Hole ' + shot.holeNumber + ' · ' : ''}
                     {shot.date ? new Date(shot.date).toLocaleString() : 'Current round'}
@@ -85,7 +85,7 @@ export default function ShotHistory() {
           {showSaved && (visibleSaved.length ? <div className="space-y-2">
             {visibleSaved.map((shot, index) => (
               <div key={String(shot.roundId) + '-' + String(shot.id || index)} className="rounded-lg border border-border/60 bg-muted/30 p-2.5">
-                <p className="text-xs font-bold text-foreground">{shot.clubName || clubName(shot.clubId)} · {format(shot)}</p>
+                <p className="text-xs font-bold text-foreground">{shot.clubName || clubName(shot.clubId)} · {format(shot)} · {shot.kind === 'gps-total' ? 'GPS total' : 'Carry'}</p>
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   {shot.course || 'Saved course'} · {shot.holeNumber ? 'Hole ' + shot.holeNumber + ' · ' : ''}
                   {shot.roundDate ? new Date(shot.roundDate).toLocaleDateString() : ''}

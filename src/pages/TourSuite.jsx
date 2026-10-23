@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Upload, MapPin, Sun, FastForward } from 'lucide-react';
+import { ArrowLeft, Download, Upload, MapPin, Sun, FastForward, LocateFixed } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import CoursePinCreator from '@/components/tour/CoursePinCreator';
 import { downloadCoursePacks, importCoursePacks, saveCustomCourse } from '@/lib/coursePacks';
@@ -10,7 +10,7 @@ import { useGolf } from '@/lib/GolfContext';
 const B = 'rounded-lg border border-border bg-muted/60 px-3 py-2.5 text-xs font-semibold text-foreground transition active:bg-muted';
 
 export default function TourSuite() {
-  const { course, gpsFix, selectCourse, autoAdvance, setAutoAdvance,
+  const { course, gpsFix, selectCourse, autoAdvance, setAutoAdvance, autoGpsHole, setAutoGpsHole,
     keepScreenAwake, setKeepScreenAwake } = useGolf();
   const navigate = useNavigate();
   const inputRef = useRef(null);
@@ -73,6 +73,15 @@ export default function TourSuite() {
             <span className="flex items-center gap-2"><FastForward className="h-4 w-4 text-primary" /> Next hole after confirming score</span>
             <strong className={autoAdvance ? 'text-primary' : 'text-muted-foreground'}>{autoAdvance ? 'ON' : 'OFF'}</strong>
           </button>
+          <button type="button" aria-pressed={autoGpsHole}
+            onClick={() => setAutoGpsHole(!autoGpsHole)}
+            className="flex w-full items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-foreground">
+            <span className="flex items-center gap-2"><LocateFixed className="h-4 w-4 text-primary" /> GPS next-tee auto-hole</span>
+            <strong className={autoGpsHole ? 'text-primary' : 'text-muted-foreground'}>{autoGpsHole ? 'ON' : 'OFF'}</strong>
+          </button>
+          <p className="text-[11px] text-muted-foreground">
+            Optional: after entering a score, move to the next hole only when accurate GPS detects you within 15 m of the next tee. Default OFF.
+          </p>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             Screen wake-lock works where Android supports it. Auto-hole advances after confirming a completed score
             on the Score screen, not while typing. The Front / Centre / Back pin targets are on the GPS screen.

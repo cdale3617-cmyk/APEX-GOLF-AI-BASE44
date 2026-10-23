@@ -23,7 +23,7 @@ import { HOLE_PARS, addCourse, cachedHoles, getCourse, loadCourseHoles } from '@
 import { addRound, buildRound, loadRounds, removeRound } from '@/lib/roundHistory';
 import { routeAudio } from '@/lib/audioRoute';
 import { answerVoiceQuery, describeScorePatch, parseVoiceIntent } from '@/lib/voiceEngine';
-import { checkGpsPosition, courseGpsMode, selectShotOrigin } from '@/lib/gpsTracking';
+import { checkGpsPosition, courseGpsMode, selectShotOrigin, metresBetween } from '@/lib/gpsTracking';
 import { distanceUnitSpoken, toDisplayDistance } from '@/lib/units';
 import { offsetTarget } from '@/lib/targetPin';
 import { loadShotPlan, saveShotPlan } from '@/lib/shotPlanStore';
@@ -81,6 +81,7 @@ export function GolfProvider({ children }) {
   const [rounds, setRounds] = useState(loadRounds);
   const [lastSwing, setLastSwing] = useState(null);
   const [autoAdvance, setAutoAdvance] = useState(stored.autoAdvance ?? true);
+  const [autoGpsHole, setAutoGpsHole] = useState(stored.autoGpsHole ?? false);
   const [keepScreenAwake, setKeepScreenAwake] = useState(stored.keepScreenAwake ?? false);
   const [pinOffsetMetres, setPinOffsetMetres] = useState(0);
 
@@ -107,12 +108,12 @@ export function GolfProvider({ children }) {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ env, units, audioSink, clubs, autoGapEnabled, gapReferenceId, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, keepScreenAwake }),
+        JSON.stringify({ env, units, audioSink, clubs, autoGapEnabled, gapReferenceId, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, autoGpsHole, keepScreenAwake }),
       );
     } catch {
       /* storage full or blocked — the round still works in memory */
     }
-  }, [env, units, audioSink, clubs, autoGapEnabled, gapReferenceId, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, keepScreenAwake]);
+  }, [env, units, audioSink, clubs, autoGapEnabled, gapReferenceId, caddie, scorecard, roundSessionId, bpm, shots, courseId, holeIndex, autoAdvance, autoGpsHole, keepScreenAwake]);
 
   const course = useMemo(() => (courseId ? getCourse(courseId) : null), [courseId]);
 
@@ -376,6 +377,16 @@ export function GolfProvider({ children }) {
 
   const nextHole = useCallback(() => goToHole(holeIndex + 1), [goToHole, holeIndex]);
   const prevHole = useCallback(() => goToHole(holeIndex - 1), [goToHole, holeIndex]);
+
+  // Optional original geofence tool: move only when the player reaches the NEXT tee,
+  // a score has been entered, and GPS is accurate. Never jump while putting.
+  useEffect(() => {
+    if (!autoGpsHole || gpsMode !== 'live' || !gpsFix || gpsFix.accuracy > 20) return;
+    if (!hole || hole.estimated || !(scorecard[holeIndex]?.score > 0)) return;
+    const next = holes[holeIndex + 1];
+    if (!next?.tee || next.estimated) return;
+    if (metresBetween(gpsFix.coords, next.tee) <= 15) goToHole(holeIndex + 1);
+  }, [autoGpsHole, gpsMode, gpsFix, gpsClock, holes, hole, holeIndex, scorecard, goToHole]);
 
   /* ---------------- Voice commands ---------------- */
   const [scoreDraft, setScoreDraft] = useState(null);
@@ -843,6 +854,8 @@ export function GolfProvider({ children }) {
       setUnits,
       autoAdvance,
       setAutoAdvance,
+      autoGpsHole,
+      setAutoGpsHole,
       keepScreenAwake,
       setKeepScreenAwake,
       pinOffsetMetres,
@@ -922,6 +935,7 @@ export function GolfProvider({ children }) {
       env,
       units,
       autoAdvance,
+      autoGpsHole,
       keepScreenAwake,
       pinOffsetMetres,
       choosePinOffset,

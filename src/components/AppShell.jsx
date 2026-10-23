@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Mic, Moon, Ruler, Sun, Volume2 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import VoiceDock from '@/components/caddie/VoiceDock';
+import AudioOutput from '@/components/caddie/AudioOutput';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useGolf } from '@/lib/GolfContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
@@ -9,6 +12,7 @@ import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 export default function AppShell() {
   const { gpsStatus, gpsFix, gpsMode, gpsTrackingStatus, listening, toggleListening, units, setUnits, keepScreenAwake, speak, briefing } = useGolf();
   const wakeStatus = useScreenWakeLock(keepScreenAwake);
+  const [audioOpen, setAudioOpen] = useState(false);
   const { theme, toggle } = useTheme();
   const metric = units === 'metric';
   const gpsLabel = gpsMode === 'unverified'
@@ -29,40 +33,40 @@ export default function AppShell() {
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background text-foreground">
-      <header className="apex-app-header glass-panel z-30 shrink-0 border-b px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
+      <header className="apex-app-header glass-panel z-30 shrink-0 border-b px-2 pt-[max(0.25rem,env(safe-area-inset-top))] pb-1">
         <div className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <img src="/apex-launcher.webp" alt="Apex Golf AI"
-              className="apex-logo-frame h-9 w-9 shrink-0 rounded-lg object-cover" />
-            <h1 className="min-w-0 truncate text-[13px] font-extrabold tracking-[0.06em] text-foreground">
-              APEX <span className="apex-gold">GOLF AI</span>
+              className="apex-logo-frame h-7 w-7 shrink-0 rounded-lg object-cover" />
+            <h1 className="min-w-0 truncate text-[11px] font-extrabold tracking-[0.06em] text-foreground">
+              APEX
             </h1>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1">
             <button type="button" onClick={() => setUnits(metric ? 'imperial' : 'metric')}
               aria-label={metric ? 'Switch to yards' : 'Switch to metres'}
-              className="flex h-9 min-w-11 items-center justify-center gap-1 rounded-lg border border-border bg-muted/70 px-2 text-[11px] font-bold text-foreground">
+              className="flex h-10 min-w-10 items-center justify-center gap-1 rounded-lg border border-border bg-muted/70 px-2 text-[11px] font-bold text-foreground">
               <Ruler className="h-3.5 w-3.5" /> {metric ? 'M' : 'YD'}
             </button>
             <button type="button" onClick={toggle}
               aria-label={theme === 'dark' ? 'Outdoor daylight mode' : 'Night mode'}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted/70 text-foreground">
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/70 text-foreground">
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <button type="button" onClick={toggleListening}
               aria-label="Caddie microphone"
-              className={`flex h-9 w-9 items-center justify-center rounded-lg border ${listening ? 'border-primary bg-primary/20 text-primary' : 'border-border bg-muted/70 text-foreground'}`}>
+              className={`flex h-10 w-10 items-center justify-center rounded-lg border ${listening ? 'border-primary bg-primary/20 text-primary' : 'border-border bg-muted/70 text-foreground'}`}>
               <Mic className="h-4 w-4" />
             </button>
-            <button type="button" onClick={() => speak(briefing())}
-              aria-label="Hear Caddie briefing"
-              title="Hear Caddie briefing"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted/70 text-foreground transition hover:text-primary active:scale-95">
+            <button type="button" onClick={() => setAudioOpen(true)}
+              aria-label="Caddie speaker and earbuds"
+              title="Caddie speaker and earbuds"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/70 text-foreground transition hover:text-primary active:scale-95">
               <Volume2 className="h-4 w-4" />
             </button>
           </div>
         </div>
-        <p className="mt-1 truncate text-[10px] font-medium leading-tight text-muted-foreground">
+        <p className="mt-0.5 truncate text-[9px] font-medium leading-tight text-muted-foreground">
           {listening ? 'Voice caddie active' : gpsLabel}{keepScreenAwake ? (wakeStatus === 'active' ? ' · SCREEN AWAKE' : ' · WAKE LOCK ' + wakeStatus.toUpperCase()) : ''}
         </p>
       </header>
@@ -71,6 +75,17 @@ export default function AppShell() {
       </main>
       <VoiceDock />
       <BottomNav />
+      <Dialog open={audioOpen} onOpenChange={setAudioOpen}>
+        <DialogContent className="max-w-sm rounded-2xl border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Speaker & earbuds</DialogTitle>
+            <DialogDescription className="text-xs">Choose or test your Caddie audio output.</DialogDescription>
+          </DialogHeader>
+          <AudioOutput />
+          <button type="button" onClick={() => speak(briefing())}
+            className="min-h-11 rounded-xl border border-primary/40 bg-primary/15 px-3 py-2 text-sm font-bold text-primary">Test Caddie sound</button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
