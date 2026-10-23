@@ -8,6 +8,7 @@
 
 import { haversineYards } from '@/lib/golfData';
 import { base44 } from '@/api/base44Client';
+import { resolveCourseSearch } from '@/lib/courseSearchResolver';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
@@ -152,19 +153,18 @@ out center tags;`);
 
 /** The course database gives proper course names, locations and hole cards. */
 async function databaseCourses(query) {
-  try {
-    const response = await withTimeout(base44.functions.invoke('getGolfCourseInfo', { action: 'search', term: query }), COURSE_SEARCH_TIMEOUT_MS);
-    const rows = response?.data?.courses ?? [];
-    return rows.map((row) => ({
-      id: `gca-${row.id}`,
-      apiId: row.id,
-      name: row.name,
-      location: row.location,
-      center: [row.lat, row.lng],
-    }));
-  } catch {
-    return [];
-  }
+  const response = await withTimeout(
+    base44.functions.invoke('getGolfCourseInfo', { action: 'search', term: query }),
+    COURSE_SEARCH_TIMEOUT_MS,
+  );
+  const rows = response?.data?.courses ?? [];
+  return rows.map((row) => ({
+    id: 'gca-' + row.id,
+    apiId: row.id,
+    name: row.name,
+    location: row.location,
+    center: [Number(row.lat), Number(row.lng)],
+  }));
 }
 
 /** Card par and yardage per hole, cached for the whole app. */
@@ -218,53 +218,57 @@ async function photonSearch(query) {
 }
 
 /**
- * One search box for course name or town. Search town names AND nearby golf
- * places in parallel: a town search must show golf clubs, not just "View area".
- * The private Base44 course card is an optional bonus, not a blocker on Android.
+ * A key-free fallback for town names when Photon is unavailable in an Android
+ * WebView. Open-Meteo geocoding is for non-commercial city searches, not golf
+ * course data. Actual courses still come from OSM or the course database.
+ */
+async function findTownWithOpenMeteo(term) {
+  const town = term.replace(/\b(?:golf\s+(?:club|course|links|resort)|country\s+club)\b/gi, ' ')
+    .replace(/\s+/g, ' ').trim();
+  if (town.length < 3) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5500);
+  try {
+    const url = 'https://geocoding-api.open-meteo.com/v1/search?name='
+      + encodeURIComponent(town) + '&count=3&language=en&format=json';
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) throw new Error('Town lookup responded ' + response.status);
+    const payload = await response.json();
+    const row = (payload.results ?? []).find((item) =>
+      Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)));
+    if (!row) return null;
+    return {
+      display_name: [row.name, row.admin1, row.country].filter(Boolean).join(', '),
+      lat: Number(row.latitude),
+      lon: Number(row.longitude),
+      osm_id: null,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * One course-or-town search box. A failed provider must never silently look
+ * like the user searched a place that does not exist.
  */
 export async function searchGolfCourses(term) {
-  const query = term.trim();
-  if (!query) return [];
-
-  const [rows, golfRows, fromDatabase] = await Promise.all([
-    photonSearch(query).catch(() => []),
-    photonSearch(`${query} golf course`).catch(() => []),
-    withTimeout(databaseCourses(query), 2500).catch(() => []),
-  ]);
-
-  const isGolf = (row) => row.category === 'leisure' && row.type === 'golf_course';
-  const place = rows.find((row) =>
-    !isGolf(row) && Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)),
-  );
-  const area = place ? {
-    id: `place-${place.osm_id ?? query.toLowerCase().replace(/\s+/g, '-')}`,
-    kind: 'place',
-    name: `View ${(place.display_name || query).split(',')[0]} area`,
-    location: 'Town map • choose a golf course below',
-    center: [Number(place.lat), Number(place.lon)],
-  } : null;
-
-  // The broad public text index may return similarly named clubs worldwide.
-  // Keep "golf course + town" matches near the searched town.
-  const nearbyGolfRows = golfRows.filter((row) =>
-    isGolf(row) &&
-    (!place || haversineYards([Number(place.lat), Number(place.lon)], [Number(row.lat), Number(row.lon)]) < 60000),
-  );
-  const named = [...fromDatabase, ...rows.filter(isGolf).map(toCourse), ...nearbyGolfRows.map(toCourse)]
-    .filter((course) => course.name && course.id && Array.isArray(course.center))
-    .filter((course, index, list) => list.findIndex((other) => other.id === course.id) === index)
-    .slice(0, 10);
-
-  if (named.length) return [...(area ? [area] : []), ...named];
-
-  if (!place) return [];
-
-  // Slow map mirrors are a backup only, never needed for ordinary town search.
-  const nearby = await Promise.race([
-    coursesNear(Number(place.lat), Number(place.lon)).catch(() => []),
-    new Promise((resolve) => setTimeout(() => resolve([]), 6000)),
-  ]);
-  return [area, ...nearby];
+  return resolveCourseSearch(term, {
+    searchPlaces: photonSearch,
+    searchGolf: photonSearch,
+    searchDatabase: databaseCourses,
+    findTown: findTownWithOpenMeteo,
+    toCourse,
+    distanceYards: haversineYards,
+    searchNearby: (lat, lng) => Promise.race([
+      coursesNear(lat, lng),
+      new Promise((resolve) => setTimeout(() => resolve([]), 6000)),
+    ]),
+  });
 }
 
 function holesFromGreens(elements, course) {
