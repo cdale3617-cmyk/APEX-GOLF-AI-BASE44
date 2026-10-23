@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { resolveCourseSearch } from '../src/lib/courseSearchResolver.js';
 
 const town = { display_name: 'Yeppoon, Queensland', lat: -23.13, lon: 150.74 };
@@ -85,4 +86,12 @@ test('an empty query never calls a provider', async () => {
     searchPlaces: async () => { throw new Error('Should not fetch'); },
   }));
   assert.deepEqual(results, []);
+});
+
+
+test('Android hole map uses key-free map tiles and retains satellite imagery', () => {
+  const component = readFileSync(new URL('../src/components/rangefinder/MapLibreHoleMap.jsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(component, /basemaps\\.cartocdn\\.com/);
+  assert.match(component, /tile\\.openstreetmap\\.org/);
+  assert.match(component, /server\\.arcgisonline\\.com/);
 });

@@ -8,15 +8,18 @@ import { buildShotPlan } from '@/lib/shotPlanGeometry';
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
+// The secondary map is the public OpenStreetMap raster layer, never a
+// CARTO tile URL that displays an API-key watermark inside Android WebView.
+// Satellite imagery stays the default; the map toggle remains available.
 const baseStyle = (satellite) => ({
   version: 8,
   sources: {
     dark: {
       type: 'raster',
-      tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
       tileSize: 256,
       maxzoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      attribution: '&copy; OpenStreetMap contributors',
     },
     satellite: {
       type: 'raster',
