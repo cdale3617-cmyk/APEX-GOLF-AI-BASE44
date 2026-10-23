@@ -158,7 +158,7 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className={`absolute inset-0 grid h-full min-h-0 w-full min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden ${uiHidden ? 'grid-cols-1' : 'grid-cols-2'}`}>
+    <div className={`apex-course-vibrant absolute inset-0 grid h-full min-h-0 w-full min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-background ${uiHidden ? 'grid-cols-1' : 'grid-cols-2'}`}>
       <div className="col-span-full z-[1000] flex min-w-0 items-center gap-2 border-b-2 border-primary/70 bg-background p-1.5">
         <div className="min-w-0 flex-1">
           <HoleBar
