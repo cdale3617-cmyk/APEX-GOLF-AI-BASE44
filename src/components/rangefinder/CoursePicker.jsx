@@ -14,11 +14,16 @@ export default function CoursePicker({ open, onOpenChange, activeCourseId, onSel
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-heading text-base">Saved Courses & Course Library</DialogTitle>
+          <DialogTitle className="font-heading text-base">Your Courses</DialogTitle>
         </DialogHeader>
 
         <p className="text-[11px] leading-snug text-muted-foreground">{savedCount ? `${savedCount} saved course${savedCount === 1 ? '' : 's'} at the top of your list.` : 'Search for a course, then tap Save Course to keep it here.'}</p>
         <div className="max-h-[55vh] space-y-1.5 overflow-y-auto pr-1">
+          {!courses.length && (
+            <p className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center text-sm text-muted-foreground">
+              No courses added yet. Close this list and use the search box to find your course.
+            </p>
+          )}
           {courses.map((course) => {
             const summary = courseSummary(course.id);
             const active = course.id === activeCourseId;

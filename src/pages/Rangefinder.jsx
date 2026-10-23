@@ -66,7 +66,6 @@ export default function Rangefinder() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
-  const [searchOpen, setSearchOpen] = useState(true);
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [hudOpen, setHudOpen] = useState(false);
@@ -152,7 +151,6 @@ export default function Rangefinder() {
     }
     setResults([]);
     setSearchError('');
-    setSearchOpen(false);
     setCourseSaveMessage('');
     setHudOpen(false);
   };
@@ -182,33 +180,39 @@ export default function Rangefinder() {
           {uiHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         </button>
         </div>
-        {searchOpen && (
-          <div className="flex w-full min-w-0 items-center gap-2" role="search">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => event.key === 'Enter' && runSearch()}
-                placeholder="Search golf course or town…"
-                aria-label="Search golf course or town"
-                className="h-12 w-full min-w-0 rounded-xl border-2 border-primary/50 bg-card px-10 text-base font-medium text-foreground shadow-lg outline-none placeholder:text-muted-foreground focus:border-primary"
-              />
-              {query && (
-                <button type="button" onClick={() => setQuery('')} aria-label="Clear search"
-                  className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground">
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-            <button type="button" onClick={runSearch} disabled={searching || !query.trim()}
-              className="flex h-12 min-w-20 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-bold text-primary-foreground shadow-lg transition active:scale-95 disabled:opacity-60">
-              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              Find
+        <form
+          className="flex h-12 w-full min-w-0 overflow-hidden rounded-xl border-2 border-primary/50 bg-card shadow-lg focus-within:border-primary"
+          role="search"
+          onSubmit={(event) => { event.preventDefault(); runSearch(); }}
+        >
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            enterKeyHint="search"
+            placeholder="Search golf course or town…"
+            aria-label="Search golf course or town"
+            className="h-full min-w-0 flex-1 bg-transparent px-3 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="Clear search"
+              className="flex h-full w-10 shrink-0 items-center justify-center text-muted-foreground active:text-foreground"
+            >
+              <X className="h-4 w-4" />
             </button>
-          </div>
-        )}
+          )}
+          <button
+            type="submit"
+            disabled={searching || !query.trim()}
+            aria-label="Find golf course or town"
+            className="flex h-full w-14 shrink-0 items-center justify-center bg-primary text-primary-foreground transition active:brightness-110 disabled:opacity-60"
+          >
+            {searching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+          </button>
+        </form>
       </div>
       <div className="relative h-full min-h-0 min-w-0 overflow-hidden">
         <MapLibreHoleMap
@@ -262,18 +266,6 @@ export default function Rangefinder() {
       {!uiHidden && (
         <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto border-l-2 border-primary/70 bg-background p-2 pb-4 sm:p-3">
           <div className="pointer-events-auto flex items-center justify-end gap-1.5">
-            <button
-              type="button"
-              onClick={() => setSearchOpen((open) => !open)}
-              aria-label={searchOpen ? 'Hide search' : 'Search a course'}
-              className={`flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border transition active:scale-95 ${
-                searchOpen
-                  ? 'border-primary/50 bg-primary/15 text-primary'
-                  : 'glass-hud border-border/80 text-muted-foreground'
-              }`}
-            >
-              <Search className="h-4 w-4" />
-            </button>
             <button
               type="button"
               onClick={() => navigate('/course-lab')}

@@ -15,47 +15,7 @@ const COURSES_KEY = 'apex_golf_courses_v1';
 const HOLES_KEY = 'apex_golf_holes_v1';
 const FAVORITES_KEY = 'apex_golf_favourite_courses_v1';
 
-export const FEATURED_COURSES = [
-  {
-    id: 'tpc-sawgrass',
-    name: 'TPC Sawgrass',
-    location: 'Ponte Vedra Beach, Florida',
-    layout: 'Stadium',
-    center: [30.1987, -81.3994],
-    osmType: 'relation',
-    osmId: 1783123,
-  },
-  {
-    id: 'pebble-beach',
-    name: 'Pebble Beach',
-    location: 'Monterey, California',
-    layout: 'Pebble Beach',
-    center: [36.5682, -121.9497],
-  },
-  {
-    id: 'st-andrews',
-    name: 'St Andrews Old',
-    location: 'Fife, Scotland',
-    layout: 'Old',
-    center: [56.3436, -2.8029],
-  },
-  {
-    id: 'royal-melbourne',
-    name: 'Royal Melbourne',
-    location: 'Black Rock, Victoria',
-    layout: 'West',
-    center: [-37.9686, 145.0271],
-  },
-  {
-    id: 'barnbougle',
-    name: 'Barnbougle Dunes',
-    location: 'Bridport, Tasmania',
-    layout: 'Dunes',
-    center: [-40.9633, 147.2833],
-    osmType: 'way',
-    osmId: 194005453,
-  },
-];
+// No demonstration or preinstalled courses: only searches and user-saved courses.
 
 function readJson(key, fallback) {
   try {
@@ -70,7 +30,7 @@ let customCourses = readJson(COURSES_KEY, []);
 const holeCache = readJson(HOLES_KEY, {});
 
 export function allCourses() {
-  return [...FEATURED_COURSES, ...customCourses.filter((c) => !FEATURED_COURSES.some((f) => f.id === c.id))];
+  return [...customCourses];
 }
 
 export function getCourse(courseId) {
@@ -80,7 +40,7 @@ export function getCourse(courseId) {
 /** Player-selected favourites, separate from automatically remembered searches. */
 export function getFavoriteCourseIds() {
   const value = readJson(FAVORITES_KEY, []);
-  return Array.isArray(value) ? value.filter((id) => typeof id === 'string') : [];
+  return Array.isArray(value) ? value.filter((id) => typeof id === 'string' && Boolean(getCourse(id))) : [];
 }
 
 export function isFavoriteCourse(courseId) {

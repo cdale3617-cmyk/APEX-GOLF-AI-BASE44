@@ -15,7 +15,21 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.private.coffee/api/interpreter',
 ];
 
-const OVERPASS_TIMEOUT_MS = 10000;
+const OVERPASS_TIMEOUT_MS = 9000;
+const COURSE_MAP_BUDGET_MS = 16000;
+const SHARED_LOOKUP_TIMEOUT_MS = 5000;
+const COURSE_CARD_TIMEOUT_MS = 3500;
+const COURSE_SEARCH_TIMEOUT_MS = 10000;
+
+function withTimeout(promise, milliseconds) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Course lookup timed out')), milliseconds);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
 
 const asPoint = (node) => [node.lat, node.lon];
 
@@ -34,9 +48,9 @@ const parFor = (yards) => (yards < 240 ? 3 : yards < 480 ? 4 : 5);
 const nearestYards = (points, point) =>
   points.reduce((best, candidate) => Math.min(best, haversineYards(candidate, point)), Number.POSITIVE_INFINITY);
 
-function askOverpass(endpoint, query) {
+function askOverpass(endpoint, query, timeoutMs = OVERPASS_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), OVERPASS_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(endpoint, {
     method: 'POST',
     signal: controller.signal,
@@ -58,12 +72,14 @@ function askOverpass(endpoint, query) {
  * Asks the mirrors in turn and takes the first answer. They throttle per client,
  * so a burst of parallel requests is exactly what gets a golfer blocked.
  */
-async function runOverpass(query) {
+async function runOverpass(query, deadline = Date.now() + COURSE_MAP_BUDGET_MS) {
   for (const endpoint of OVERPASS_ENDPOINTS) {
+    const remaining = deadline - Date.now();
+    if (remaining < 750) break;
     try {
-      return await askOverpass(endpoint, query);
+      return await askOverpass(endpoint, query, Math.min(OVERPASS_TIMEOUT_MS, remaining));
     } catch {
-      /* next mirror */
+      /* next mirror, within the same course-loading budget */
     }
   }
   throw new Error('The course map is not answering right now. Try again in a moment.');
@@ -72,14 +88,14 @@ async function runOverpass(query) {
 /** The app's own course cache: one lookup there serves every golfer. */
 async function sharedCourseElements(course) {
   try {
-    const response = await base44.functions.invoke('getCourseHoles', {
+    const response = await withTimeout(base44.functions.invoke('getCourseHoles', {
       courseKey: course.id,
       name: course.name,
       center: course.center,
       bbox: course.bbox ?? null,
       osmType: course.osmType ?? null,
       osmId: course.osmId ?? null,
-    });
+    }), SHARED_LOOKUP_TIMEOUT_MS);
     const elements = response?.data?.elements;
     if (Array.isArray(elements) && elements.length) return elements;
   } catch {
@@ -137,7 +153,7 @@ out center tags;`);
 /** The course database gives proper course names, locations and hole cards. */
 async function databaseCourses(query) {
   try {
-    const response = await base44.functions.invoke('getGolfCourseInfo', { action: 'search', term: query });
+    const response = await withTimeout(base44.functions.invoke('getGolfCourseInfo', { action: 'search', term: query }), COURSE_SEARCH_TIMEOUT_MS);
     const rows = response?.data?.courses ?? [];
     return rows.map((row) => ({
       id: `gca-${row.id}`,
@@ -154,7 +170,7 @@ async function databaseCourses(query) {
 /** Card par and yardage per hole, cached for the whole app. */
 async function cardHoles(apiId) {
   try {
-    const response = await base44.functions.invoke('getGolfCourseInfo', { action: 'course', apiId });
+    const response = await withTimeout(base44.functions.invoke('getGolfCourseInfo', { action: 'course', apiId }), COURSE_CARD_TIMEOUT_MS);
     const holes = response?.data?.holes;
     return Array.isArray(holes) ? holes : [];
   } catch {
@@ -184,6 +200,7 @@ export async function searchGolfCourses(term) {
     // supports this kind of place search (subject to fair-use limits).
     fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=20`, {
       headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(7000),
     })
       .then(async (response) => {
         if (!response.ok) throw new Error('Town lookup unavailable');
@@ -466,9 +483,11 @@ out geom tags;`
 out geom tags;`;
 
   const queries = [boundsQuery, areaQuery, aroundQuery].filter(Boolean);
+  const deadline = Date.now() + COURSE_MAP_BUDGET_MS;
   for (const query of queries) {
+    if (Date.now() >= deadline) break;
     try {
-      const holes = parseHoles(await runOverpass(query), course);
+      const holes = parseHoles(await runOverpass(query, deadline), course);
       if (holes.length) return holes;
     } catch {
       /* try the next lookup */

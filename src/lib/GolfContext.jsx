@@ -19,7 +19,7 @@ import {
   weakestArea,
   windOnShot,
 } from '@/lib/golfData';
-import { FEATURED_COURSES, HOLE_PARS, addCourse, cachedHoles, getCourse, loadCourseHoles } from '@/lib/courses';
+import { HOLE_PARS, addCourse, cachedHoles, getCourse, loadCourseHoles } from '@/lib/courses';
 import { addRound, buildRound, loadRounds, removeRound } from '@/lib/roundHistory';
 import { routeAudio } from '@/lib/audioRoute';
 import { answerVoiceQuery, describeScorePatch, parseVoiceIntent } from '@/lib/voiceEngine';
@@ -56,7 +56,7 @@ export function GolfProvider({ children }) {
   const [autoGapEnabled, setAutoGapEnabled] = useState(stored.autoGapEnabled ?? true);
   const [gapReferenceId, setGapReferenceId] = useState(stored.gapReferenceId ?? DEFAULT_GAP_REFERENCE_ID);
   const [caddie, setCaddie] = useState({ ...DEFAULT_CADDIE, ...(stored.caddie ?? {}) });
-  const startCourseId = stored.courseId ?? FEATURED_COURSES[0].id;
+  const startCourseId = stored.courseId && getCourse(stored.courseId) ? stored.courseId : null;
   const [courseId, setCourseId] = useState(startCourseId);
   const [holeIndex, setHoleIndex] = useState(stored.holeIndex ?? 0);
   const pendingHoleIndexRef = useRef(stored.holeIndex ?? 0);

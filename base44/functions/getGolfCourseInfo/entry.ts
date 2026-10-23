@@ -98,7 +98,7 @@ export default async function (req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const key = secrets.get('GOLF_COURSE_API_KEY');
+    const key = secrets.get('GOLF_COURSE_API_KEY') || secrets.get('GOLF_API_KEY');
     if (!key) return Response.json({ error: 'The course database key is not set.' }, { status: 400 });
 
     const body = await req.json().catch(() => ({}));
