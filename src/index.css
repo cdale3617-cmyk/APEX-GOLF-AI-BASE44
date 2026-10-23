@@ -322,3 +322,55 @@ body {
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-left { bottom: 64px !important; }
 .maplibregl-ctrl-attrib { max-width: 62vw; font-size: 8px !important; line-height: 1.2; }
+
+/* Course-only neon palette matched to Dale's Base44 rangefinder screenshot.
+   Keep the outdoor daylight theme independent for sunlight readability. */
+.dark .apex-course-vibrant {
+  --background: 153 63% 6%;
+  --foreground: 149 38% 94%;
+  --card: 155 60% 9%;
+  --card-foreground: 149 38% 94%;
+  --popover: 155 60% 9%;
+  --popover-foreground: 149 38% 94%;
+  --primary: 83 100% 54%;
+  --primary-foreground: 153 70% 5%;
+  --secondary: 153 54% 13%;
+  --secondary-foreground: 149 38% 94%;
+  --muted: 153 52% 12%;
+  --muted-foreground: 148 23% 72%;
+  --accent: 83 100% 54%;
+  --accent-foreground: 153 70% 5%;
+  --border: 99 43% 28%;
+  --input: 99 43% 28%;
+  --ring: 83 100% 54%;
+  --neon: 83 100% 54%;
+  --warm: 39 100% 52%;
+  --cool: 188 82% 62%;
+}
+
+.dark .apex-course-vibrant .glass-hud {
+  background: rgb(5 29 19 / 94%);
+  border-color: rgb(163 255 18 / 38%);
+  box-shadow: 0 5px 18px rgb(0 0 0 / 26%), inset 0 1px 0 rgb(163 255 18 / 7%);
+}
+
+/* The top bar and bottom navigation match only while the Course page is open. */
+.dark:has(.apex-course-vibrant) .apex-app-header,
+.dark:has(.apex-course-vibrant) .apex-bottom-nav {
+  --primary: 83 100% 54%;
+  --primary-foreground: 153 70% 5%;
+  --card: 155 60% 9%;
+  --border: 99 43% 28%;
+  --muted: 153 52% 12%;
+  --muted-foreground: 148 23% 72%;
+  background: #061e15;
+  border-color: rgb(163 255 18 / 42%);
+}
+.dark:has(.apex-course-vibrant) .apex-app-header .apex-gold {
+  color: #a3ff12;
+}
+.dark:has(.apex-course-vibrant) .apex-bottom-nav .apex-nav-current {
+  color: #a3ff12;
+  background: rgb(163 255 18 / 12%);
+  box-shadow: inset 0 0 0 1px rgb(163 255 18 / 30%);
+}
