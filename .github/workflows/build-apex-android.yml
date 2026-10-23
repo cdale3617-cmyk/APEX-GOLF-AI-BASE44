@@ -142,12 +142,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="apex-golf-ai-android-latest"
+          TAG="apex-golf-ai-course-preview"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" APEX-GOLF-AI.apk --clobber
-            gh release edit "$TAG" --title "APEX Golf AI — Midnight Edition APK" --notes "APEX Golf AI: GPS and courses, Caddie, Club Bag, Scorecard and Shot History, Shot Studio manual tracer/trajectory/CSV, Green Reader tilt aid, Biometrics logging and experimental S24-Lenny pairing."
+            gh release edit "$TAG" --title "APEX Golf AI — Course Preview APK" --notes "APEX Golf AI: GPS and courses, Caddie, Club Bag, Scorecard and Shot History, Shot Studio manual tracer/trajectory/CSV, Green Reader tilt aid, Biometrics logging and experimental S24-Lenny pairing."
           else
             gh release create "$TAG" APEX-GOLF-AI.apk \
-              --title "APEX Golf AI — Android APK" \
+              --target "$GITHUB_SHA" \
+              --title "APEX Golf AI — Course Preview APK" \
               --notes "Signed installable Android debug APK of the existing 166-file Base44 Apex Golf AI project. Includes the golf GPS, Caddie, scorecard, bag, swing and course-lab screens. Internet is required for live Base44 services and map imagery."
           fi
