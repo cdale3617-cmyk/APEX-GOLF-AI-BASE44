@@ -218,6 +218,27 @@ export default function MapLibreHoleMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A 50/50 course layout (or the full-map toggle) changes this container's
+  // width without necessarily resizing the browser window.
+  useEffect(() => {
+    const map = mapRef.current;
+    const holder = holderRef.current;
+    if (!ready || !map || !holder) return undefined;
+
+    const resizeMap = () => {
+      if (mapRef.current === map) map.resize();
+    };
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(resizeMap);
+      observer.observe(holder);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener('resize', resizeMap);
+    return () => window.removeEventListener('resize', resizeMap);
+  }, [ready]);
+
   // GeoJSON line and dot geometry update together from the same positions.
   // Marker DOM elements remain invisible 34px drag handles.
   const paintShotPlan = () => {
