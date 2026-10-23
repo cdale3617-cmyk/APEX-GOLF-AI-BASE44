@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Mic, Moon, Ruler, Sun } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import VoiceDock from '@/components/caddie/VoiceDock';
@@ -10,6 +10,7 @@ export default function AppShell() {
   const { gpsStatus, gpsFix, gpsMode, gpsTrackingStatus, listening, toggleListening, units, setUnits, keepScreenAwake } = useGolf();
   const wakeStatus = useScreenWakeLock(keepScreenAwake);
   const { theme, toggle } = useTheme();
+  const { pathname } = useLocation();
   const metric = units === 'metric';
   const gpsLabel = gpsMode === 'unverified'
     ? 'UNVERIFIED HOLE · Map for orientation only'
@@ -31,13 +32,13 @@ export default function AppShell() {
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background text-foreground">
       <header className="apex-app-header glass-panel z-30 shrink-0 border-b px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2">
         <div className="flex min-w-0 items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <img src="/apex-launcher.webp" alt="Apex Golf AI"
+          <Link to="/" aria-label="Return to Apex Home" className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+            <img src="/apex-launcher.webp" alt=""
               className="apex-logo-frame h-9 w-9 shrink-0 rounded-lg object-cover" />
-            <h1 className="min-w-0 truncate text-[13px] font-extrabold tracking-[0.06em] text-foreground">
+            <span className="min-w-0 truncate text-[13px] font-extrabold tracking-[0.06em] text-foreground">
               APEX <span className="apex-gold">GOLF AI</span>
-            </h1>
-          </div>
+            </span>
+          </Link>
           <div className="flex shrink-0 items-center gap-1.5">
             <button type="button" onClick={() => setUnits(metric ? 'imperial' : 'metric')}
               aria-label={metric ? 'Switch to yards' : 'Switch to metres'}
@@ -56,9 +57,11 @@ export default function AppShell() {
             </button>
           </div>
         </div>
-        <p className="mt-1 truncate text-[10px] font-medium leading-tight text-muted-foreground">
-          {listening ? 'Voice caddie active' : gpsLabel}{keepScreenAwake ? (wakeStatus === 'active' ? ' · SCREEN AWAKE' : ' · WAKE LOCK ' + wakeStatus.toUpperCase()) : ''}
-        </p>
+        {pathname !== '/' && (
+          <p className="mt-1 truncate text-[10px] font-medium leading-tight text-muted-foreground">
+            {listening ? 'Voice caddie active' : gpsLabel}{keepScreenAwake ? (wakeStatus === 'active' ? ' · SCREEN AWAKE' : ' · WAKE LOCK ' + wakeStatus.toUpperCase()) : ''}
+          </p>
+        )}
       </header>
       <main className="relative isolate min-h-0 flex-1 overflow-hidden">
         <Outlet />

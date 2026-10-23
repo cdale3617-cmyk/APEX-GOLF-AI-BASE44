@@ -10,6 +10,7 @@ import { GolfProvider } from '@/lib/GolfContext';
 import AppShell from '@/components/AppShell';
 import AppErrorBoundary from '@/components/AppErrorBoundary';
 import Rangefinder from '@/pages/Rangefinder';
+import Home from '@/pages/Home';
 import Bag from '@/pages/Bag';
 import Caddie from '@/pages/Caddie';
 import Scorecard from '@/pages/Scorecard';
@@ -66,7 +67,8 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route element={<GolfProvider><AppShell /></GolfProvider>}>
-        <Route path="/" element={<Rangefinder />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/play" element={<Rangefinder />} />
         <Route path="/bag" element={<Bag />} />
         <Route path="/caddie" element={<Caddie />} />
         <Route path="/scorecard" element={<Scorecard />} />

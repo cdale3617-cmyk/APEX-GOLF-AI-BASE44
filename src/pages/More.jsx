@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target, Gauge, ScanEye, History, Activity, HeartPulse, Smartphone } from 'lucide-react';
+import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target, Gauge, ScanEye, History, Activity, HeartPulse, Smartphone, Bot, Ruler } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 
 const TOOLS = [
+  { path: '/caddie', title: 'AI Caddie', detail: 'Hands-free golf advice and conversation', icon: Bot },
+  { path: '/bag', title: 'My Bag', detail: 'Clubs, carry distances and automatic gapping', icon: Ruler },
   { path: '/pairing', title: 'S24 to Lenny Pairing', detail: 'Local Wi-Fi live round display via WebRTC; manual pairing codes', icon: Smartphone },
   { path: '/shot-history', title: 'Shot History', detail: 'Every current and saved club shot', icon: History },
   { path: '/shot-studio', title: 'Shot Studio', detail: 'Shot tracer, estimated trajectory and swing metrics', icon: Activity },
@@ -60,7 +62,7 @@ export default function More() {
         </div>
         <div className="glass-card flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs text-muted-foreground">
           <Flag className="h-4 w-4 shrink-0 text-warm" />
-          <span>GPS, Bag, Caddie and Score remain on the main navigation bar.</span>
+          <span>Home, Play and Score are always on the bottom bar. Bag, Caddie and every additional tool remain available here.</span>
         </div>
       </div>
     </div>
