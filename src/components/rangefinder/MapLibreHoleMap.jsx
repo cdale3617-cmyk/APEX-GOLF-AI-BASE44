@@ -45,9 +45,9 @@ const FILLS = [
 ];
 
 const MARKERS = [
-  { key: 'tee', color: '#24D7A0', name: 'Tee' },
+  { key: 'tee', color: '#EF4444', name: 'Tee' },
   { key: 'layup', color: '#F59E0B', name: 'Target' },
-  { key: 'pin', color: '#EF4444', name: 'Pin' },
+  { key: 'pin', color: '#24D7A0', name: 'Pin' },
 ];
 
 // The large invisible hit area stays easy to drag on a phone; only the
@@ -83,8 +83,77 @@ function setTargetDistance(marker, tee, target, units) {
   element.setAttribute('aria-label', `Target ${text}; drag to change`);
 }
 
+
+const validPoint = (point) =>
+  Array.isArray(point) && point.length === 2 &&
+  Number.isFinite(point[0]) && Number.isFinite(point[1]);
+
+// MapLibre's fitBounds resets the camera to north-up. Instead, rotate the
+// selected hole into screen coordinates, fit its tee/lay-up/green, then move
+// the camera once. Adjacent course holes are not used to size the viewport.
+function focusSelectedHole(map, { hole, coords, focus, courseCenter, holePreview, holeReady, pitchOn }, duration = 450) {
+  const tee = hole?.tee ?? coords?.tee;
+  const pin = hole?.pin ?? coords?.pin;
+  if (!holePreview || !validPoint(tee) || !validPoint(pin)) {
+    const center = focus?.center || courseCenter || tee;
+    if (validPoint(center)) {
+      map.easeTo({ center: [center[1], center[0]], zoom: 13.8, pitch: 0, bearing: 0, duration });
+    }
+    return;
+  }
+
+  const samePoint = Math.abs(tee[0] - pin[0]) + Math.abs(tee[1] - pin[1]) < 0.00004;
+  if (samePoint) {
+    map.easeTo({ center: [tee[1], tee[0]], zoom: 17, pitch: 0, bearing: 0, duration });
+    return;
+  }
+
+  const bearing = bearingBetween(tee, pin);
+  const angle = (bearing * Math.PI) / 180;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const points = [tee, hole?.layup, pin].filter(validPoint);
+  const projected = points.map((point) => {
+    const { x, y } = maplibregl.MercatorCoordinate.fromLngLat([point[1], point[0]]);
+    // Positive compass heading rotates eastward shots towards the screen top.
+    return { x: x * cos + y * sin, y: -x * sin + y * cos };
+  });
+
+  const xs = projected.map((point) => point.x);
+  const ys = projected.map((point) => point.y);
+  const midX = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const midY = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const centerMercator = new maplibregl.MercatorCoordinate(
+    midX * cos - midY * sin,
+    midX * sin + midY * cos,
+  );
+  const center = centerMercator.toLngLat();
+  // Keep nearby bunkers and rough visible without shrinking to the whole course.
+  const margin = centerMercator.meterInMercatorCoordinateUnits() * 28;
+  const spanX = Math.max(...xs) - Math.min(...xs) + margin * 2;
+  const spanY = Math.max(...ys) - Math.min(...ys) + margin * 2;
+  const width = map.getContainer().clientWidth || 210;
+  const height = map.getContainer().clientHeight || 600;
+  const usableWidth = Math.max(80, width - 24);
+  const usableHeight = Math.max(160, height - 100);
+  const zoom = Math.max(13, Math.min(
+    18.5,
+    Math.log2(usableWidth / (512 * spanX)),
+    Math.log2(usableHeight / (512 * spanY)),
+  ));
+
+  map.easeTo({
+    center: [center.lng, center.lat],
+    zoom,
+    bearing,
+    pitch: pitchOn && holeReady ? 18 : 0,
+    duration,
+  });
+}
+
 export default function MapLibreHoleMap({
   coords,
+  hole = null,
   focus,
   courseCenter,
   holeReady = false,
@@ -106,12 +175,8 @@ export default function MapLibreHoleMap({
   const [mapError, setMapError] = useState('');
 
   // Latest values the map's own event handlers need, without re-binding them.
-  const latest = useRef({ coords, onMoveTarget, onPinSettled, pitchOn, units, gpsFix, gpsMode });
-  latest.current = { coords, onMoveTarget, onPinSettled, pitchOn, units, gpsFix, gpsMode };
-
-  const validPoint = (point) =>
-    Array.isArray(point) && point.length === 2 &&
-    Number.isFinite(point[0]) && Number.isFinite(point[1]);
+  const latest = useRef({ coords, hole, focus, courseCenter, holePreview, holeReady, onMoveTarget, onPinSettled, pitchOn, units, gpsFix, gpsMode });
+  latest.current = { coords, hole, focus, courseCenter, holePreview, holeReady, onMoveTarget, onPinSettled, pitchOn, units, gpsFix, gpsMode };
 
   useEffect(() => {
     let map;
@@ -138,6 +203,9 @@ export default function MapLibreHoleMap({
       return undefined;
     }
     mapRef.current = map;
+    // Retain pinch-to-zoom, but don't let accidental gestures spin the hole.
+    map.dragRotate.disable();
+    map.touchZoomRotate.disableRotation();
 
     map.on('load', () => {
       FILLS.forEach(({ id, color, opacity }) => {
@@ -199,9 +267,9 @@ export default function MapLibreHoleMap({
           'circle-radius': 5.5,
           'circle-color': [
             'match', ['get', 'key'],
-            'tee', '#24D7A0',
+            'tee', '#EF4444',
             'layup', '#F59E0B',
-            'pin', '#EF4444',
+            'pin', '#24D7A0',
             '#FFFFFF',
           ],
           'circle-stroke-width': 1.3,
@@ -230,7 +298,10 @@ export default function MapLibreHoleMap({
     if (!ready || !map || !holder) return undefined;
 
     const resizeMap = () => {
-      if (mapRef.current === map) map.resize();
+      if (mapRef.current === map) {
+        map.resize();
+        focusSelectedHole(map, latest.current, 0);
+      }
     };
 
     if (typeof ResizeObserver !== 'undefined') {
@@ -322,7 +393,10 @@ export default function MapLibreHoleMap({
       map.off('touchcancel', cancel);
       map.getCanvas().style.cursor = '';
       if (panWasEnabled) map.dragPan.enable();
-      if (zoomWasEnabled) map.touchZoomRotate.enable();
+      if (zoomWasEnabled) {
+        map.touchZoomRotate.enable();
+        map.touchZoomRotate.disableRotation();
+      }
     };
 
     const dragMove = (event) => {
@@ -445,54 +519,13 @@ export default function MapLibreHoleMap({
     else paintShotPlan();
   }, [coords, ready, holeReady]);
 
-  // First jump to the new course location, even while hole data is loading.
-  // Then fit just the selected hole, not the whole course or a stale demo map.
+  // One automatic camera move per selected hole (and pitch toggle).
+  // Editable shot-plan dots do not trigger a full refit when dragged.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    const { tee, pin } = coords;
-    // Even an estimated hole should visibly navigate to its own area.
-    // Keep markers/distances disabled until verified geometry is available.
-    if (!holePreview || !validPoint(tee) || !validPoint(pin)) {
-      const center = focus?.center || courseCenter || tee;
-      if (validPoint(center)) {
-        map.jumpTo({ center: [center[1], center[0]], zoom: 13.8, pitch: 0, bearing: 0 });
-      }
-      return;
-    }
-    const samePoint = Math.abs(tee[0] - pin[0]) + Math.abs(tee[1] - pin[1]) < 0.00004;
-    if (samePoint) {
-      map.jumpTo({ center: [tee[1], tee[0]], zoom: 17, pitch: 0, bearing: 0 });
-      return;
-    }
-    // Fit with safety margins so the tee/green stay outside the HUD areas.
-    const width = map.getContainer().clientWidth || 390;
-    const height = map.getContainer().clientHeight || 600;
-    const side = Math.min(95, Math.max(34, width * 0.19));
-    const top = Math.min(190, Math.max(100, height * 0.25));
-    const bottom = Math.min(125, Math.max(75, height * 0.18));
-    map.fitBounds([
-      [Math.min(tee[1], pin[1]), Math.min(tee[0], pin[0])],
-      [Math.max(tee[1], pin[1]), Math.max(tee[0], pin[0])],
-    ], {
-      padding: { top, bottom, left: side, right: side },
-      maxZoom: 18.5,
-      pitch: 0,
-      bearing: 0,
-      duration: 500,
-    });
-  }, [focus?.nonce, holePreview, ready, courseCenter]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready) return;
-    const { tee, pin } = latest.current.coords;
-    map.easeTo({
-      pitch: pitchOn && holeReady ? 40 : 0,
-      bearing: pitchOn && holeReady ? bearingBetween(tee, pin) : 0,
-      duration: 700,
-    });
-  }, [pitchOn, holeReady, ready]);
+    focusSelectedHole(map, latest.current);
+  }, [hole?.number, hole?.tee, hole?.pin, hole?.layup, focus?.nonce, holePreview, holeReady, pitchOn, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
