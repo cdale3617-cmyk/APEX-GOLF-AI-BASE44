@@ -25,9 +25,9 @@ export default function QuickShotActions({ scorecard, activeHole, onUpdate, onCo
     <section className="glass-panel rounded-2xl p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="hud-label font-bold text-muted-foreground">Quick Log</h3>
+          <h3 className="text-sm font-extrabold text-primary">Log a Hole</h3>
           <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-            One tap per shot event on the hole you pick.
+            Score and putts first, then confirm the hole.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-muted/60 p-0.5">
@@ -51,6 +51,30 @@ export default function QuickShotActions({ scorecard, activeHole, onUpdate, onCo
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
+      </div>
+
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        {[
+          { key: 'score', label: 'Score', value: hole.score ?? 0 },
+          { key: 'putts', label: 'Putts', value: hole.putts ?? 0 },
+        ].map(({ key, label, value }) => (
+          <div key={key} className="rounded-xl border border-primary/35 bg-primary/10 p-2">
+            <span className="mb-1 block text-center text-xs font-extrabold text-foreground">{label}</span>
+            <div className="flex items-center justify-between gap-1">
+              <button type="button" onClick={() => onUpdate(index, { [key]: Math.max(0, value - 1) })}
+                disabled={value === 0} aria-label={`Reduce ${label.toLowerCase()}`}
+                className="flex min-h-10 min-w-10 items-center justify-center rounded-lg border border-border bg-muted/60 text-foreground disabled:opacity-40">
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="text-xl font-black tabular-nums text-primary" aria-label={`${label}: ${value}`}>{value || '—'}</span>
+              <button type="button" onClick={() => onUpdate(index, { [key]: value + 1 })}
+                disabled={value >= (key === 'putts' ? 12 : 20)} aria-label={`Add ${label.toLowerCase()}`}
+                className="flex min-h-10 min-w-10 items-center justify-center rounded-lg border border-border bg-muted/60 text-foreground disabled:opacity-40">
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -136,7 +160,7 @@ export default function QuickShotActions({ scorecard, activeHole, onUpdate, onCo
         {autoAdvance && index < scorecard.length - 1 ? 'Confirm score & next hole' : 'Confirm hole score'}
       </button>
       <p className="mt-2 border-t border-border/70 pt-1.5 text-[10px] text-muted-foreground">
-        Enter putts once in the scorecard table below. View logged shots in Shot History.
+        Your putts and score are saved here; the full scorecard remains below.
       </p>
     </section>
   );

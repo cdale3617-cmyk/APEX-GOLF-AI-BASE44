@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { haversineYards } from '@/lib/golfData';
 
 const labels = ['TEE', 'LAYUP', 'GREEN'];
-const colors = ['#18C2B8', '#D7A441', '#D94B4B'];
+const colors = ['#D94B4B', '#EAB308', '#22C55E'];
 const makeStyle = () => ({
   version: 8,
   sources: {
@@ -83,14 +83,19 @@ export default function CoursePinCreator({ center, holeCount, onAddHole }) {
   return (
     <section className="glass-panel space-y-2 rounded-2xl p-3">
       <h3 className="text-sm font-bold text-foreground">Pin-Drop Course Creator</h3>
-      <p className="text-xs text-muted-foreground">
-        Zoom to the course, then tap the satellite photo for TEE, LAYUP and GREEN in that order.
-        These are your own mapped points, not verified survey coordinates.
-      </p>
+      <p className="text-sm font-extrabold text-primary">Just tap the satellite map three times, in this order:</p>
+      <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-foreground" aria-label="Pin colour guide">
+        {labels.map((label, index) => (
+          <span key={label} className="inline-flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-full border border-white" style={{ backgroundColor: colors[index] }} />
+            {index + 1}. {label}
+          </span>
+        ))}
+      </div>
       <div ref={nodeRef} className="h-[250px] w-full overflow-hidden rounded-xl border border-border bg-muted" />
       {error && <p className="text-xs text-destructive">{error}</p>}
       <p className="text-xs font-semibold text-primary">
-        Hole {Math.min(18, holeCount + 1)} of 18 · Next tap: {labels[points.length] || 'Ready to save hole'}
+        Hole {Math.min(18, holeCount + 1)} of 18 · {points.length === 3 ? 'All three placed: tap Add hole' : `Tap map for ${labels[points.length]}`}
       </p>
       <div className="flex items-center gap-2">
         <label htmlFor="creator-par" className="text-xs text-muted-foreground">Par</label>

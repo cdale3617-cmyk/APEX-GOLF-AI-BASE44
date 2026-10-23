@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ClipboardCopy, Radio, RefreshCcw } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { useGolf } from '@/lib/GolfContext';
+import { distanceUnit, toDisplayDistance } from '@/lib/units';
 
 const BOX = 'w-full rounded-xl border border-input bg-background p-3 text-xs text-foreground';
 const BTN = 'min-h-12 w-full rounded-xl border border-primary/50 bg-primary/15 px-3 py-2 text-sm font-bold text-primary disabled:opacity-40';
@@ -206,7 +207,7 @@ export default function Pairing() {
             <div className="grid grid-cols-2 gap-2">
               {[
                 ['Hole', remote.hole || '—'], ['Par', remote.par || '—'],
-                ['Distance (yards)',remote.distanceYards === null ? '—' : Math.round(remote.distanceYards)],
+                [`Distance (${distanceUnit(units)})`,remote.distanceYards === null ? '—' : toDisplayDistance(remote.distanceYards, units)],
                 ['Club',remote.club || '—'], ['Scored holes',remote.scoredHoles], ['Total putts',remote.putts],
               ].map(([label,value])=><div key={label} className="rounded-lg bg-muted/50 p-3"><p className="text-[11px] text-muted-foreground">{label}</p><p className="text-lg font-bold text-foreground">{value}</p></div>)}
             </div>

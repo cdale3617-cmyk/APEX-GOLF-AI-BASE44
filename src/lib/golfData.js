@@ -1,3 +1,5 @@
+import { distanceUnit, toDisplayDistance, toDisplayElev } from './units.js';
+
 export const WIND_DIRECTIONS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 
 export const DEFAULT_ENV = { windSpeed: 12, windDir: 'NE', temp: 75, elevDelta: 12 };
@@ -128,19 +130,19 @@ export function playsLikeYards(rawYards, env, bearingDeg) {
   return Math.round(adjusted);
 }
 
-export function adjustmentSummary(env, bearingDeg) {
+export function adjustmentSummary(env, bearingDeg, units = 'metric') {
   const wind = windOnShot(env, bearingDeg);
   const elev = Math.round(env.elevDelta / 3);
   const tempDiff = 70 - env.temp;
   const temp = tempDiff > 0 ? Math.round((tempDiff / 10) * 2) : 0;
   const parts = [];
-  if (wind.yards) parts.push(`${wind.yards > 0 ? '+' : ''}${wind.yards} ${wind.label}`);
-  if (elev) parts.push(`${elev > 0 ? '+' : ''}${elev} elev`);
+  if (wind.yards) parts.push(`${wind.yards > 0 ? '+' : ''}${toDisplayDistance(wind.yards, units)} ${distanceUnit(units)} ${wind.label}`);
+  if (elev) parts.push(`${elev > 0 ? '+' : ''}${toDisplayElev(env.elevDelta, units)} ${units === 'metric' ? 'm' : 'ft'} elev`);
   if (temp) parts.push(`+${temp} cold`);
   return parts.length ? parts.join(' • ') : 'No adjustment';
 }
 
-export function recommendClub(clubs, targetYards) {
+export function recommendClub(clubs, targetYards, units = 'metric') {
   const active = clubs.filter((c) => c.active && c.carry > 0);
   if (!active.length) {
     return { club: { name: 'No club', carry: 0 }, reason: 'No active clubs in your bag.' };
@@ -151,10 +153,10 @@ export function recommendClub(clubs, targetYards) {
   }
   const gap = Math.round(best.carry - targetYards);
   const carry =
-    gap === 0 ? 'Exact carry match' : `${Math.abs(gap)} yds ${gap > 0 ? 'past the number' : 'short of the number'}`;
+    gap === 0 ? 'Exact carry match' : `${toDisplayDistance(Math.abs(gap), units)} ${distanceUnit(units)} ${gap > 0 ? 'past the number' : 'short of the number'}`;
   let aim = 'Straight miss profile, take dead aim at the flag.';
-  if (best.miss === 'Push/Fade') aim = 'Aim 3-5 yds left for your fade miss profile.';
-  if (best.miss === 'Pull/Draw') aim = 'Aim 3-5 yds right for your draw miss profile.';
+  if (best.miss === 'Push/Fade') aim = `Aim ${toDisplayDistance(3, units)}–${toDisplayDistance(5, units)} ${distanceUnit(units)} left for your fade miss profile.`;
+  if (best.miss === 'Pull/Draw') aim = `Aim ${toDisplayDistance(3, units)}–${toDisplayDistance(5, units)} ${distanceUnit(units)} right for your draw miss profile.`;
   return { club: best, reason: `${carry}. ${aim}` };
 }
 

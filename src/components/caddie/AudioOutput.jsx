@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Headphones, RefreshCw } from 'lucide-react';
+import { Headphones, RefreshCw, Volume2 } from 'lucide-react';
 import { useGolf } from '@/lib/GolfContext';
-import { canPickOutput, hasOutputs, listOutputs, routeAudio } from '@/lib/audioRoute';
+import { canPickOutput, hasOutputs, listOutputs, routeAudio, testAudioOutput } from '@/lib/audioRoute';
 
 export default function AudioOutput() {
   const { audioSink, setAudioSink, speak } = useGolf();
   const [outputs, setOutputs] = useState([]);
   const [scanning, setScanning] = useState(false);
+  const [status, setStatus] = useState('');
 
   const scan = async () => {
     setScanning(true);
     try {
       setOutputs(await listOutputs());
+      setStatus('Android Bluetooth pairing is managed in phone Settings.');
+    } catch {
+      setStatus('Audio outputs cannot be listed in this Android web view.');
     } finally {
       setScanning(false);
     }
@@ -28,11 +32,17 @@ export default function AudioOutput() {
   const choose = async (deviceId) => {
     setAudioSink(deviceId);
     await routeAudio(deviceId).catch(() => null);
-    speak(
-      deviceId
-        ? 'Caddie audio is on your earbuds. I will keep the call in your ear for the whole round.'
-        : 'Caddie audio is back on the phone speaker.',
-    );
+    setStatus('Output selected for test tones; Android chooses the voice playback route.');
+    speak('Caddie audio test.');
+  };
+
+  const test = async () => {
+    try {
+      await testAudioOutput(audioSink);
+      setStatus('Sound test played. If silent, increase media volume and check Bluetooth in Android Settings.');
+    } catch (error) {
+      setStatus(error?.message || 'Sound test could not play.');
+    }
   };
 
   return (
@@ -50,6 +60,10 @@ export default function AudioOutput() {
         >
           <RefreshCw className={`h-3 w-3 ${scanning ? 'animate-spin' : ''}`} />
           Scan
+        </button>
+        <button type="button" onClick={test}
+          className="flex min-h-10 items-center gap-1 rounded-lg border border-primary/50 bg-primary/15 px-2 text-xs font-bold text-primary">
+          <Volume2 className="h-4 w-4" /> Test sound
         </button>
       </div>
 
@@ -69,9 +83,10 @@ export default function AudioOutput() {
 
       <p className="text-[10px] leading-snug text-muted-foreground">
         {canPickOutput()
-          ? 'Pair your earbuds in Bluetooth first, tap Scan, then pick them here. The caddie keeps the audio channel open so calls stay in your ear mid-round.'
-          : 'This browser follows your phone’s audio route, so pair your earbuds in Bluetooth and the caddie comes through them automatically. The app keeps an audio channel open so the call never drops to the speaker mid-round.'}
+          ? 'Pair earbuds in Android Bluetooth Settings, then Scan. Test sound confirms the selected output; the Caddie voice follows Android media routing.'
+          : 'Pair earbuds in Android Bluetooth Settings. This web view cannot choose a Bluetooth device directly; sound follows Android media routing.'}
       </p>
+      {status && <p role="status" className="text-xs font-semibold text-primary">{status}</p>}
     </section>
   );
 }

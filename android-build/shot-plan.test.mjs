@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildShotPlan } from '../src/lib/shotPlanGeometry.js';
 
-test('the red pin is precisely the end of the green leg', () => {
+test('the green pin is precisely the end of the yellow safe-route leg', () => {
   const initial = { tee: [-23.13, 150.74], layup: [-23.128, 150.742], pin: [-23.124, 150.745] };
   for (const coords of [initial, { ...initial, pin: [-23.126, 150.743] }, { ...initial, layup: [-23.129, 150.744] }]) {
     const result = buildShotPlan(coords);

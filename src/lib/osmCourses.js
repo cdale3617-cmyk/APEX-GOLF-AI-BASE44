@@ -8,6 +8,7 @@
 
 import { haversineYards } from '@/lib/golfData';
 import { base44 } from '@/api/base44Client';
+import { shouldReverseHole } from '@/lib/holeOrientation';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
@@ -349,6 +350,9 @@ function parseHoles(elements, course) {
   const tees = elements
     .filter((element) => element.tags?.golf === 'tee')
     .map((element) => (element.geometry ? centroid(element.geometry) : asPoint(element)));
+  const greens = elements
+    .filter((element) => element.tags?.golf === 'green')
+    .map((element) => (element.geometry ? centroid(element.geometry) : asPoint(element)));
 
   const holeWays = elements.filter(
     (element) => element.type === 'way' && element.tags?.golf === 'hole' && element.geometry?.length > 1,
@@ -401,9 +405,8 @@ function parseHoles(elements, course) {
     let tee = [path[0].lat, path[0].lon];
     let pin = [path[path.length - 1].lat, path[path.length - 1].lon];
 
-    // Hole ways are drawn tee to green, but trust the mapped tee boxes if a way
-    // happens to be drawn the other way round.
-    if (tees.length && nearestYards(tees, pin) < nearestYards(tees, tee)) {
+    // A way can be drawn backwards. Confirm against real tee/green geometry.
+    if (shouldReverseHole(tee, pin, tees, greens, haversineYards)) {
       [tee, pin] = [pin, tee];
     }
 

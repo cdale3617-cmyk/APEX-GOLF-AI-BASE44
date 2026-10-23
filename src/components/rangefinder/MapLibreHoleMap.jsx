@@ -42,9 +42,9 @@ const FILLS = [
 ];
 
 const MARKERS = [
-  { key: 'tee', color: '#18C2B8', name: 'Tee' },
-  { key: 'layup', color: '#D7A441', name: 'Target' },
-  { key: 'pin', color: '#D94B4B', name: 'Pin' },
+  { key: 'tee', color: '#D94B4B', name: 'Tee' },
+  { key: 'layup', color: '#EAB308', name: 'Lay-up' },
+  { key: 'pin', color: '#22C55E', name: 'Green' },
 ];
 
 // The large invisible hit area stays easy to drag on a phone; only the
@@ -195,9 +195,9 @@ export default function MapLibreHoleMap({
           'circle-radius': 5.5,
           'circle-color': [
             'match', ['get', 'key'],
-            'tee', '#18C2B8',
-            'layup', '#D7A441',
-            'pin', '#D94B4B',
+            'tee', '#D94B4B',
+            'layup', '#EAB308',
+            'pin', '#22C55E',
             '#FFFFFF',
           ],
           'circle-stroke-width': 1.3,

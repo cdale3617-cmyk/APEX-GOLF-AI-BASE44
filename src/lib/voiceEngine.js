@@ -2,6 +2,7 @@
  * Spoken grammar for on-course control: hole navigation and voice score entry.
  * Pure functions — the provider decides what to do with each intent.
  */
+import { distanceUnitSpoken, toDisplayDistance, toDisplayTemp, tempUnit, toDisplayWind, windUnit } from './units.js';
 
 const NUMBER_WORDS = {
   zero: 0,
@@ -257,15 +258,17 @@ export function answerVoiceQuery(raw, ctx) {
     shots = [],
     holeNumber,
     briefing,
+    units = 'metric',
   } = ctx;
+  const distance = (yards) => `${toDisplayDistance(yards, units)} ${distanceUnitSpoken(units)}`;
 
   const spoken = text.replace(/[^a-z0-9]/g, '');
   const namedClub = clubs.find((club) => spoken.includes(club.name.toLowerCase().replace(/[^a-z0-9]/g, '')));
 
   if (namedClub && /far|carry|hit|distance|go/.test(text)) {
     return namedClub.samples > 0
-      ? `${namedClub.name} carries ${namedClub.carry} yards, averaging ${namedClub.average} across ${namedClub.samples} logged shots.`
-      : `${namedClub.name} carries ${namedClub.carry} yards. Log some shots and I will sharpen that number.`;
+      ? `${namedClub.name} carries ${distance(namedClub.carry)}, averaging ${distance(namedClub.average)} across ${namedClub.samples} logged shots.`
+      : `${namedClub.name} carries ${distance(namedClub.carry)}. Log some shots and I will sharpen that number.`;
   }
 
   if (/bag|gap|gapping/.test(text)) {
@@ -276,7 +279,7 @@ export function answerVoiceQuery(raw, ctx) {
       if (!worst || gap > worst.gap) worst = { from: sorted[i].name, to: sorted[i + 1].name, gap };
     }
     return worst
-      ? `Your biggest gap is ${worst.gap} yards between ${worst.from} and ${worst.to}.`
+      ? `Your biggest gap is ${distance(worst.gap)} between ${worst.from} and ${worst.to}.`
       : 'Your bag is gapped tight from top to bottom.';
   }
 
@@ -285,7 +288,7 @@ export function answerVoiceQuery(raw, ctx) {
     return learned.length
       ? `From ${shots.length} logged shots: ${learned
           .slice(0, 4)
-          .map((club) => `${club.name} carrying ${club.carry}, averaging ${club.average}`)
+          .map((club) => `${club.name} carrying ${distance(club.carry)}, averaging ${distance(club.average)}`)
           .join(', ')}.`
       : 'No real shots logged yet. Log a few on the GPS screen and I will tighten your numbers.';
   }
@@ -315,7 +318,7 @@ export function answerVoiceQuery(raw, ctx) {
   }
 
   if (/layup|split/.test(text)) {
-    return `The layup is ${distances.seg1} yards then ${distances.seg2} yards to the pin.`;
+    return `The layup is ${distance(distances.seg1)} then ${distance(distances.seg2)} to the pin.`;
   }
 
   if (/what hole|which hole|hole number/.test(text)) {
@@ -324,14 +327,14 @@ export function answerVoiceQuery(raw, ctx) {
 
   if (/club|hit|recommend|plan|brief|everything|update|status/.test(text)) return briefing();
 
-  if (/far|distance|pin/.test(text)) return `The pin is playing like ${distances.playsLike} yards.`;
+  if (/far|distance|pin/.test(text)) return `The pin is playing like ${distance(distances.playsLike)}.`;
 
   if (/weather|wind/.test(text)) {
     const windText =
       distances.wind.label === 'crosswind'
-        ? `Wind is ${env.windSpeed} miles per hour from the ${env.windDir}, a crosswind.`
-        : `Wind is ${env.windSpeed} miles per hour from the ${env.windDir}, a ${distances.wind.label} worth ${Math.abs(distances.wind.yards)} yards.`;
-    return `${windText} Temperature is ${env.temp} degrees.`;
+        ? `Wind is ${toDisplayWind(env.windSpeed, units)} ${windUnit(units)} from the ${env.windDir}, a crosswind.`
+        : `Wind is ${toDisplayWind(env.windSpeed, units)} ${windUnit(units)} from the ${env.windDir}, a ${distances.wind.label} worth ${distance(Math.abs(distances.wind.yards))}.`;
+    return `${windText} Temperature is ${toDisplayTemp(env.temp, units)} ${tempUnit(units)}.`;
   }
 
   if (/score|round|card/.test(text)) {

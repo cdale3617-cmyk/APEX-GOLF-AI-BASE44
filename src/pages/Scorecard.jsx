@@ -87,6 +87,8 @@ export default function Scorecard() {
           <StrokesGainedChart strokes={strokes} hasRound={stats.holes > 0} />
         </section>
 
+        <QuickShotActions scorecard={scorecard} activeHole={activeHoleNumber} onUpdate={updateHole} onComplete={completeHole} autoAdvance={autoAdvance} />
+
         <section className="glass-panel rounded-2xl p-3">
           <div className="mb-1 flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -110,8 +112,6 @@ export default function Scorecard() {
             onReset={resetShots}
           />
         </section>
-
-        <QuickShotActions scorecard={scorecard} activeHole={activeHoleNumber} onUpdate={updateHole} onComplete={completeHole} autoAdvance={autoAdvance} />
 
         <ScorecardTable scorecard={scorecard} activeHole={activeHoleNumber} onUpdate={updateHole} />
       </div>

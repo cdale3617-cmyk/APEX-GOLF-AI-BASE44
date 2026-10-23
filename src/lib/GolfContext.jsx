@@ -19,17 +19,18 @@ import {
   weakestArea,
   windOnShot,
 } from '@/lib/golfData';
-import { FEATURED_COURSES, HOLE_PARS, addCourse, cachedHoles, getCourse, loadCourseHoles } from '@/lib/courses';
+import { HOLE_PARS, addCourse, cachedHoles, getCourse, loadCourseHoles } from '@/lib/courses';
 import { addRound, buildRound, loadRounds, removeRound } from '@/lib/roundHistory';
 import { routeAudio } from '@/lib/audioRoute';
 import { answerVoiceQuery, describeScorePatch, parseVoiceIntent } from '@/lib/voiceEngine';
 import { checkGpsPosition, courseGpsMode, selectShotOrigin } from '@/lib/gpsTracking';
-import { distanceUnitSpoken, toDisplayDistance } from '@/lib/units';
+import { distanceUnitSpoken, toDisplayDistance, toDisplayTemp, tempUnit, toDisplayWind, windUnit } from '@/lib/units';
 import { offsetTarget } from '@/lib/targetPin';
 import { loadShotPlan, saveShotPlan } from '@/lib/shotPlanStore';
 import { autoGapCarry, DEFAULT_GAP_REFERENCE_ID, preferredGapReference } from '@/lib/autoGapping';
 import { addClubToBag, removeClubFromBag, sortClubBag } from '@/lib/clubCatalog';
 import { appendCaddieTurn, answerCaddieTurn, loadCaddieHistory, saveCaddieHistory } from '@/lib/caddieHistory';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 const STORAGE_KEY = 'apex_golf_ai_device_v1';
 const newRoundSessionId = () => `round-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -56,7 +57,7 @@ export function GolfProvider({ children }) {
   const [autoGapEnabled, setAutoGapEnabled] = useState(stored.autoGapEnabled ?? true);
   const [gapReferenceId, setGapReferenceId] = useState(stored.gapReferenceId ?? DEFAULT_GAP_REFERENCE_ID);
   const [caddie, setCaddie] = useState({ ...DEFAULT_CADDIE, ...(stored.caddie ?? {}) });
-  const startCourseId = stored.courseId ?? FEATURED_COURSES[0].id;
+  const startCourseId = stored.courseId && getCourse(stored.courseId) ? stored.courseId : null;
   const [courseId, setCourseId] = useState(startCourseId);
   const [holeIndex, setHoleIndex] = useState(stored.holeIndex ?? 0);
   // Real hole geometry, cached on this device per course.
@@ -95,6 +96,7 @@ export function GolfProvider({ children }) {
   const [listening, setListening] = useState(false);
   const [lastHeard, setLastHeard] = useState('');
   const [voices, setVoices] = useState([]);
+  const [voiceError, setVoiceError] = useState('');
   const [voiceHistory, setVoiceHistory] = useState(loadCaddieHistory);
   const clearVoiceHistory = useCallback(() => setVoiceHistory([]), []);
 
@@ -139,7 +141,7 @@ export function GolfProvider({ children }) {
     const direct = haversineYards(shotOrigin, coords.pin);
     const bearing = bearingBetween(shotOrigin, coords.pin);
     const playsLike = playsLikeYards(direct, env, bearing);
-    const rec = recommendClub(learnedClubs, playsLike);
+    const rec = recommendClub(learnedClubs, playsLike, units);
     return {
       direct,
       playsLike,
@@ -148,12 +150,12 @@ export function GolfProvider({ children }) {
       club: rec.club,
       reason: rec.reason,
       wind: windOnShot(env, bearing),
-      factors: adjustmentSummary(env, bearing),
+      factors: adjustmentSummary(env, bearing, units),
       mode: gpsMode,
       accuracy: gpsMode === 'live' ? gpsFix.accuracy : null,
       origin: shotOrigin,
     };
-  }, [shotOrigin, coords, env, learnedClubs, gpsMode, gpsFix]);
+  }, [shotOrigin, coords, env, learnedClubs, gpsMode, gpsFix, units]);
 
   // The hole the golfer is standing on drives the scorecard: the loaded map hole
   // while playing, otherwise the first hole still waiting for a score.
@@ -182,29 +184,53 @@ export function GolfProvider({ children }) {
 
   const speak = useCallback(
     (text) => {
-      if (typeof window === 'undefined' || !window.speechSynthesis) return;
-      const synth = window.speechSynthesis;
-      synth.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      const available = synth.getVoices();
-      const chosen = available.find((v) => v.name === caddie.voiceName);
-      if (chosen) utterance.voice = chosen;
-      utterance.pitch = caddie.pitch;
-      utterance.rate = caddie.speed;
-      utterance.volume = caddie.volume;
+      if (typeof window === 'undefined') return false;
       lastSpokenRef.current = text;
       speakingRef.current = true;
+      setVoiceError('');
       const resume = () => {
         speakingRef.current = false;
         // Give the mic a beat so it never transcribes the caddie's own voice.
         ignoreUntilRef.current = Date.now() + 600;
       };
-      utterance.onend = resume;
-      utterance.onerror = resume;
-      // Hold the audio route on the golfer's earbuds before speaking through it.
-      routeAudio(audioSink)
-        .catch(() => null)
-        .finally(() => synth.speak(utterance));
+      const browserSpeak = () => {
+        if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') {
+          resume();
+          setVoiceError('Speech output is unavailable. Check the Android text-to-speech engine.');
+          return false;
+        }
+        const synth = window.speechSynthesis;
+        synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        const chosen = synth.getVoices().find((voice) => voice.name === caddie.voiceName);
+        if (chosen) utterance.voice = chosen;
+        utterance.pitch = caddie.pitch;
+        utterance.rate = caddie.speed;
+        utterance.volume = caddie.volume;
+        utterance.onend = resume;
+        utterance.onerror = () => {
+          setVoiceError('Caddie speech failed. Check media volume and text-to-speech settings.');
+          resume();
+        };
+        // Keep speech within the original tap; WebView may reject delayed speech.
+        synth.speak(utterance);
+        routeAudio(audioSink).catch(() => null);
+        return true;
+      };
+      if (window.Capacitor?.isNativePlatform?.()) {
+        // Android native TTS works even when WebView's Web Speech API is absent.
+        TextToSpeech.stop().catch(() => null)
+          .then(() => TextToSpeech.speak({
+            text: String(text), lang: 'en-AU', rate: caddie.speed,
+            pitch: caddie.pitch, volume: caddie.volume, queueStrategy: 0,
+          }))
+          .then(resume)
+          .catch(() => {
+            if (!browserSpeak()) setVoiceError('Native and browser speech are both unavailable.');
+          });
+        return true;
+      }
+      return browserSpeak();
     },
     [audioSink, caddie],
   );
@@ -223,17 +249,17 @@ export function GolfProvider({ children }) {
       parts.push('The distances are from the mapped tee, not your phone. This is course preview mode.');
     }
     if (hole) {
-      parts.push(`Hole ${hole.number}, par ${hole.par}, ${hole.yards} yards on ${hole.courseName}.`);
+      parts.push(`Hole ${hole.number}, par ${hole.par}, ${toDisplayDistance(hole.yards, units)} ${distanceUnitSpoken(units)} on ${hole.courseName}.`);
     }
     const windNote = !env.windSpeed
       ? 'No wind to speak of'
       : distances.wind.label === 'crosswind'
-        ? `Wind is ${env.windSpeed} from the ${env.windDir}, crossing`
-        : `Wind is ${env.windSpeed} from the ${env.windDir}, a ${distances.wind.label} worth ${Math.abs(distances.wind.yards)} yards`;
+        ? `Wind is ${toDisplayWind(env.windSpeed, units)} ${windUnit(units)} from the ${env.windDir}, crossing`
+        : `Wind is ${toDisplayWind(env.windSpeed, units)} ${windUnit(units)} from the ${env.windDir}, a ${distances.wind.label} worth ${toDisplayDistance(Math.abs(distances.wind.yards), units)} ${distanceUnitSpoken(units)}`;
 
     parts.push(
       `The pin is at ${toDisplayDistance(distances.direct, units)} ${distanceUnitSpoken(units)}, playing like ${toDisplayDistance(distances.playsLike, units)}, so I like your ${distances.club.name}.`,
-      `${windNote} at ${env.temp} degrees Fahrenheit.`,
+      `${windNote} at ${toDisplayTemp(env.temp, units)} ${tempUnit(units)}.`,
     );
 
     if (stats.holes) {
@@ -424,6 +450,7 @@ export function GolfProvider({ children }) {
         shots,
         holeNumber: hole?.number ?? null,
         briefing,
+        units,
       });
 
       if (intent?.kind === 'repeat') {
@@ -493,7 +520,7 @@ export function GolfProvider({ children }) {
         const saved = commitDraft();
         const landed = intent.hole ? goToHole(intent.hole - 1) : goToHole(holeIndex + intent.delta);
         if (!landed) { reply('No hole is loaded yet. Select a course first.'); return; }
-        reply(`${saved ? `${saved} ` : ''}Hole ${landed.number}, par ${landed.par}, ${landed.yards} yards.`);
+        reply(`${saved ? `${saved} ` : ''}Hole ${landed.number}, par ${landed.par}, ${toDisplayDistance(landed.yards, units)} ${distanceUnitSpoken(units)}.`);
         return;
       }
 
@@ -525,6 +552,7 @@ export function GolfProvider({ children }) {
       speak,
       stats,
       strokes,
+      units,
     ],
   );
 
@@ -872,6 +900,7 @@ export function GolfProvider({ children }) {
       focusCenter,
       focusNonce,
       voices,
+      voiceError,
       listening,
       lastHeard,
       voiceHistory,
@@ -948,6 +977,7 @@ export function GolfProvider({ children }) {
       focusCenter,
       focusNonce,
       voices,
+      voiceError,
       listening,
       lastHeard,
       voiceHistory,

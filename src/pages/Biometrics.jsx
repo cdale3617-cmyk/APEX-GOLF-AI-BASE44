@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Bluetooth, HeartPulse, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import { BleClient } from '@capacitor-community/bluetooth-le';
 
 const KEY = 'apex_biometric_log_v1';
+const HEART_RATE_SERVICE = '0000180d-0000-1000-8000-00805f9b34fb';
+const HEART_RATE_MEASUREMENT = '00002a37-0000-1000-8000-00805f9b34fb';
 const inputClass = 'min-h-12 w-full rounded-lg border border-input bg-background p-2 text-sm text-foreground';
 function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } }
 
@@ -32,14 +35,48 @@ export default function Biometrics() {
     const next = entries.filter((entry) => entry.id !== id);
     try { localStorage.setItem(KEY, JSON.stringify(next)); setEntries(next); } catch { setStatus('Storage unavailable.'); }
   };
-  const disconnect = () => {
-    try { deviceRef.current?.gatt?.disconnect(); } catch { /* already closed */ }
+  const disconnect = async () => {
+    if (deviceRef.current?.native) {
+      const { deviceId } = deviceRef.current;
+      await BleClient.stopNotifications(deviceId, HEART_RATE_SERVICE, HEART_RATE_MEASUREMENT).catch(() => null);
+      await BleClient.disconnect(deviceId).catch(() => null);
+    } else {
+      try { deviceRef.current?.gatt?.disconnect(); } catch { /* already closed */ }
+    }
     valueRef.current = null; deviceRef.current = null; setConnected(false);
+    setStatus('Heart-rate sensor disconnected.');
   };
   useEffect(() => () => {
-    try { deviceRef.current?.gatt?.disconnect(); } catch { /* noop */ }
+    if (deviceRef.current?.native) BleClient.disconnect(deviceRef.current.deviceId).catch(() => null);
+    else { try { deviceRef.current?.gatt?.disconnect(); } catch { /* noop */ } }
   }, []);
   const connectHeartSensor = async () => {
+    if (window.Capacitor?.isNativePlatform?.()) {
+      try {
+        setStatus('Scanning for a compatible Bluetooth heart-rate sensor…');
+        await BleClient.initialize();
+        const device = await BleClient.requestDevice({ services: [HEART_RATE_SERVICE] });
+        await BleClient.connect(device.deviceId, () => {
+          setConnected(false);
+          setStatus('Heart-rate sensor disconnected.');
+          deviceRef.current = null;
+        });
+        deviceRef.current = { native: true, deviceId: device.deviceId };
+        await BleClient.startNotifications(device.deviceId, HEART_RATE_SERVICE, HEART_RATE_MEASUREMENT, (value) => {
+          const flags = value.getUint8(0);
+          const bpm = flags & 1 ? value.getUint16(1, true) : value.getUint8(1);
+          if (bpm >= 30 && bpm <= 230) setHeart(String(bpm));
+        });
+        setConnected(true);
+        setStatus(`Connected to ${device.name || 'heart-rate sensor'}. Tap Save reading to keep a measurement.`);
+      } catch (error) {
+        if (deviceRef.current?.native) await BleClient.disconnect(deviceRef.current.deviceId).catch(() => null);
+        deviceRef.current = null;
+        setStatus(error?.message || 'Bluetooth connection failed. Confirm the sensor is advertising heart-rate data.');
+        setConnected(false);
+      }
+      return;
+    }
     if (!navigator.bluetooth?.requestDevice) {
       setStatus('Web Bluetooth is unavailable in this Android web view. You can log readings manually.'); return;
     }
@@ -73,7 +110,7 @@ export default function Biometrics() {
         </PageHeader>
         <section className="glass-panel space-y-3 rounded-2xl p-3">
           <div className="flex items-center gap-2 text-primary"><HeartPulse className="h-5 w-5" /><h3 className="text-sm font-bold">Add a reading</h3></div>
-          <p className="text-xs text-muted-foreground">Manual readings work offline. Bluetooth only supports compatible standard Heart Rate Profile sensors where Android allows Web Bluetooth. Galaxy Watch / Health Connect sync is not yet supported.</p>
+          <p className="text-xs text-muted-foreground">Manual readings work offline. Connect a compatible Bluetooth Low Energy Heart Rate Profile sensor with the button below. Galaxy Watch / Health Connect history sync requires a separate watch integration.</p>
           <div className="grid grid-cols-2 gap-2">
             <label className="text-xs font-semibold text-foreground">Heart rate (bpm)
               <input className={inputClass} type="number" inputMode="numeric" min="30" max="230" value={heart} onChange={(e) => setHeart(e.target.value)} placeholder="e.g. 75" />

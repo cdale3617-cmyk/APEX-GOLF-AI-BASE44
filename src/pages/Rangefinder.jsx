@@ -159,7 +159,7 @@ export default function Rangefinder() {
 
   return (
     <div className="absolute inset-0">
-      <MapLibreHoleMap
+      {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
         coords={coords}
         focus={{ center: focusCenter, nonce: focusNonce }}
@@ -178,7 +178,7 @@ export default function Rangefinder() {
             ? 'Pin moved on an estimated layout. Distances are not verified.'
             : `Pin moved. ${gpsMode === 'live' ? 'GPS' : 'Tee preview'} plays like ${toDisplayDistance(distances.playsLike, units)} ${distanceUnitSpoken(units)}. Take your ${distances.club.name}.`)
         }
-      />
+      /> : <div className="absolute inset-0 bg-background" />}
 
       {courseLoading && (
         <div className="pointer-events-none absolute inset-x-0 top-[110px] z-[1050] flex justify-center">
@@ -186,6 +186,15 @@ export default function Rangefinder() {
             <Loader2 className="h-3 w-3 animate-spin text-primary" />
             Loading hole map…
           </div>
+        </div>
+      )}
+
+      {!course && !courseLoading && !uiHidden && (
+        <div className="pointer-events-auto absolute inset-x-3 top-[38%] z-[900] glass-panel rounded-xl border border-primary/40 p-3 text-center shadow-xl">
+          <p className="text-sm font-bold text-foreground">Choose a golf course</p>
+          <p className="mt-1 text-xs text-muted-foreground">Tap the search icon above, type a course or town, and select the course you want.</p>
+          <button type="button" onClick={() => setSearchOpen(true)}
+            className="mt-2 min-h-10 rounded-lg border border-primary/50 bg-primary/15 px-4 text-xs font-bold text-primary">Search courses</button>
         </div>
       )}
 
@@ -275,6 +284,15 @@ export default function Rangefinder() {
           {courseSaveMessage && (
             <p role="status" className="pointer-events-auto rounded-lg border border-primary/30 bg-background/95 px-3 py-1.5 text-[11px] font-semibold text-primary">
               {courseSaveMessage}
+            </p>
+          )}
+
+          {hole && !hole.estimated && (
+            <p className="pointer-events-auto glass-hud flex items-center gap-2 self-start rounded-lg px-2 py-1 text-[10px] font-semibold text-foreground">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#D94B4B]" /> Tee
+              <span className="h-2.5 w-2.5 rounded-full bg-[#EAB308]" /> Lay-up
+              <span className="h-2.5 w-2.5 rounded-full bg-[#22C55E]" /> Green
+              <span className="text-muted-foreground">· Drag dots or yellow line</span>
             </p>
           )}
 
@@ -414,7 +432,7 @@ export default function Rangefinder() {
               />
               <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-[10px] text-muted-foreground">
                 <TriangleAlert className="h-3 w-3" />
-                Yellow: your adjustable route. Red: direct aggressive line. Drag TEE, TARGET and PIN. Neither route is a verified safe path.
+                Red dot: tee. Yellow dot: lay-up. Green dot: green. Drag a dot or yellow line to adjust; neither route is verified safe.
               </p>
             </>
           )}

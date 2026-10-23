@@ -4,6 +4,7 @@ import { ArrowLeft, Layers, Loader2, Satellite, TriangleAlert } from 'lucide-rea
 import MapLibreCourseMap from '@/components/courselab/MapLibreCourseMap';
 import { fetchCourseGraphics } from '@/lib/courseGraphics';
 import { useGolf } from '@/lib/GolfContext';
+import { distanceUnit, toDisplayDistance } from '@/lib/units';
 
 const LEGEND = [
   { label: 'Fairway', className: 'bg-[#2f8040]' },
@@ -13,7 +14,7 @@ const LEGEND = [
 ];
 
 export default function CourseLab() {
-  const { course, courseId, hole, coords } = useGolf();
+  const { course, courseId, hole, coords, units } = useGolf();
   const [graphics, setGraphics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -71,7 +72,7 @@ export default function CourseLab() {
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-xs font-bold text-foreground">{course?.name ?? 'Course graphics lab'}</p>
             <p className="truncate text-[10px] text-muted-foreground">
-              Hole {hole?.number ?? 1} · Par {hole?.par ?? 4} · {hole?.yards ?? 0} yd · MapLibre engine
+              Hole {hole?.number ?? 1} · Par {hole?.par ?? 4} · {toDisplayDistance(hole?.yards ?? 0, units)} {distanceUnit(units)} · MapLibre engine
             </p>
           </div>
           <button

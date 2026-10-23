@@ -4,7 +4,6 @@ import AudioOutput from '@/components/caddie/AudioOutput';
 import CommandCheatsheet from '@/components/caddie/CommandCheatsheet';
 import PersonalitySelector from '@/components/caddie/PersonalitySelector';
 import VoiceControls from '@/components/caddie/VoiceControls';
-import PageHeader from '@/components/PageHeader';
 import { formatCaddieTranscript } from '@/lib/caddieHistory';
 import { useGolf } from '@/lib/GolfContext';
 
@@ -17,7 +16,7 @@ function when(at) {
 
 export default function Caddie() {
   const {
-    caddie, updateCaddie, voices, briefing, speak, lastHeard,
+    caddie, updateCaddie, voices, speak, lastHeard, voiceError,
     listening, voiceSupported, voiceHistory, clearVoiceHistory,
   } = useGolf();
   const feedRef = useRef(null);
@@ -54,33 +53,16 @@ export default function Caddie() {
   };
 
   return (
-    <div className="absolute inset-0 overflow-y-auto px-3 pb-8 pt-3">
-      <div className="mx-auto w-full max-w-3xl space-y-3">
-        <PageHeader
-          title="Caddie Conversation"
-          subtitle="Ask out loud · hear the reply · review what was said"
-        />
-
-        <section className="glass-panel rounded-2xl border border-primary/40 p-3">
-          <div className="flex items-center gap-3">
-            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${listening ? 'border-primary bg-primary/20 text-primary' : 'border-border bg-muted/60 text-muted-foreground'}`}>
-              {listening ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-extrabold text-foreground">
-                {listening ? 'Hands-free listening' : (voiceSupported ? 'Microphone paused' : 'Speech recognition unavailable')}
-              </p>
-              <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-                {listening
-                  ? 'Speak normally. Caddie answers out loud and saves each exchange.'
-                  : (voiceSupported
-                    ? 'Tap the microphone at the top right to start listening.'
-                    : 'This device needs browser speech recognition for voice conversations.')}
-              </p>
-            </div>
-            {listening && <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-primary" aria-label="Listening" />}
+    <div className="absolute inset-0 overflow-y-auto px-3 pb-4 pt-2">
+      <div className="mx-auto w-full max-w-3xl space-y-2">
+        <div className="flex items-center justify-between gap-2 py-1">
+          <h2 className="text-base font-extrabold text-foreground">Caddie</h2>
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground" role="status">
+            {listening ? <Mic className="h-4 w-4 text-primary" /> : <MicOff className="h-4 w-4" />}
+            <span className={`h-2 w-2 rounded-full ${listening ? 'animate-pulse bg-green-400' : 'bg-muted-foreground/50'}`} />
+            {listening ? 'On' : voiceSupported ? 'Off' : 'Unavailable'}
           </div>
-        </section>
+        </div>
 
         <section className="glass-panel overflow-hidden rounded-2xl border border-warm/30">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-3 py-3">
@@ -106,15 +88,12 @@ export default function Caddie() {
           </div>
 
           <div ref={feedRef} role="log" aria-label="Saved Caddie conversation"
-            className="max-h-[58dvh] min-h-[38dvh] space-y-3 overflow-y-auto overscroll-contain p-3">
+            className="max-h-[71dvh] min-h-[51dvh] space-y-3 overflow-y-auto overscroll-contain p-3">
             {voiceHistory.length === 0 ? (
-              <div className="flex min-h-[30dvh] flex-col items-center justify-center gap-3 px-4 text-center">
-                <MessageSquareText className="h-10 w-10 text-primary" />
-                <p className="text-base font-bold text-foreground">Ready for your first question</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Tap the top-right mic, then say “What club should I hit?” or “How far to the green?”
-                  Your questions and the Caddie's answers will appear here.
-                </p>
+              <div className="flex min-h-[28dvh] flex-col items-center justify-center gap-2 px-4 text-center">
+                <MessageSquareText className="h-7 w-7 text-primary" />
+                <p className="text-sm font-bold text-foreground">Questions & answers appear here</p>
+                <p className="text-xs text-muted-foreground">Tap the mic at the top right to start.</p>
               </div>
             ) : voiceHistory.map((turn) => (
               <article key={turn.id} className="space-y-1.5">
@@ -137,12 +116,10 @@ export default function Caddie() {
               </article>
             ))}
           </div>
-          <div className="border-t border-border/70 px-3 py-2">
-            <p className="text-[11px] leading-snug text-muted-foreground">
-              The last 150 exchanges are kept as text on this phone, not as audio recordings.
-              They remain available after closing the app unless you clear app data or delete them here.
-            </p>
+          <div className="border-t border-border/70 px-3 py-1.5">
+            <p className="text-[10px] text-muted-foreground">Conversation saved as text on this phone.</p>
             {notice && <p role="status" className="mt-1 text-xs font-semibold text-primary">{notice}</p>}
+            {voiceError && <p role="alert" className="mt-1 text-xs font-semibold text-destructive">{voiceError}</p>}
           </div>
         </section>
 
@@ -161,7 +138,10 @@ export default function Caddie() {
               caddie={caddie}
               voices={voices}
               onChange={(patch) => updateCaddie(patch)}
-              onTest={() => speak(briefing())}
+              onTest={() => {
+                if (!speak('Caddie voice test. Your sound is switched on.')) setNotice('Voice playback is unavailable in this Android web view. Check sound settings.');
+                else setNotice('Voice test requested. If silent, check media volume and Bluetooth audio routing.');
+              }}
             />
             <AudioOutput />
             <CommandCheatsheet lastHeard={lastHeard} />
