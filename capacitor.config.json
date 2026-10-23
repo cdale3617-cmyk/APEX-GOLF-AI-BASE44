@@ -1,6 +1,6 @@
 {
-  "appId": "com.drc.apexgolfai",
-  "appName": "APEX Golf AI",
+  "appId": "com.drc.apexgolfai.coursepreview",
+  "appName": "APEX Golf AI Course Preview",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"
