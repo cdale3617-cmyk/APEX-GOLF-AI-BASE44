@@ -107,8 +107,8 @@ export default function Rangefinder() {
     setResults([]);
     try {
       const found = await searchGolfCourses(term);
-      // Results and error messages live in the right-hand panel. Reopen the
-      // 50/50 view after searching so full-screen maps cannot hide them.
+      // Keep the split view visible; course choices appear directly below
+      // the search field so they cannot be hidden in the narrow tools panel.
       setUiHidden(false);
       if (found.length) {
         setResults(found);
@@ -231,7 +231,38 @@ export default function Rangefinder() {
           <div role="status" aria-live="polite"
             className={`rounded-lg border px-2 py-1 text-[11px] font-bold leading-snug ${searchError ? 'border-destructive/60 bg-destructive/15 text-destructive' : 'border-primary/50 bg-primary/10 text-foreground'}`}>
             {searching ? 'Searching online courses…' : searchError ||
-              `${results.filter((result) => result.kind !== 'place').length} golf course(s) found — tap a result on the right to select.`}
+              `${results.filter((result) => result.kind !== 'place').length} golf course(s) found — select one below.`}
+          </div>
+        )}
+        {results.length > 0 && (
+          <div aria-label="Course search results"
+            className="max-h-[32vh] overflow-y-auto rounded-xl border border-primary/60 bg-card p-1 shadow-lg">
+            {(results.some((result) => result.kind !== 'place')
+              ? results.filter((result) => result.kind !== 'place')
+              : results
+            ).slice(0, 10).map((result) => (
+              <div key={result.id} className="flex items-stretch gap-1 rounded-lg border-b border-border/40 last:border-b-0">
+                <button
+                  type="button"
+                  onClick={() => loadCourse(result)}
+                  className="flex min-h-12 min-w-0 flex-1 flex-col justify-center rounded-lg px-3 py-1.5 text-left transition active:bg-primary/15"
+                >
+                  <span className="text-sm font-bold leading-tight text-foreground">{result.name}</span>
+                  <span className="text-[11px] leading-snug text-muted-foreground">{result.location || 'Golf course'}</span>
+                </button>
+                {result.kind !== 'place' && (
+                  <button
+                    type="button"
+                    onClick={() => toggleSavedCourse(result)}
+                    aria-label={favoriteIds.includes(result.id) ? 'Remove ' + result.name + ' from saved courses' : 'Save ' + result.name}
+                    title={favoriteIds.includes(result.id) ? 'Remove saved course' : 'Save course'}
+                    className="flex min-h-12 min-w-12 shrink-0 items-center justify-center rounded-lg border border-border/70 text-primary active:bg-primary/20"
+                  >
+                    {favoriteIds.includes(result.id) ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -362,29 +393,6 @@ export default function Rangefinder() {
           />
           <HoleNotes courseId={courseId} holeNumber={hole?.number} />
           </>}
-
-          {results.length > 0 && (
-            <div className="pointer-events-auto glass-hud max-h-[42vh] overflow-y-auto rounded-xl p-1.5 shadow-xl">
-              {results.slice(0, 10).map((result) => (
-                <div key={result.id} className="flex items-stretch gap-1 rounded-lg transition hover:bg-muted/60">
-                  <button type="button" onClick={() => loadCourse(result)}
-                    className="min-w-0 flex-1 rounded-lg px-2.5 py-2 text-left transition active:scale-[0.99]">
-                    <p className="truncate text-xs font-bold text-foreground">{result.name}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{result.location || 'Golf course'}</p>
-                  </button>
-                  {result.kind !== 'place' && (
-                    <button type="button" onClick={() => toggleSavedCourse(result)}
-                      aria-label={favoriteIds.includes(result.id) ? 'Remove ' + result.name + ' from saved courses' : 'Save ' + result.name}
-                      title={favoriteIds.includes(result.id) ? 'Remove saved course' : 'Save course'}
-                      className="flex min-h-11 min-w-12 items-center justify-center rounded-lg border border-border/70 text-primary active:bg-primary/20">
-                      {favoriteIds.includes(result.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
 
           <div className="pointer-events-auto glass-hud flex flex-wrap items-center justify-between gap-1.5 rounded-xl px-2.5 py-1.5 shadow-xl">
             <div className="flex min-w-0 items-center gap-2 text-[10px]">

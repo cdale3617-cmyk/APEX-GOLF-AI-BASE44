@@ -124,3 +124,16 @@ test('Android search reports errors visibly and avoids a default Florida map', (
   assert.ok(component.includes('role="status" aria-live="polite"'));
   assert.ok(component.includes('Search for a course above, or allow GPS'));
 });
+
+test('phone-sized course results appear under the single search box, not inside the tools scroll panel', () => {
+  const component = readFileSync(new URL('../src/pages/Rangefinder.jsx', import.meta.url), 'utf8');
+  const mapStart = component.indexOf('<div className="relative h-full min-h-0 min-w-0 overflow-hidden">');
+  assert.ok(mapStart > 0);
+  const searchHeader = component.slice(0, mapStart);
+  const toolsPanel = component.slice(mapStart);
+  assert.ok(searchHeader.includes('aria-label="Course search results"'));
+  assert.ok(searchHeader.includes('onClick={() => loadCourse(result)}'));
+  assert.ok(searchHeader.includes('onClick={() => toggleSavedCourse(result)}'));
+  assert.equal(toolsPanel.includes('onClick={() => loadCourse(result)}'), false);
+  assert.equal((component.match(/role="search"/g) || []).length, 1);
+});
