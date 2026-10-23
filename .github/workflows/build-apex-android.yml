@@ -3,7 +3,7 @@ name: Build Apex Golf AI Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, "codex/course-split-50-50-20261023"]
+    branches: [main, "codex/course-split-50-50-20261023", "codex/auto-single-hole-build69-20261024"]
     paths:
       - ".github/workflows/build-apex-android.yml"
       - "android-build/**"
@@ -142,13 +142,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="apex-golf-ai-course-preview"
+          TAG="apex-golf-ai-hole-60-40-build69"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" APEX-GOLF-AI.apk --clobber
-            gh release edit "$TAG" --title "APEX Golf AI — Course Preview APK" --notes "APEX Golf AI: GPS and courses, Caddie, Club Bag, Scorecard and Shot History, Shot Studio manual tracer/trajectory/CSV, Green Reader tilt aid, Biometrics logging and experimental S24-Lenny pairing."
+            gh release edit "$TAG" --title "APEX Golf AI — Build 69 Single Hole 60/40 APK" --notes "APEX Golf AI Build 69: automatic selected-hole rotation and zoom, 60/40 hole map and tool layout, red tee/yellow target/green pin. Includes Caddie, Bag, Scorecard and original tools."
           else
             gh release create "$TAG" APEX-GOLF-AI.apk \
               --target "$GITHUB_SHA" \
-              --title "APEX Golf AI — Course Preview APK" \
-              --notes "Signed installable Android debug APK of the existing 166-file Base44 Apex Golf AI project. Includes the golf GPS, Caddie, scorecard, bag, swing and course-lab screens. Internet is required for live Base44 services and map imagery."
+              --title "APEX Golf AI — Build 69 Single Hole 60/40 APK" \
+              --notes "Build 69 based 60/40 single-hole map APK. Tee bottom, green top; course coordinates required. Original tools preserved. Internet required for live map imagery and services."
           fi
