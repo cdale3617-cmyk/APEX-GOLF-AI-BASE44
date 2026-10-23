@@ -1,37 +1,39 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Bot, ClipboardList, Crosshair, MoreHorizontal, Ruler } from 'lucide-react';
+import { ClipboardList, Crosshair, House, LayoutGrid } from 'lucide-react';
 
 const TABS = [
-  { to: '/', label: 'GPS', icon: Crosshair, end: true },
-  { to: '/bag', label: 'Bag', icon: Ruler },
-  { to: '/caddie', label: 'Caddie', icon: Bot },
+  { to: '/', label: 'Home', icon: House, end: true },
+  { to: '/play', label: 'Play', icon: Crosshair },
   { to: '/scorecard', label: 'Score', icon: ClipboardList },
-  { to: '/more', label: 'More', icon: MoreHorizontal },
+  { to: '/more', label: 'Tools', icon: LayoutGrid },
 ];
 
-const MORE_PAGES = ['/more', '/rounds', '/swing', '/drills', '/course-lab', '/green-reader', '/tour-suite', '/shot-history', '/shot-studio', '/biometrics', '/pairing'];
+const TOOL_PAGES = ['/more', '/bag', '/caddie', '/rounds', '/swing', '/drills', '/course-lab', '/green-reader', '/tour-suite', '/shot-history', '/shot-studio', '/biometrics', '/pairing'];
 
 export default function BottomNav() {
   const { pathname } = useLocation();
   return (
-    <nav aria-label="Primary navigation"
-      className="apex-bottom-nav glass-panel z-30 shrink-0 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
-      <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+    <nav aria-label="Primary navigation" className="apex-bottom-nav glass-panel z-30 shrink-0 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
+      <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
         {TABS.map(({ to, label, icon: Icon, end }) => {
-          const moreSelected = to === '/more' && MORE_PAGES.some((page) =>
-            pathname === page || pathname.startsWith(page + '/'),
+          const toolsSelected = to === '/more' && TOOL_PAGES.some((page) =>
+            pathname === page || pathname.startsWith(page + '/')
           );
           return (
-            <NavLink key={to} to={to} end={end}
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
               aria-label={label}
               className={({ isActive }) =>
-                `flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-muted-foreground transition-colors ${isActive || moreSelected ? 'apex-nav-current' : 'hover:text-foreground'}`
+                'flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 font-semibold transition-colors ' +
+                (isActive || toolsSelected ? 'apex-nav-current' : 'text-muted-foreground hover:text-foreground')
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon className={`h-5 w-5 transition-transform ${isActive || moreSelected ? 'scale-110 drop-shadow-[0_0_8px_hsl(176_78%_43%/0.55)]' : ''}`} />
-                  <span className="text-[11px] font-semibold tracking-wide">{label}</span>
+                  <Icon className={'h-5 w-5 ' + (isActive || toolsSelected ? 'drop-shadow-[0_0_8px_rgba(0,216,232,.4)]' : '')} aria-hidden="true" />
+                  <span className="text-[11px] tracking-wide">{label}</span>
                 </>
               )}
             </NavLink>

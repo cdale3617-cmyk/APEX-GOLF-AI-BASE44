@@ -3,7 +3,7 @@ name: Build Apex Golf AI Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, "codex/course-split-50-50-20261023", "codex/auto-single-hole-build69-20261024"]
+    branches: [main, "codex/course-split-50-50-20261023", "codex/auto-single-hole-build69-20261024", "codex/restore-vibrant-home-build76"]
     paths:
       - ".github/workflows/build-apex-android.yml"
       - "android-build/**"
@@ -76,7 +76,8 @@ jobs:
           node --input-type=module <<'JS'
           import { existsSync, readFileSync } from 'node:fs';
           const required = [
-            ['GPS', 'src/pages/Rangefinder.jsx', "path=\"/\""],
+            ['Home', 'src/pages/Home.jsx', 'path="/"'],
+            ['GPS', 'src/pages/Rangefinder.jsx', 'path="/play"'],
             ['Club Bag', 'src/pages/Bag.jsx', 'path="/bag"'],
             ['Caddie', 'src/pages/Caddie.jsx', 'path="/caddie"'],
             ['Scorecard', 'src/pages/Scorecard.jsx', 'path="/scorecard"'],
@@ -88,6 +89,7 @@ jobs:
             ['Tour Suite', 'src/pages/TourSuite.jsx', 'path="/tour-suite"'],
           ];
           const app = readFileSync('src/App.jsx', 'utf8');
+          if (!existsSync('public/apex-home-hero.png')) throw new Error('Approved Home artwork missing');
           for (const [label, file, route] of required) {
             if (!existsSync(file) || !app.includes(route)) {
               throw new Error(label + ' is missing from the unified Apex app: ' + file + ', route ' + route);
@@ -142,13 +144,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="apex-golf-ai-hole-60-40-build69"
+          TAG="apex-golf-ai-home-map-build76"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" APEX-GOLF-AI.apk --clobber
-            gh release edit "$TAG" --title "APEX Golf AI — Build 69 Single Hole 60/40 APK" --notes "APEX Golf AI Build 69: automatic selected-hole rotation and zoom, 60/40 hole map and tool layout, red tee/yellow target/green pin. Includes Caddie, Bag, Scorecard and original tools."
+            gh release edit "$TAG" --title "APEX Golf AI — Build 76 Home + Single Hole 60/40 APK" --notes "Build 76 restores the approved vibrant Home and golf artwork, plus Build 75 automatic single-hole map with 60/40 layout. Caddie, Scorecard, Bag, speaker and tools preserved."
           else
             gh release create "$TAG" APEX-GOLF-AI.apk \
               --target "$GITHUB_SHA" \
-              --title "APEX Golf AI — Build 69 Single Hole 60/40 APK" \
-              --notes "Build 69 based 60/40 single-hole map APK. Tee bottom, green top; course coordinates required. Original tools preserved. Internet required for live map imagery and services."
+              --title "APEX Golf AI — Build 76 Home + Single Hole 60/40 APK" \
+              --notes "Build 76 Home art + 60/40 single-hole map. Tee bottom, green top; course coordinates required. All tools preserved. Internet required for live map imagery and services."
           fi
