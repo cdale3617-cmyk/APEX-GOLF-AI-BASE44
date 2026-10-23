@@ -91,7 +91,7 @@ test('an empty query never calls a provider', async () => {
 
 test('Android hole map uses key-free map tiles and retains satellite imagery', () => {
   const component = readFileSync(new URL('../src/components/rangefinder/MapLibreHoleMap.jsx', import.meta.url), 'utf8');
-  assert.doesNotMatch(component, /basemaps\\.cartocdn\\.com/);
-  assert.match(component, /tile\\.openstreetmap\\.org/);
-  assert.match(component, /server\\.arcgisonline\\.com/);
+  assert.equal(component.includes('basemaps.cartocdn.com'), false);
+  assert.ok(component.includes('tile.openstreetmap.org'));
+  assert.ok(component.includes('server.arcgisonline.com'));
 });
