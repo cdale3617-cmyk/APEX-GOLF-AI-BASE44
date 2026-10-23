@@ -151,20 +151,72 @@ out center tags;`);
     }));
 }
 
-/** The course database gives proper course names, locations and hole cards. */
+/**
+ * Public OpenGolfAPI fallback. This uses the openly documented search endpoint:
+ * no user account or API key is required for modest anonymous usage. We never
+ * invent coordinates for a course whose provider hasn't published them.
+ */
+async function openGolfCourses(query) {
+  const simpler = query.replace(/\b(championship|golf\s+club|golf\s+course|country\s+club)\b/gi, ' ')
+    .replace(/\s+/g, ' ').trim();
+  const variants = [...new Set([query, simpler])].filter(Boolean);
+
+  for (const variant of variants) {
+    const url = 'https://api.opengolfapi.org/v1/courses/search?q='
+      + encodeURIComponent(variant) + '&limit=15';
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(6500),
+    });
+    if (!response.ok) throw new Error('OpenGolfAPI search responded ' + response.status);
+    const payload = await response.json();
+    const courses = (Array.isArray(payload?.courses) ? payload.courses : [])
+      .map((row) => {
+        const latitude = row.latitude ?? row.lat ?? row.location?.latitude;
+        const longitude = row.longitude ?? row.lng ?? row.lon ?? row.location?.longitude;
+        const lat = Number(latitude);
+        const lng = Number(longitude);
+        if (!row.id || !row.course_name || latitude == null || longitude == null
+            || !Number.isFinite(lat) || !Number.isFinite(lng)
+            || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+        return {
+          id: 'oga-' + row.id,
+          name: row.course_name,
+          location: [row.city, row.state, row.country].filter(Boolean).join(', '),
+          center: [lat, lng],
+          source: 'OpenGolfAPI',
+        };
+      })
+      .filter(Boolean);
+    if (courses.length) return courses;
+  }
+  return [];
+}
+
+/**
+ * The saved GolfCourseAPI backend may require a Base44 session on the phone.
+ * Keep that data when available, but a denied session or a provider outage
+ * must not prevent a public course search on a standalone Android APK.
+ */
 async function databaseCourses(query) {
-  const response = await withTimeout(
-    base44.functions.invoke('getGolfCourseInfo', { action: 'search', term: query }),
-    COURSE_SEARCH_TIMEOUT_MS,
-  );
-  const rows = response?.data?.courses ?? [];
-  return rows.map((row) => ({
-    id: 'gca-' + row.id,
-    apiId: row.id,
-    name: row.name,
-    location: row.location,
-    center: [Number(row.lat), Number(row.lng)],
-  }));
+  try {
+    const response = await withTimeout(
+      base44.functions.invoke('getGolfCourseInfo', { action: 'search', term: query }),
+      COURSE_SEARCH_TIMEOUT_MS,
+    );
+    const rows = response?.data?.courses ?? [];
+    const courses = rows.map((row) => ({
+      id: 'gca-' + row.id,
+      apiId: row.id,
+      name: row.name,
+      location: row.location,
+      center: [Number(row.lat), Number(row.lng)],
+    })).filter((course) => course.name && course.center.every(Number.isFinite));
+    if (courses.length) return courses;
+  } catch {
+    // Android can continue with the openly available search provider.
+  }
+  return openGolfCourses(query);
 }
 
 /** Card par and yardage per hole, cached for the whole app. */
