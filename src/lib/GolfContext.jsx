@@ -59,6 +59,7 @@ export function GolfProvider({ children }) {
   const startCourseId = stored.courseId ?? FEATURED_COURSES[0].id;
   const [courseId, setCourseId] = useState(startCourseId);
   const [holeIndex, setHoleIndex] = useState(stored.holeIndex ?? 0);
+  const pendingHoleIndexRef = useRef(stored.holeIndex ?? 0);
   // Real hole geometry, cached on this device per course.
   const [holes, setHoles] = useState(() => cachedHoles(startCourseId) ?? []);
   const [courseLoading, setCourseLoading] = useState(false);
@@ -275,6 +276,7 @@ export function GolfProvider({ children }) {
 
     // Course switching is immediate. Hole geometry arrives separately.
     setCourseId(nextCourse.id);
+    pendingHoleIndexRef.current = 0;
     setHoleIndex(0);
     setPinOffsetMetres(0);
     setCourseError('');
@@ -292,8 +294,14 @@ export function GolfProvider({ children }) {
     try {
       const loaded = await loadCourseHoles(nextCourse);
       if (token !== courseRequestRef.current) return;
+      const selectedIndex = ((pendingHoleIndexRef.current % loaded.length) + loaded.length) % loaded.length;
+      const selectedHole = loaded[selectedIndex];
       setHoles(loaded);
-      setFocusCenter(loaded[0].tee);
+      setHoleIndex(selectedIndex);
+      setCoords(loadShotPlan(nextCourse.id, selectedHole.number) || {
+        tee: selectedHole.tee, layup: selectedHole.layup, pin: selectedHole.pin,
+      });
+      setFocusCenter(selectedHole.tee);
       setFocusNonce((n) => n + 1);
       setGpsStatus(`Course Set • ${nextCourse.name}`);
     } catch (error) {
@@ -314,17 +322,29 @@ export function GolfProvider({ children }) {
 
   const goToHole = useCallback(
     (index) => {
-      if (!holes.length) return null;
-      const normalized = ((index % holes.length) + holes.length) % holes.length;
-      const next = holes[normalized];
+      // Hole arrows remain responsive while course geometry is still loading.
+      // Never invent GPS distances for a hole that has not been mapped.
+      const count = holes.length || 18;
+      const normalized = ((index % count) + count) % count;
+      const next = holes[normalized] ?? null;
+      pendingHoleIndexRef.current = normalized;
       setHoleIndex(normalized);
       setPinOffsetMetres(0);
-      setFocusCenter(next.tee);
+      if (next) {
+        // Update the map coordinates in the same render as the hole and camera.
+        // Delaying this to an effect made the map fit the previous hole.
+        setCoords(loadShotPlan(courseId, next.number) || {
+          tee: next.tee, layup: next.layup, pin: next.pin,
+        });
+        setFocusCenter(next.tee);
+        setGpsStatus(`Hole ${next.number} • Par ${next.par}`);
+      } else {
+        setGpsStatus(`Hole ${normalized + 1} • Waiting for map data`);
+      }
       setFocusNonce((n) => n + 1);
-      setGpsStatus(`Hole ${next.number} • Par ${next.par}`);
       return next;
     },
-    [holes],
+    [holes, courseId],
   );
 
   const selectCourse = useCallback(

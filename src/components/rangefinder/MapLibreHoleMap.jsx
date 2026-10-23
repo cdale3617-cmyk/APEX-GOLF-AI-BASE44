@@ -85,6 +85,7 @@ export default function MapLibreHoleMap({
   focus,
   courseCenter,
   holeReady = false,
+  holePreview = false,
   units = 'metric',
   gpsFix = null,
   gpsMode = 'preview',
@@ -447,7 +448,9 @@ export default function MapLibreHoleMap({
     const map = mapRef.current;
     if (!map || !ready) return;
     const { tee, pin } = coords;
-    if (!holeReady || !validPoint(tee) || !validPoint(pin)) {
+    // Even an estimated hole should visibly navigate to its own area.
+    // Keep markers/distances disabled until verified geometry is available.
+    if (!holePreview || !validPoint(tee) || !validPoint(pin)) {
       const center = focus?.center || courseCenter || tee;
       if (validPoint(center)) {
         map.jumpTo({ center: [center[1], center[0]], zoom: 13.8, pitch: 0, bearing: 0 });
@@ -475,7 +478,7 @@ export default function MapLibreHoleMap({
       bearing: 0,
       duration: 500,
     });
-  }, [focus?.nonce, holeReady, ready, courseCenter]);
+  }, [focus?.nonce, holePreview, ready, courseCenter]);
 
   useEffect(() => {
     const map = mapRef.current;

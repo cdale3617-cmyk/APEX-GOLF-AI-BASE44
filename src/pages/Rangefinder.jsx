@@ -66,7 +66,7 @@ export default function Rangefinder() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(true);
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [hudOpen, setHudOpen] = useState(false);
@@ -159,12 +159,14 @@ export default function Rangefinder() {
 
   return (
     <div className={`apex-course-vibrant absolute inset-0 grid h-full min-h-0 w-full min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-background ${uiHidden ? 'grid-cols-1' : 'grid-cols-2'}`}>
-      <div className="col-span-full z-[1000] flex min-w-0 items-center gap-2 border-b-2 border-primary/70 bg-background p-1.5">
+      <div className="col-span-full z-[1000] flex min-w-0 flex-col gap-2 border-b-2 border-primary/70 bg-background p-2">
+        <div className="flex w-full min-w-0 items-center gap-2">
         <div className="min-w-0 flex-1">
           <HoleBar
             course={course}
             hole={hole}
             holeCount={holes.length || 18}
+            holeIndex={holeIndex}
             onPrev={prevHole}
             onNext={nextHole}
             onOpenCourses={() => setCoursesOpen(true)}
@@ -179,6 +181,34 @@ export default function Rangefinder() {
         >
           {uiHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         </button>
+        </div>
+        {searchOpen && (
+          <div className="flex w-full min-w-0 items-center gap-2" role="search">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && runSearch()}
+                placeholder="Search golf course or town…"
+                aria-label="Search golf course or town"
+                className="h-12 w-full min-w-0 rounded-xl border-2 border-primary/50 bg-card px-10 text-base font-medium text-foreground shadow-lg outline-none placeholder:text-muted-foreground focus:border-primary"
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery('')} aria-label="Clear search"
+                  className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <button type="button" onClick={runSearch} disabled={searching || !query.trim()}
+              className="flex h-12 min-w-20 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 text-sm font-bold text-primary-foreground shadow-lg transition active:scale-95 disabled:opacity-60">
+              {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              Find
+            </button>
+          </div>
+        )}
       </div>
       <div className="relative h-full min-h-0 min-w-0 overflow-hidden">
         <MapLibreHoleMap
@@ -187,6 +217,7 @@ export default function Rangefinder() {
         focus={{ center: focusCenter, nonce: focusNonce }}
         courseCenter={course?.center}
         holeReady={Boolean(hole && !hole.estimated)}
+        holePreview={Boolean(hole)}
         units={units}
         gpsFix={gpsFix}
         gpsMode={gpsMode}
@@ -273,39 +304,6 @@ export default function Rangefinder() {
             </p>
           )}
 
-          {searchOpen && (
-            <div className="pointer-events-auto flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  onKeyDown={(event) => event.key === 'Enter' && runSearch()}
-                  placeholder="Search golf course or city…"
-                  className="h-11 w-full rounded-xl border border-border/80 bg-card/75 pl-9 pr-9 text-xs text-foreground shadow-xl outline-none backdrop-blur-md transition placeholder:text-muted-foreground focus:border-primary"
-                />
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => setQuery('')}
-                    aria-label="Clear search"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={runSearch}
-                disabled={searching}
-                className="flex h-11 items-center gap-1.5 rounded-xl bg-primary px-4 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition hover:brightness-110 active:scale-95 disabled:opacity-60"
-              >
-                {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                Find
-              </button>
-            </div>
-          )}
 
           {results.length > 0 && (
             <div className="pointer-events-auto glass-hud max-h-[42vh] overflow-y-auto rounded-xl p-1.5 shadow-xl">
