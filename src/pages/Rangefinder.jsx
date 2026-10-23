@@ -230,6 +230,7 @@ export default function Rangefinder() {
         <MapLibreHoleMap
         key={courseId}
         coords={coords}
+        hole={hole}
         focus={{ center: focusCenter, nonce: focusNonce }}
         courseCenter={course?.center}
         holeReady={Boolean(hole && !hole.estimated)}
