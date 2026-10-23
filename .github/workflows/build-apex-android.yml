@@ -69,7 +69,7 @@ jobs:
           python android-build/generate_icons.py
 
       - name: Verify GPS, bag management and automatic club gapping
-        run: node --test android-build/caddie-history.test.mjs android-build/shot-plan.test.mjs android-build/launch-import.test.mjs android-build/gps-tracking.test.mjs android-build/auto-gapping.test.mjs android-build/club-bag.test.mjs
+        run: node --test android-build/caddie-history.test.mjs android-build/shot-plan.test.mjs android-build/launch-import.test.mjs android-build/gps-tracking.test.mjs android-build/auto-gapping.test.mjs android-build/club-bag.test.mjs android-build/course-search.test.mjs
 
       - name: Verify approved add-on pages are included
         run: |
