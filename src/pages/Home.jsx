@@ -1,12 +1,25 @@
 import './Home.css';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Bot, ClipboardList, Crosshair, Ruler, Search } from 'lucide-react';
+import { Activity, ArrowRight, Bot, ClipboardList, Clock3, Crosshair, Gauge, HeartPulse, History, Map, PersonStanding, Ruler, ScanEye, Search, Smartphone, Target } from 'lucide-react';
 
 const QUICK_TOOLS = [
   { to: '/play', title: 'LIVE GPS', detail: 'Hole & distances', icon: Crosshair, tone: 'gps' },
   { to: '/caddie', title: 'AI CADDIE', detail: 'Voice advice', icon: Bot, tone: 'caddie' },
   { to: '/bag', title: 'MY BAG', detail: 'Clubs & gapping', icon: Ruler, tone: 'bag' },
   { to: '/scorecard', title: 'SCORECARD', detail: 'Round & putts', icon: ClipboardList, tone: 'score' },
+];
+
+const MORE_TOOLS = [
+  { to: '/swing', title: 'Swing Monitor', icon: PersonStanding },
+  { to: '/drills', title: 'Practice & Drills', icon: Target },
+  { to: '/green-reader', title: 'Green Reader', icon: ScanEye },
+  { to: '/shot-history', title: 'Shot History', icon: History },
+  { to: '/shot-studio', title: 'Shot Studio', icon: Activity },
+  { to: '/rounds', title: 'Round History', icon: Clock3 },
+  { to: '/biometrics', title: 'Biometrics', icon: HeartPulse },
+  { to: '/pairing', title: 'S24 / Lenny Pairing', icon: Smartphone },
+  { to: '/course-lab', title: 'Course Lab', icon: Map },
+  { to: '/tour-suite', title: 'Tour Performance', icon: Gauge },
 ];
 
 export default function Home() {
@@ -64,6 +77,18 @@ export default function Home() {
             </Link>
           ))}
         </nav>
+
+        <section aria-labelledby="home-tools-title" className="mt-6">
+          <h2 id="home-tools-title" className="mb-3 text-sm font-bold uppercase tracking-[0.12em]">Practice & round tools</h2>
+          <nav aria-label="All golf tools" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {MORE_TOOLS.map(({ to, title, icon: Icon }) => (
+              <Link key={to} to={to} className="apex-home-tool flex min-h-20 items-center gap-3 rounded-2xl border p-3 active:opacity-80">
+                <Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 text-xs font-bold leading-snug sm:text-sm">{title}</span>
+              </Link>
+            ))}
+          </nav>
+        </section>
       </div>
     </div>
   );
