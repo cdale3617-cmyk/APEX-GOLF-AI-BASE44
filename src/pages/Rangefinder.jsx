@@ -168,7 +168,7 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className={`apex-course-vibrant absolute inset-0 grid h-full min-h-0 w-full min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-background ${uiHidden ? 'grid-cols-1' : 'grid-cols-2'}`}>
+    <div className={`apex-course-vibrant absolute inset-0 grid h-full min-h-0 w-full min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-background ${uiHidden ? 'grid-cols-1' : 'grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'}`}>
       <div className="col-span-full z-[1000] flex min-w-0 flex-col gap-1 border-b border-primary/70 bg-background p-1.5">
         <div className="flex w-full min-w-0 items-center gap-2">
         <div className="min-w-0 flex-1">
@@ -378,7 +378,7 @@ export default function Rangefinder() {
           )}
 
           <div className="pointer-events-auto glass-hud flex flex-wrap items-center justify-between gap-1.5 rounded-xl px-2.5 py-1.5 shadow-xl">
-            <div className="flex min-w-0 items-center gap-2 text-[10px]">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[10px]">
               <span className="flex items-center gap-1.5" title="Wind">
                 <Wind className="h-3.5 w-3.5 text-primary" />
                 <span className="font-bold text-foreground whitespace-nowrap">
