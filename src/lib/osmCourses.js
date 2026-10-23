@@ -188,60 +188,53 @@ function withCardPars(holes, card) {
   });
 }
 
-/** Course search: the course database, mapped courses, then everything near a place. */
+/** Public Photon search for courses and places; no key needed on the phone. */
+async function photonSearch(query) {
+  const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=20`, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(7000),
+  });
+  if (!response.ok) throw new Error('Course and town lookup is unavailable');
+  const payload = await response.json();
+  return (payload.features || []).map((feature) => {
+    const props = feature.properties || {};
+    const position = feature.geometry?.coordinates || [];
+    const extent = props.extent;
+    return {
+      osm_type: props.osm_type === 'R' ? 'relation' : props.osm_type === 'W' ? 'way' : 'node',
+      osm_id: props.osm_id,
+      category: props.osm_key,
+      type: props.osm_value,
+      name: props.name,
+      display_name: [props.name, props.city, props.state, props.country].filter(Boolean).join(', '),
+      lat: position[1],
+      lon: position[0],
+      // OSM bbox order is south, north, west, east.
+      boundingbox: extent?.length === 4
+        ? [extent[1], extent[3], extent[0], extent[2]]
+        : null,
+    };
+  }).filter((row) => Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
+}
+
+/**
+ * One search box for course name or town. Search town names AND nearby golf
+ * places in parallel: a town search must show golf clubs, not just "View area".
+ * The private Base44 course card is an optional bonus, not a blocker on Android.
+ */
 export async function searchGolfCourses(term) {
   const query = term.trim();
   if (!query) return [];
 
-  const [fromDatabase, rows] = await Promise.all([
-    databaseCourses(query),
-    // Photon provides a low-volume, free town lookup without requiring
-    // a personal token. Unlike the previous provider, its public demo API
-    // supports this kind of place search (subject to fair-use limits).
-    fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=20`, {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(7000),
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Town lookup unavailable');
-        const data = await response.json();
-        return (data.features || []).map((feature) => {
-          const props = feature.properties || {};
-          const position = feature.geometry?.coordinates || [];
-          const extent = props.extent;
-          return {
-            osm_type: props.osm_type === 'R' ? 'relation' : props.osm_type === 'W' ? 'way' : 'node',
-            osm_id: props.osm_id,
-            category: props.osm_key,
-            type: props.osm_value,
-            name: props.name,
-            display_name: [props.name, props.city, props.state, props.country].filter(Boolean).join(', '),
-            lat: position[1],
-            lon: position[0],
-            boundingbox: extent?.length === 4
-              ? [extent[3], extent[1], extent[0], extent[2]]
-              : null,
-          };
-        }).filter((row) => Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
-      })
-      .catch(() => []),
+  const [rows, golfRows, fromDatabase] = await Promise.all([
+    photonSearch(query).catch(() => []),
+    photonSearch(`${query} golf course`).catch(() => []),
+    withTimeout(databaseCourses(query), 2500).catch(() => []),
   ]);
 
-  const mapped = rows
-    .filter((row) => row.category === 'leisure' && row.type === 'golf_course')
-    .map(toCourse);
-
-  const named = [...fromDatabase, ...mapped]
-    .filter((course, index, list) => {
-      const key = course.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return list.findIndex((other) => other.name.toLowerCase().replace(/[^a-z0-9]/g, '') === key) === index;
-    })
-    .slice(0, 10);
-  // A town is not a golf course. Offer a clearly labelled map-location result
-  // so entering "Yeppoon" moves the satellite map even without hole data.
+  const isGolf = (row) => row.category === 'leisure' && row.type === 'golf_course';
   const place = rows.find((row) =>
-    !(row.category === 'leisure' && row.type === 'golf_course') &&
-    Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)),
+    !isGolf(row) && Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)),
   );
   const area = place ? {
     id: `place-${place.osm_id ?? query.toLowerCase().replace(/\s+/g, '-')}`,
@@ -250,17 +243,28 @@ export async function searchGolfCourses(term) {
     location: 'Town map • choose a golf course below',
     center: [Number(place.lat), Number(place.lon)],
   } : null;
+
+  // The broad public text index may return similarly named clubs worldwide.
+  // Keep "golf course + town" matches near the searched town.
+  const nearbyGolfRows = golfRows.filter((row) =>
+    isGolf(row) &&
+    (!place || haversineYards([Number(place.lat), Number(place.lon)], [Number(row.lat), Number(row.lon)]) < 60000),
+  );
+  const named = [...fromDatabase, ...rows.filter(isGolf).map(toCourse), ...nearbyGolfRows.map(toCourse)]
+    .filter((course) => course.name && course.id && Array.isArray(course.center))
+    .filter((course, index, list) => list.findIndex((other) => other.id === course.id) === index)
+    .slice(0, 10);
+
   if (named.length) return [...(area ? [area] : []), ...named];
 
   if (!place) return [];
 
-  // Overpass mirrors can be slow. Give the player the town map within 6 s
-  // rather than leaving the previously selected course frozen indefinitely.
+  // Slow map mirrors are a backup only, never needed for ordinary town search.
   const nearby = await Promise.race([
     coursesNear(Number(place.lat), Number(place.lon)).catch(() => []),
     new Promise((resolve) => setTimeout(() => resolve([]), 6000)),
   ]);
-  return [...(area ? [area] : []), ...nearby];
+  return [area, ...nearby];
 }
 
 function holesFromGreens(elements, course) {
