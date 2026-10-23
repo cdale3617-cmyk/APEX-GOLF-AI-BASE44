@@ -107,16 +107,23 @@ export default function Rangefinder() {
     setResults([]);
     try {
       const found = await searchGolfCourses(term);
+      // Results and error messages live in the right-hand panel. Reopen the
+      // 50/50 view after searching so full-screen maps cannot hide them.
+      setUiHidden(false);
       if (found.length) {
         setResults(found);
         const area = found.find((result) => result.kind === 'place');
         // The Find action navigates to the searched town immediately.
         // Course results stay available below for precise hole selection.
         if (area?.center) focusCourse(area.center[0], area.center[1], term);
+        if (!found.some((result) => result.kind !== 'place')) {
+          setSearchError('Town located, but online map services returned no golf clubs. Try the club name or retry the search.');
+        }
       } else {
-        setSearchError('No location or golf course found. Try a nearby town.');
+        setSearchError('No location or golf course found. Try the club name or a nearby town.');
       }
     } catch (error) {
+      setUiHidden(false);
       setSearchError(error?.message ?? 'Course search is unavailable right now.');
     } finally {
       setSearching(false);
