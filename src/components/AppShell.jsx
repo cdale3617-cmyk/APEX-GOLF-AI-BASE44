@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { Mic, Moon, Ruler, Sun } from 'lucide-react';
+import { Mic, Moon, Ruler, Sun, Volume2 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import VoiceDock from '@/components/caddie/VoiceDock';
 import { useGolf } from '@/lib/GolfContext';
@@ -7,7 +7,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useScreenWakeLock } from '@/hooks/useScreenWakeLock';
 
 export default function AppShell() {
-  const { gpsStatus, gpsFix, gpsMode, gpsTrackingStatus, listening, toggleListening, units, setUnits, keepScreenAwake } = useGolf();
+  const { gpsStatus, gpsFix, gpsMode, gpsTrackingStatus, listening, toggleListening, units, setUnits, keepScreenAwake, speak, briefing } = useGolf();
   const wakeStatus = useScreenWakeLock(keepScreenAwake);
   const { theme, toggle } = useTheme();
   const metric = units === 'metric';
@@ -53,6 +53,12 @@ export default function AppShell() {
               aria-label="Caddie microphone"
               className={`flex h-9 w-9 items-center justify-center rounded-lg border ${listening ? 'border-primary bg-primary/20 text-primary' : 'border-border bg-muted/70 text-foreground'}`}>
               <Mic className="h-4 w-4" />
+            </button>
+            <button type="button" onClick={() => speak(briefing())}
+              aria-label="Hear Caddie briefing"
+              title="Hear Caddie briefing"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted/70 text-foreground transition hover:text-primary active:scale-95">
+              <Volume2 className="h-4 w-4" />
             </button>
           </div>
         </div>
