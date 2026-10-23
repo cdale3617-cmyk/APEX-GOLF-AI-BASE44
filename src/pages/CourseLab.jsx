@@ -63,7 +63,7 @@ export default function CourseLab() {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-3">
         <div className="pointer-events-auto glass-hud flex items-center gap-2 rounded-xl px-2.5 py-2 shadow-xl">
           <Link
-            to="/"
+            to="/play"
             aria-label="Back to rangefinder"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/80 text-muted-foreground transition hover:text-primary"
           >

@@ -76,7 +76,8 @@ jobs:
           node --input-type=module <<'JS'
           import { existsSync, readFileSync } from 'node:fs';
           const required = [
-            ['GPS', 'src/pages/Rangefinder.jsx', "path=\"/\""],
+            ['Home', 'src/pages/Home.jsx', 'path="/"'],
+            ['GPS', 'src/pages/Rangefinder.jsx', 'path="/play"'],
             ['Club Bag', 'src/pages/Bag.jsx', 'path="/bag"'],
             ['Caddie', 'src/pages/Caddie.jsx', 'path="/caddie"'],
             ['Scorecard', 'src/pages/Scorecard.jsx', 'path="/scorecard"'],

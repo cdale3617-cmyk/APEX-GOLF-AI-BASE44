@@ -1,0 +1,95 @@
+.apex-home {
+  color: #f6faff;
+  background:
+    radial-gradient(circle at 82% 0%, rgba(0, 216, 232, .13), transparent 36%),
+    linear-gradient(160deg, #07192f 0%, #061322 75%, #07192f 100%);
+}
+.apex-home-heading {
+  color: #f6faff;
+  text-shadow: 0 2px 18px rgba(0,0,0,.26);
+}
+.apex-home-heading span {
+  background: linear-gradient(105deg, #00d8e8, #4cece5 58%, #24ce89);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.apex-home-hero {
+  background-color: #0b3844;
+  background-image:
+    linear-gradient(180deg, rgba(4,17,31,.10) 0%, rgba(3,18,30,.04) 36%, rgba(2,11,24,.79) 78%, rgba(2,11,24,.95) 100%),
+    url('/apex-home-hero.png');
+  background-size: cover;
+  background-position: center 55%;
+}
+.apex-home-start {
+  color: #fff;
+  background: linear-gradient(100deg, #006c70 0%, #068d89 53%, #0a5d67 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 6px 16px rgba(0,0,0,.24);
+}
+.apex-home-start svg { color: #d7b568; }
+.apex-home-search {
+  color: #dcefff;
+  background: rgba(18,41,65,.89);
+  border-color: rgba(134,176,202,.48);
+}
+.apex-home-search svg { color: #00d8e8; }
+.apex-home-tool {
+  color: #f6faff;
+  border-color: rgba(83,155,181,.45);
+  background: linear-gradient(135deg, #103950, #092235 70%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 4px 12px rgba(0,0,0,.2);
+}
+.apex-home-tool svg { color: #00d8e8; }
+.apex-home-tool-caddie {
+  background: radial-gradient(circle at 100% 0%, rgba(0,216,232,.18), transparent 55%), linear-gradient(135deg,#102841,#06192b);
+}
+.apex-home-tool-bag {
+  background: radial-gradient(circle at 100% 0%, rgba(215,181,104,.2), transparent 55%), linear-gradient(135deg,#263044,#101d30);
+  border-color: rgba(215,181,104,.40);
+}
+.apex-home-tool-bag svg { color: #d7b568; }
+.apex-home-tool-score {
+  background: radial-gradient(circle at 100% 0%, rgba(36,206,137,.19), transparent 55%), linear-gradient(135deg,#0b3540,#09212d);
+}
+.apex-home-tool-score svg { color: #24ce89; }
+.apex-home :focus-visible { outline: 3px solid #00d8e8; outline-offset: 3px; }
+
+/* The global sun button switches this page to a true high-contrast outdoor mode. */
+.light .apex-home {
+  color: #08243c;
+  background: #fff;
+}
+.light .apex-home-heading { color: #08243c; text-shadow: none; }
+.light .apex-home-heading span {
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: #006b73;
+}
+.light .apex-home-hero {
+  background-image:
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,18,31,.80) 60%, #001423 100%),
+    url('/apex-home-hero.png');
+  border-color: #465c64;
+}
+.light .apex-home-start {
+  background: #005f61;
+  color: #fff;
+  border-color: #f2e3a5;
+}
+.light .apex-home-search {
+  color: #092e43;
+  background: #fff;
+  border: 2px solid #244960;
+}
+.light .apex-home-search svg { color: #005f61; }
+.light .apex-home-tool {
+  background: #fff;
+  color: #071f31;
+  border: 2px solid #7a97a6;
+  box-shadow: none;
+}
+.light .apex-home-tool svg { color: #005f61; }
+.light .apex-home-tool-bag svg { color: #75520b; }
+.light .apex-home-tool-score svg { color: #086b40; }
