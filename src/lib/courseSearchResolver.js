@@ -12,9 +12,10 @@ export async function resolveCourseSearch(term, providers) {
   const query = String(term ?? '').trim();
   if (!query) return [];
 
+  const golfQuery = /\b(?:golf|links|country club)\b/i.test(query) ? query : query + ' golf course';
   const [placeResult, golfResult, databaseResult] = await Promise.allSettled([
     providers.searchPlaces(query),
-    providers.searchGolf(query + ' golf course'),
+    providers.searchGolf(golfQuery),
     providers.searchDatabase(query),
   ]);
   const places = rowsOf(placeResult);
@@ -45,11 +46,14 @@ export async function resolveCourseSearch(term, providers) {
   // The public place index can be temporarily unavailable in an Android
   // WebView. A city-only geocoder can still locate a town before OSM course lookup.
   if (!place && !named.length) {
-    try {
-      place = await providers.findTown(query);
-    } catch {
-      // The failure is reported below if the other providers failed too.
-    }
+    // Try a shorter club-name lookup and independent town geocoding together.
+    // Either can locate the correct area without an API key on the phone.
+    const [shortNameResult, townResult] = await Promise.allSettled([
+      providers.findTownByCourseName?.(query) ?? Promise.resolve(null),
+      providers.findTown(query),
+    ]);
+    place = (shortNameResult.status === 'fulfilled' ? shortNameResult.value : null)
+      || (townResult.status === 'fulfilled' ? townResult.value : null);
   }
 
   const area = place ? {

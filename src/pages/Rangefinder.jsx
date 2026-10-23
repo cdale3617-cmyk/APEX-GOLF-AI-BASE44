@@ -115,7 +115,8 @@ export default function Rangefinder() {
         const area = found.find((result) => result.kind === 'place');
         // The Find action navigates to the searched town immediately.
         // Course results stay available below for precise hole selection.
-        if (area?.center) focusCourse(area.center[0], area.center[1], term);
+        const preview = area ?? found.find((result) => result.kind !== 'place');
+        if (preview?.center) focusCourse(preview.center[0], preview.center[1], term);
         if (!found.some((result) => result.kind !== 'place')) {
           setSearchError('Town located, but online map services returned no golf clubs. Try the club name or retry the search.');
         }
@@ -209,7 +210,7 @@ export default function Rangefinder() {
           {query && (
             <button
               type="button"
-              onClick={() => setQuery('')}
+              onClick={() => { setQuery(''); setResults([]); setSearchError(''); }}
               aria-label="Clear search"
               className="flex h-full w-10 shrink-0 items-center justify-center text-muted-foreground active:text-foreground"
             >
@@ -217,7 +218,8 @@ export default function Rangefinder() {
             </button>
           )}
           <button
-            type="submit"
+            type="button"
+            onClick={runSearch}
             disabled={searching || !query.trim()}
             aria-label="Find golf course or town"
             className="flex h-full w-12 shrink-0 items-center justify-center bg-primary text-primary-foreground transition active:brightness-110 disabled:opacity-60"
@@ -225,13 +227,21 @@ export default function Rangefinder() {
             {searching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
           </button>
         </form>
+        {(searching || searchError || results.length > 0) && (
+          <div role="status" aria-live="polite"
+            className={`rounded-lg border px-2 py-1 text-[11px] font-bold leading-snug ${searchError ? 'border-destructive/60 bg-destructive/15 text-destructive' : 'border-primary/50 bg-primary/10 text-foreground'}`}>
+            {searching ? 'Searching online courses…' : searchError ||
+              `${results.filter((result) => result.kind !== 'place').length} golf course(s) found — tap a result on the right to select.`}
+          </div>
+        )}
       </div>
       <div className="relative h-full min-h-0 min-w-0 overflow-hidden">
+        {(course?.center || focusCenter || gpsFix?.coords) ? (
         <MapLibreHoleMap
         key={courseId}
         coords={coords}
-        focus={{ center: focusCenter, nonce: focusNonce }}
-        courseCenter={course?.center}
+        focus={{ center: focusCenter || gpsFix?.coords, nonce: focusNonce }}
+        courseCenter={course?.center || gpsFix?.coords}
         holeReady={Boolean(hole && !hole.estimated)}
         holePreview={Boolean(hole)}
         units={units}
@@ -248,6 +258,11 @@ export default function Rangefinder() {
             : `Pin moved. ${gpsMode === 'live' ? 'GPS' : 'Tee preview'} plays like ${toDisplayDistance(distances.playsLike, units)} ${distanceUnitSpoken(units)}. Take your ${distances.club.name}.`)
         }
       />
+        ) : (
+          <div className="flex h-full items-center justify-center bg-background p-4 text-center text-xs font-semibold text-muted-foreground">
+            Search for a course above, or allow GPS to display the local map.
+          </div>
+        )}
 
       {courseLoading && (
         <div className="pointer-events-none absolute inset-x-0 top-3 z-[1050] flex justify-center">
@@ -370,11 +385,6 @@ export default function Rangefinder() {
             </div>
           )}
 
-          {searchError && (
-            <p className="pointer-events-auto rounded-lg border border-destructive/40 bg-destructive/15 px-2.5 py-1.5 text-[10px] font-semibold text-destructive">
-              {searchError}
-            </p>
-          )}
 
           <div className="pointer-events-auto glass-hud flex flex-wrap items-center justify-between gap-1.5 rounded-xl px-2.5 py-1.5 shadow-xl">
             <div className="flex min-w-0 items-center gap-2 text-[10px]">

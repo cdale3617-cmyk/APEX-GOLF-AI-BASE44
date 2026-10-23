@@ -16,8 +16,12 @@ export default function HoleBar({ course, hole, holeCount = 18, holeIndex = 0, o
         className="min-w-0 flex-1 overflow-hidden px-1 text-left">
         <span className="block truncate text-[10px] font-bold leading-tight text-foreground">{course?.name || 'Select course'}</span>
         <span className="block truncate whitespace-nowrap text-[10px] font-semibold leading-tight text-primary">
-          {`H${hole?.number ?? holeIndex + 1}/${holeCount}`}{hole ? ` · P${hole.par}` : " · Loading"}
-          {hole ? hole.estimated ? " · Estimated" : ` · ${toDisplayDistance(hole.yards, units)} ${distanceUnit(units)}` : ""}
+          {course ? (
+            <>
+              {`H${hole?.number ?? holeIndex + 1}/${holeCount}`}{hole ? ` · P${hole.par}` : ' · Loading'}
+              {hole ? hole.estimated ? ' · Estimated' : ` · ${toDisplayDistance(hole.yards, units)} ${distanceUnit(units)}` : ''}
+            </>
+          ) : 'Search above to select a course'}
         </span>
       </button>
       <button type="button" onClick={onNext} disabled={!course}

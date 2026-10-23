@@ -95,3 +95,32 @@ test('Android hole map uses key-free map tiles and retains satellite imagery', (
   assert.ok(component.includes('tile.openstreetmap.org'));
   assert.ok(component.includes('server.arcgisonline.com'));
 });
+
+test('an exact golf club name is not duplicated in the map lookup', async () => {
+  let queryUsed = '';
+  await resolveCourseSearch('Yeppoon Golf Club', sources({
+    searchGolf: async (query) => { queryUsed = query; return []; },
+  }));
+  assert.equal(queryUsed, 'Yeppoon Golf Club');
+});
+
+test('short club-name lookup finds a town when normal providers fail', async () => {
+  const unavailable = async () => { throw new Error('Provider unavailable'); };
+  const results = await resolveCourseSearch('Yeppoon Golf Club', sources({
+    searchPlaces: unavailable,
+    searchGolf: unavailable,
+    searchDatabase: unavailable,
+    findTownByCourseName: async () => town,
+    findTown: unavailable,
+    searchNearby: async () => [club],
+  }));
+  assert.equal(results[0].kind, 'place');
+  assert.equal(results[1].name, 'Yeppoon Golf Club');
+});
+
+test('Android search reports errors visibly and avoids a default Florida map', () => {
+  const component = readFileSync(new URL('../src/pages/Rangefinder.jsx', import.meta.url), 'utf8');
+  assert.ok(component.includes('onClick={runSearch}'));
+  assert.ok(component.includes('role="status" aria-live="polite"'));
+  assert.ok(component.includes('Search for a course above, or allow GPS'));
+});

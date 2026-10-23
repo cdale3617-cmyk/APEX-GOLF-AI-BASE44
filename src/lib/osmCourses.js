@@ -20,7 +20,7 @@ const OVERPASS_TIMEOUT_MS = 9000;
 const COURSE_MAP_BUDGET_MS = 16000;
 const SHARED_LOOKUP_TIMEOUT_MS = 5000;
 const COURSE_CARD_TIMEOUT_MS = 3500;
-const COURSE_SEARCH_TIMEOUT_MS = 10000;
+const COURSE_SEARCH_TIMEOUT_MS = 5000;
 
 function withTimeout(promise, milliseconds) {
   let timer;
@@ -192,7 +192,7 @@ function withCardPars(holes, card) {
 async function photonSearch(query) {
   const response = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=20`, {
     headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(7000),
+    signal: AbortSignal.timeout(5500),
   });
   if (!response.ok) throw new Error('Course and town lookup is unavailable');
   const payload = await response.json();
@@ -215,6 +215,20 @@ async function photonSearch(query) {
         : null,
     };
   }).filter((row) => Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
+}
+
+/**
+ * A second Photon lookup with club wording removed. Some OSM town entries
+ * match "Yeppoon" but not "Yeppoon Golf Club" in a full-name search.
+ */
+async function findTownByCourseName(term) {
+  const town = term.replace(/\b(?:golf\s+(?:club|course|links|resort)|country\s+club)\b/gi, ' ')
+    .replace(/\s+/g, ' ').trim();
+  if (town.length < 3 || town.toLowerCase() === term.toLowerCase()) return null;
+  const found = await photonSearch(town);
+  return found.find((row) =>
+    !(row.category === 'leisure' && row.type === 'golf_course') &&
+    Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon))) ?? null;
 }
 
 /**
@@ -262,6 +276,7 @@ export async function searchGolfCourses(term) {
     searchGolf: photonSearch,
     searchDatabase: databaseCourses,
     findTown: findTownWithOpenMeteo,
+    findTownByCourseName,
     toCourse,
     distanceYards: haversineYards,
     searchNearby: (lat, lng) => Promise.race([
