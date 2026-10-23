@@ -103,6 +103,7 @@ export default function Rangefinder() {
     const term = query.trim();
     if (!term || searching) return;
     setSearching(true);
+    setUiHidden(false);
     setSearchError('');
     setResults([]);
     try {
@@ -200,7 +201,11 @@ export default function Rangefinder() {
           <input
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setSearchError('');
+              setResults([]);
+            }}
             enterKeyHint="search"
             placeholder="Search golf course or town…"
             aria-label="Search golf course or town"
@@ -220,11 +225,65 @@ export default function Rangefinder() {
             type="submit"
             disabled={searching || !query.trim()}
             aria-label="Find golf course or town"
-            className="flex h-full w-12 shrink-0 items-center justify-center bg-primary text-primary-foreground transition active:brightness-110 disabled:opacity-60"
+            className="flex h-full w-20 shrink-0 items-center justify-center gap-1 bg-primary text-primary-foreground transition active:brightness-110 disabled:opacity-60"
           >
-            {searching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+            {searching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-4 w-4" />}
+            <span className="text-xs font-bold">{searching ? 'Wait' : 'Find'}</span>
           </button>
         </form>
+        {(searching || results.length > 0 || searchError) && (
+          <section aria-live="polite" className="max-h-[42vh] overflow-y-auto rounded-lg border-2 border-primary/60 bg-card px-2 py-2 text-foreground shadow-xl">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="text-xs font-black text-primary">
+                {searching ? 'SEARCHING COURSES…' : results.length ? 'COURSES FOUND' : 'COURSE SEARCH'}
+              </span>
+              {!searching && (
+                <button type="button"
+                  onClick={() => { setResults([]); setSearchError(''); }}
+                  aria-label="Close course search results"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {searching && (
+              <p role="status" className="flex items-center gap-2 py-2 text-sm font-semibold">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                Looking for {query.trim()}… Please wait.
+              </p>
+            )}
+            {!searching && results.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs">Tap a course to open its holes. Use the bookmark to save it.</p>
+                {results.slice(0, 10).map((result) => (
+                  <div key={result.id} className="flex items-stretch gap-1 rounded-lg border border-border/70 bg-background">
+                    <button type="button" onClick={() => loadCourse(result)}
+                      className="min-h-11 min-w-0 flex-1 rounded-lg px-3 py-2 text-left">
+                      <p className="truncate text-sm font-bold">{result.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{result.location || 'Golf course'}</p>
+                    </button>
+                    {result.kind !== 'place' && (
+                      <button type="button" onClick={() => toggleSavedCourse(result)}
+                        aria-label={favoriteIds.includes(result.id) ? 'Remove saved ' + result.name : 'Save ' + result.name}
+                        className="flex min-h-11 min-w-12 items-center justify-center rounded-lg border border-primary/40 text-primary">
+                        {favoriteIds.includes(result.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {!searching && searchError && (
+              <div role="alert" className="mt-2 rounded-lg border border-destructive/60 bg-destructive/15 px-3 py-2">
+                <p className="text-sm font-semibold text-foreground">{searchError}</p>
+                <button type="button" onClick={runSearch}
+                  className="mt-2 min-h-10 rounded-lg border border-primary/60 bg-primary/15 px-4 text-sm font-bold text-primary">
+                  Retry search
+                </button>
+              </div>
+            )}
+          </section>
+        )}
       </div>
       <div className="relative h-full min-h-0 min-w-0 overflow-hidden">
         <MapLibreHoleMap
@@ -348,34 +407,6 @@ export default function Rangefinder() {
           />
           <HoleNotes courseId={courseId} holeNumber={hole?.number} />
           </>}
-
-          {results.length > 0 && (
-            <div className="pointer-events-auto glass-hud max-h-[42vh] overflow-y-auto rounded-xl p-1.5 shadow-xl">
-              {results.slice(0, 10).map((result) => (
-                <div key={result.id} className="flex items-stretch gap-1 rounded-lg transition hover:bg-muted/60">
-                  <button type="button" onClick={() => loadCourse(result)}
-                    className="min-w-0 flex-1 rounded-lg px-2.5 py-2 text-left transition active:scale-[0.99]">
-                    <p className="truncate text-xs font-bold text-foreground">{result.name}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{result.location || 'Golf course'}</p>
-                  </button>
-                  {result.kind !== 'place' && (
-                    <button type="button" onClick={() => toggleSavedCourse(result)}
-                      aria-label={favoriteIds.includes(result.id) ? 'Remove ' + result.name + ' from saved courses' : 'Save ' + result.name}
-                      title={favoriteIds.includes(result.id) ? 'Remove saved course' : 'Save course'}
-                      className="flex min-h-11 min-w-12 items-center justify-center rounded-lg border border-border/70 text-primary active:bg-primary/20">
-                      {favoriteIds.includes(result.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {searchError && (
-            <p className="pointer-events-auto rounded-lg border border-destructive/40 bg-destructive/15 px-2.5 py-1.5 text-[10px] font-semibold text-destructive">
-              {searchError}
-            </p>
-          )}
 
           <div className="pointer-events-auto glass-hud flex flex-wrap items-center justify-between gap-1.5 rounded-xl px-2.5 py-1.5 shadow-xl">
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[10px]">
