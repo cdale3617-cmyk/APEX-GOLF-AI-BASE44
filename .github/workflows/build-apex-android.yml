@@ -3,7 +3,7 @@ name: Build Apex Golf AI Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, "codex/course-split-50-50-20261023", "codex/auto-single-hole-build69-20261024", "codex/restore-vibrant-home-build76"]
+    branches: [main, "codex/course-split-50-50-20261023", "codex/auto-single-hole-build69-20261024", "codex/restore-vibrant-home-build76", "codex/s24-course-search-build77"]
     paths:
       - ".github/workflows/build-apex-android.yml"
       - "android-build/**"
@@ -144,13 +144,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="apex-golf-ai-home-map-build76"
+          TAG="apex-golf-ai-s24-course-search-build77"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" APEX-GOLF-AI.apk --clobber
-            gh release edit "$TAG" --title "APEX Golf AI — Build 76 Home + Single Hole 60/40 APK" --notes "Build 76 restores the approved vibrant Home and golf artwork, plus Build 75 automatic single-hole map with 60/40 layout. Caddie, Scorecard, Bag, speaker and tools preserved."
+            gh release edit "$TAG" --title "APEX Golf AI — Build 77 S24 Course Search APK" --notes "Build 77 preserves the vibrant Home and 60/40 single-hole map and adds full-width search results, immediate status/errors and a public OpenGolfAPI fallback if the Base44 course service cannot load. S24 phone verification still required."
           else
             gh release create "$TAG" APEX-GOLF-AI.apk \
               --target "$GITHUB_SHA" \
-              --title "APEX Golf AI — Build 76 Home + Single Hole 60/40 APK" \
-              --notes "Build 76 Home art + 60/40 single-hole map. Tee bottom, green top; course coordinates required. All tools preserved. Internet required for live map imagery and services."
+              --title "APEX Golf AI — Build 77 S24 Course Search APK" \
+              --notes "Build 77: S24 search feedback and public OpenGolfAPI fallback; preserves approved Home and 60/40 single-hole map. Internet required; real hole geometry depends on OSM mapping. Confirm on phone."
           fi
