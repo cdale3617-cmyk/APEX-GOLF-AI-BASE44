@@ -42,9 +42,9 @@ const FILLS = [
 ];
 
 const MARKERS = [
-  { key: 'tee', color: '#18C2B8', name: 'Tee' },
-  { key: 'layup', color: '#D7A441', name: 'Target' },
-  { key: 'pin', color: '#D94B4B', name: 'Pin' },
+  { key: 'tee', color: '#24D7A0', name: 'Tee' },
+  { key: 'layup', color: '#F59E0B', name: 'Target' },
+  { key: 'pin', color: '#EF4444', name: 'Pin' },
 ];
 
 // The large invisible hit area stays easy to drag on a phone; only the
@@ -63,7 +63,7 @@ const markerElement = (key, color, name) => {
     // the yellow dot itself. It must never intercept dragging.
     const distance = document.createElement('span');
     distance.className = 'apex-target-distance';
-    distance.style.cssText = 'position:absolute;left:27px;top:50%;transform:translateY(-50%);white-space:nowrap;pointer-events:none;background:rgba(9,17,31,.94);border:1px solid #D7A441;border-radius:5px;color:#FFF4CF;padding:2px 4px;font-family:Inter,system-ui,sans-serif;font-size:10px;font-weight:800;line-height:14px;font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.5);';
+    distance.style.cssText = 'position:absolute;left:27px;top:50%;transform:translateY(-50%);white-space:nowrap;pointer-events:none;background:rgba(5,29,19,.96);border:1px solid #F59E0B;border-radius:5px;color:#FFF7CF;padding:2px 4px;font-family:Inter,system-ui,sans-serif;font-size:10px;font-weight:800;line-height:14px;font-variant-numeric:tabular-nums;box-shadow:0 1px 3px rgba(0,0,0,.5);';
     distance.textContent = '—';
     hitArea.appendChild(distance);
   }
@@ -195,9 +195,9 @@ export default function MapLibreHoleMap({
           'circle-radius': 5.5,
           'circle-color': [
             'match', ['get', 'key'],
-            'tee', '#18C2B8',
-            'layup', '#D7A441',
-            'pin', '#D94B4B',
+            'tee', '#24D7A0',
+            'layup', '#F59E0B',
+            'pin', '#EF4444',
             '#FFFFFF',
           ],
           'circle-stroke-width': 1.3,
