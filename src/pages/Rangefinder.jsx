@@ -6,6 +6,8 @@ import {
   Layers,
   Loader2,
   Search,
+  ChevronLeft,
+  ChevronRight,
   SlidersHorizontal,
   Thermometer,
   TriangleAlert,
@@ -180,6 +182,11 @@ export default function Rangefinder() {
             : `Pin moved. ${gpsMode === 'live' ? 'GPS' : 'Tee preview'} plays like ${toDisplayDistance(distances.playsLike, units)} ${distanceUnitSpoken(units)}. Take your ${distances.club.name}.`)
         }
       /> : <div className="absolute inset-0 bg-background" />}
+        {course && <div className="absolute inset-x-1 top-1 z-[1100] flex items-center justify-between gap-1 pointer-events-none">
+          <button type="button" onClick={prevHole} aria-label="Previous hole" className="pointer-events-auto glass-hud flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary"><ChevronLeft className="h-5 w-5" /></button>
+          <span className="glass-hud rounded-md px-1.5 py-1 text-[10px] font-bold text-foreground">Hole {hole?.number ?? holeIndex + 1}</span>
+          <button type="button" onClick={nextHole} aria-label="Next hole" className="pointer-events-auto glass-hud flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary"><ChevronRight className="h-5 w-5" /></button>
+        </div>}
       </div>
       <div className={`relative min-h-0 min-w-0 overflow-hidden bg-background/95 ${!course ? 'h-full w-full' : 'h-full w-full'}`}>
 
@@ -220,7 +227,7 @@ export default function Rangefinder() {
 
       {!uiHidden && (
         <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-2 pb-3' : 'pb-[22%]'}`}>
-          {course && <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
+          {course && <div className="pointer-events-auto flex flex-wrap items-center gap-1">
             <div className="min-w-0 flex-1">
               <HoleBar
                 course={course}
@@ -231,18 +238,6 @@ export default function Rangefinder() {
                 onOpenCourses={() => setCoursesOpen(true)}
               />
             </div>
-            <button
-              type="button"
-              onClick={() => setSearchOpen((open) => !open)}
-              aria-label={searchOpen ? 'Hide search' : 'Search a course'}
-              className={`flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border transition active:scale-95 ${
-                searchOpen
-                  ? 'border-primary/50 bg-primary/15 text-primary'
-                  : 'glass-hud border-border/80 text-muted-foreground'
-              }`}
-            >
-              <Search className="h-4 w-4" />
-            </button>
             <button
               type="button"
               onClick={() => navigate('/course-lab')}
@@ -261,7 +256,7 @@ export default function Rangefinder() {
             </button>
           </div>}
 
-          <div className="pointer-events-auto flex flex-wrap items-center gap-2">
+          {!course && <div className="pointer-events-auto flex flex-wrap items-center gap-2">
             {course ? (
               <button type="button" onClick={() => saveCourse(course)}
                 aria-label={favoriteIds.includes(course.id) ? 'Course saved to favourites' : 'Save current course'}
@@ -274,7 +269,7 @@ export default function Rangefinder() {
               className="glass-hud flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg border border-border/80 px-2 py-2 text-xs font-bold text-foreground transition active:bg-muted">
               <Bookmark className="h-4 w-4 text-primary" /> Saved Courses ({favoriteIds.length})
             </button>
-          </div>
+          </div>}
           {courseSaveMessage && (
             <p role="status" className="pointer-events-auto rounded-lg border border-primary/30 bg-background/95 px-3 py-1.5 text-[11px] font-semibold text-primary">
               {courseSaveMessage}
@@ -290,7 +285,7 @@ export default function Rangefinder() {
             </p>
           )}
 
-          {(searchOpen || !course) && (
+          {!course && (
             <div className="pointer-events-auto flex flex-wrap items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -405,7 +400,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && hole && !hole.estimated && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[21%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
+        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[15%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
           <DistanceHUD
             distances={distances}
             onLocate={locate}
