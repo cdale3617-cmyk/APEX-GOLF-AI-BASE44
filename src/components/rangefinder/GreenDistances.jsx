@@ -40,15 +40,15 @@ export default function GreenDistances({ graphics }) {
   const unit = distanceUnit(units);
 
   return (
-    <div className="glass-hud w-[62px] shrink-0 rounded-xl border-l-2 border-l-primary/70 px-1 py-1 text-center shadow-xl">
-      <span className="hud-label block font-bold text-muted-foreground">{distances.mode === 'live' ? 'From GPS' : 'From tee'}</span>
+    <div className="glass-hud grid w-full min-w-0 grid-cols-3 items-center gap-1 rounded-lg border-l-2 border-l-primary/70 p-1 text-center shadow-xl">
+      <span className="col-span-3 block text-[9px] font-bold text-muted-foreground">{distances.mode === 'live' ? 'From GPS' : 'From tee'}</span>
 
-      <div className="mt-1">
+      <div className="min-w-0">
         <span className="block text-[8px] font-bold uppercase text-muted-foreground">Back</span>
         <span className="block text-xs font-bold tabular-nums text-foreground">{back === null ? '—' : toDisplayDistance(back, units)}</span>
       </div>
 
-      <div className="my-1 border-y border-border/70 py-1">
+      <div className="min-w-0 border-x border-border/70 px-0.5">
         <span className="block text-[8px] font-black uppercase tracking-wide text-primary">Center</span>
         <span className="block text-base font-black leading-tight tabular-nums text-foreground">
           {toDisplayDistance(centre, units)}
@@ -60,7 +60,7 @@ export default function GreenDistances({ graphics }) {
         <span className="block text-[8px] font-bold uppercase text-muted-foreground">Front</span>
         <span className="block text-xs font-bold tabular-nums text-foreground">{front === null ? '—' : toDisplayDistance(front, units)}</span>
       </div>
-      <div className="mt-1 border-t border-border/70 pt-1.5" aria-label="Approximate pin position">
+      <div className="col-span-3 border-t border-border/70 pt-1" aria-label="Approximate pin position">
         <span className="block text-[7px] font-semibold uppercase text-muted-foreground">Target*</span>
         <div className="mt-0.5 flex gap-px">
           {[['F', -10], ['C', 0], ['B', 10]].map(([label, delta]) => (
@@ -72,7 +72,7 @@ export default function GreenDistances({ graphics }) {
             </button>
           ))}
         </div>
-        <span className="mt-1 block text-[7px] text-muted-foreground">*±10 m estimate</span>
+        <span className="sr-only">*±10 m estimate</span>
       </div>
     </div>
   );
