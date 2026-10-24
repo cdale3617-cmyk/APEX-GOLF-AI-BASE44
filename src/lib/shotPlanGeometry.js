@@ -24,7 +24,6 @@ export function buildShotPlan(coords) {
   return {
     type: 'FeatureCollection',
     features: [
-      line(coords.tee, coords.pin, 'aggressive'),
       line(coords.tee, coords.layup, 'tee'),
       line(coords.layup, coords.pin, 'pin'),
       dot(coords.tee, 'tee'),
