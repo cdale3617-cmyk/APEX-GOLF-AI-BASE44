@@ -9,7 +9,7 @@
 import { haversineYards } from '@/lib/golfData';
 import { base44 } from '@/api/base44Client';
 import { shouldReverseHole } from '@/lib/holeOrientation';
-import { mergeCourseSources } from '@/lib/courseSearchResults';
+import { mergeCourseSources, photonBounds } from '@/lib/courseSearchResults';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
@@ -211,7 +211,7 @@ async function photonRows(query) {
         display_name: [props.name, props.city, props.state, props.country].filter(Boolean).join(', '),
         lat: position[1],
         lon: position[0],
-        boundingbox: extent?.length === 4 ? [extent[3], extent[1], extent[0], extent[2]] : null,
+        boundingbox: photonBounds(extent),
       };
     }).filter((row) => Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
   } finally {
