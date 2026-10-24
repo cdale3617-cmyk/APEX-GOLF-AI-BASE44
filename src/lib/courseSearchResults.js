@@ -13,7 +13,7 @@ function normalizedName(name) {
 export function photonBounds(extent) {
   if (!Array.isArray(extent) || extent.length !== 4) return null;
   const [west, south, east, north] = extent.map(Number);
-  if (![west, south, east, north].every(Number.isFinite)) return null;
+  if (![west, south, east, north].every(Number.isFinite) || south >= north || west >= east) return null;
   return [south, north, west, east];
 }
 
