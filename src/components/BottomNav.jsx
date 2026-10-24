@@ -13,7 +13,7 @@ const TOOL_PAGES = ['/more', '/bag', '/caddie', '/rounds', '/swing', '/drills', 
 export default function BottomNav() {
   const { pathname } = useLocation();
   return (
-    <nav aria-label="Primary navigation" className="apex-bottom-nav glass-panel z-30 shrink-0 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
+    <nav aria-label="Primary navigation" className="apex-bottom-nav glass-panel z-30 shrink-0 border-t px-2 pb-[max(0.2rem,env(safe-area-inset-bottom))] pt-0.5">
       <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
         {TABS.map(({ to, label, icon: Icon, end }) => {
           const toolsSelected = to === '/more' && TOOL_PAGES.some((page) =>
@@ -26,7 +26,7 @@ export default function BottomNav() {
               end={end}
               aria-label={label}
               className={({ isActive }) =>
-                'flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 font-semibold transition-colors ' +
+                'flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-0.5 font-semibold transition-colors ' +
                 (isActive || toolsSelected ? 'apex-nav-current' : 'text-muted-foreground hover:text-foreground')
               }
             >
