@@ -51,7 +51,7 @@ const MARKERS = [
 // small 12-pixel dot is painted over the satellite course.
 const markerElement = (key, color, name) => {
   const hitArea = document.createElement('div');
-  hitArea.style.cssText = 'position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;z-index:3;';
+  hitArea.style.cssText = 'position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;z-index:10;pointer-events:auto;';
   hitArea.setAttribute('title', `Drag ${name} to reposition`);
   hitArea.setAttribute('aria-label', name);
 
@@ -265,9 +265,17 @@ export default function MapLibreHoleMap({
         clickTolerance: 1,
       });
       const element = marker.getElement();
+      // On Android, the map's pan gesture can win over a transparent marker.
+      // Make the handle visibly identifiable and stop the gesture reaching the map.
+      const handle = document.createElement('span');
+      handle.style.cssText = `width:22px;height:22px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 0 0 4px rgba(0,0,0,.35);pointer-events:none;`;
+      element.appendChild(handle);
+      element.addEventListener('touchstart', (event) => event.stopPropagation(), { passive: true });
+      element.addEventListener('touchmove', (event) => event.stopPropagation(), { passive: true });
       const updateLock = () => {
         const locked = Boolean(locksRef.current[key]);
         marker.setDraggable(!locked);
+        element.style.opacity = locked ? '0.7' : '1';
         element.style.cursor = locked ? 'not-allowed' : 'grab';
         element.title = locked ? `${name} locked — long press to unlock` : `${name} unlocked — drag, then tap to lock`;
       };
