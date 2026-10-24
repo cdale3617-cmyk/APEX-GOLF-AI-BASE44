@@ -5,7 +5,7 @@ const activeClass = 'glass-hud flex h-8 w-8 items-center justify-center rounded-
 
 export default function ViewControls({ pitchOn, satellite, onTogglePitch, onToggleSatellite, onRecenter }) {
   return (
-    <div className="flex shrink-0 flex-col gap-1">
+    <div className="flex shrink-0 flex-row flex-wrap gap-1">
       <button
         type="button"
         onClick={onTogglePitch}
