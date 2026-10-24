@@ -158,7 +158,8 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 flex overflow-hidden">
+      <div className="relative h-full w-[60%] shrink-0 overflow-hidden border-r border-warm/40">
       {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
         coords={coords}
@@ -179,6 +180,8 @@ export default function Rangefinder() {
             : `Pin moved. ${gpsMode === 'live' ? 'GPS' : 'Tee preview'} plays like ${toDisplayDistance(distances.playsLike, units)} ${distanceUnitSpoken(units)}. Take your ${distances.club.name}.`)
         }
       /> : <div className="absolute inset-0 bg-background" />}
+      </div>
+      <div className="relative h-full w-[40%] min-w-0 overflow-hidden bg-background/95">
 
       {courseLoading && (
         <div className="pointer-events-none absolute inset-x-0 top-[110px] z-[1050] flex justify-center">
@@ -225,7 +228,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && (
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] flex flex-col gap-2 p-3">
+        <div className="absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 pb-44">
           <div className="pointer-events-auto flex items-center gap-1.5">
             <div className="min-w-0 flex-1">
               <HoleBar
@@ -411,7 +414,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && hole && !hole.estimated && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] p-2">
+        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[45%] overflow-y-auto border-t border-warm/30 bg-background p-1">
           <DistanceHUD
             distances={distances}
             onLocate={locate}
@@ -453,6 +456,7 @@ export default function Rangefinder() {
           setCoursesOpen(false);
         }}
       />
+      </div>
     </div>
   );
 }
