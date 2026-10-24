@@ -9,6 +9,7 @@
 import { haversineYards } from '@/lib/golfData';
 import { base44 } from '@/api/base44Client';
 import { shouldReverseHole } from '@/lib/holeOrientation';
+import { searchCloudCourses, fetchCloudElements } from '@/lib/cloudCourses';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
@@ -178,7 +179,8 @@ export async function searchGolfCourses(term) {
   const query = term.trim();
   if (!query) return [];
 
-  const [fromDatabase, rows] = await Promise.all([
+  const [fromCloud, fromDatabase, rows] = await Promise.all([
+    searchCloudCourses(query),
     databaseCourses(query),
     // Photon provides a low-volume, free town lookup without requiring
     // a personal token. Unlike the previous provider, its public demo API
@@ -215,7 +217,7 @@ export async function searchGolfCourses(term) {
     .filter((row) => row.category === 'leisure' && row.type === 'golf_course')
     .map(toCourse);
 
-  const named = [...fromDatabase, ...mapped]
+  const named = [...fromCloud, ...fromDatabase, ...mapped]
     .filter((course, index, list) => {
       const key = course.name.toLowerCase().replace(/[^a-z0-9]/g, '');
       return list.findIndex((other) => other.name.toLowerCase().replace(/[^a-z0-9]/g, '') === key) === index;
@@ -426,6 +428,12 @@ function parseHoles(elements, course) {
 async function geometryHoles(course) {
   // Every golfer shares one course lookup, so the map servers are asked once
   // per course rather than once per device.
+  const cloud = await fetchCloudElements(course);
+  if (cloud?.length) {
+    const holes = parseHoles(cloud, course);
+    if (holes.length) return holes;
+  }
+
   const shared = await sharedCourseElements(course);
   if (shared?.length) {
     const holes = parseHoles(shared, course);
