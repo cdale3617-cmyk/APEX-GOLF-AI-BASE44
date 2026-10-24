@@ -10,6 +10,13 @@ function normalizedName(name) {
     .trim();
 }
 
+export function photonBounds(extent) {
+  if (!Array.isArray(extent) || extent.length !== 4) return null;
+  const [west, south, east, north] = extent.map(Number);
+  if (![west, south, east, north].every(Number.isFinite)) return null;
+  return [south, north, west, east];
+}
+
 function validCenter(center) {
   return Array.isArray(center) && center.length === 2 && center.every(Number.isFinite);
 }
