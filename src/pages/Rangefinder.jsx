@@ -159,7 +159,7 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,60%)_minmax(0,40%)]'}`}>
+    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1 grid-rows-1' : 'grid-cols-1 grid-rows-[minmax(0,52fr)_minmax(0,48fr)] md:grid-cols-[minmax(0,60%)_minmax(0,40%)] md:grid-rows-1'}`}>
       <div className={`${!course ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
@@ -183,7 +183,7 @@ export default function Rangefinder() {
         }
       /> : <div className="absolute inset-0 bg-background" />}
       </div>
-      <div className={`relative min-w-0 overflow-hidden bg-background/95 ${!course ? 'h-full w-full' : 'h-full w-full'}`}>
+      <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-background/95">
 
       {courseLoading && (
         <div className="pointer-events-none absolute inset-x-0 top-[110px] z-[1050] flex justify-center">
@@ -230,7 +230,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && (
-        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 ${!course ? 'pt-64 pb-8' : 'pb-28'}`}>
+        <div className={`relative z-[1000] flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 ${!course ? 'pt-64 pb-8' : ''}`}>
           {course && <div className="pointer-events-auto flex items-center gap-1.5">
             <div className="min-w-0 flex-1">
               <HoleBar
@@ -421,7 +421,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && hole && !hole.estimated && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[38%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
+        <div className="relative z-[1000] max-h-[38%] shrink-0 overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
           <DistanceHUD
             distances={distances}
             onLocate={locate}
