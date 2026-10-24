@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeCourseSources } from '../src/lib/courseSearchResults.js';
+import { mergeCourseSources, photonBounds } from '../src/lib/courseSearchResults.js';
+
+test('Photon bounds are converted to south/north/west/east for Overpass queries', () => {
+  assert.deepEqual(photonBounds([153.0, -27.5, 153.2, -27.3]), [-27.5, -27.3, 153.0, 153.2]);
+  assert.equal(photonBounds(null), null);
+});
 
 test('same nearby course combines card data with OSM geometry and preserves its saved id', () => {
   const cards = [{ id: 'gca-17', apiId: '17', name: 'Lakeview Golf Club', location: 'Brisbane', center: [-27.4700, 153.0250], sources: ['course-card'] }];
