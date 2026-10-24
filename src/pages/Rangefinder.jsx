@@ -347,8 +347,8 @@ export default function Rangefinder() {
             </p>
           )}
 
-          {course && <div className="pointer-events-auto glass-hud flex flex-wrap items-center justify-between gap-1.5 rounded-xl px-2.5 py-1.5 shadow-xl">
-            <div className="flex min-w-0 flex-wrap items-center gap-2 text-[10px]">
+          {course && <div className="pointer-events-auto glass-hud flex flex-wrap items-center justify-between gap-1 rounded-lg px-1.5 py-1 shadow-xl">
+            <div className="flex min-w-0 flex-wrap items-center gap-1 text-[9px]">
               <span className="flex items-center gap-1.5" title="Wind">
                 <Wind className="h-3.5 w-3.5 text-primary" />
                 <span className="font-bold text-foreground whitespace-nowrap">
