@@ -158,7 +158,7 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className={`absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'}`}>
+    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,60%)_minmax(0,40%)]'}`}>
       <div className={`${!course ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
@@ -228,7 +228,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && (
-        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 ${!course ? 'pt-64 pb-8' : 'pb-44'}`}>
+        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 ${!course ? 'pt-64 pb-8' : 'pb-28'}`}>
           {course && <div className="pointer-events-auto flex items-center gap-1.5">
             <div className="min-w-0 flex-1">
               <HoleBar
@@ -414,7 +414,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && hole && !hole.estimated && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[45%] overflow-y-auto border-t border-warm/30 bg-background p-1">
+        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[38%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
           <DistanceHUD
             distances={distances}
             onLocate={locate}
