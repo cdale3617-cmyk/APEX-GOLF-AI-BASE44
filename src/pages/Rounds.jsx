@@ -6,7 +6,7 @@ import RoundCard from '@/components/rounds/RoundCard';
 import { useGolf } from '@/lib/GolfContext';
 
 export default function Rounds() {
-  const { rounds, saveRound, deleteRound, stats } = useGolf();
+  const { rounds, saveRound, deleteRound, stats, roundError } = useGolf();
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
@@ -29,6 +29,7 @@ export default function Rounds() {
             {saved ? 'Saved' : 'Save round'}
           </button>
         </PageHeader>
+        {roundError && <p role="alert" className="rounded-lg border border-destructive p-3 text-sm text-destructive">{roundError}</p>}
 
         <HandicapCard rounds={rounds} />
 

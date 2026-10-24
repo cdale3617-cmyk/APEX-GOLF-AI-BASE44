@@ -303,8 +303,8 @@ export function answerVoiceQuery(raw, ctx) {
     const labels = ['Off the tee', 'Approach', 'Around the green', 'Putting'];
     const index = (strokes || []).reduce((lowest, value, i) => (value < strokes[lowest] ? i : lowest), 0);
     return stats.holes
-      ? `Biggest leak is ${labels[index].toLowerCase()} at ${strokes[index]} strokes gained. Off the tee ${strokes[0]}, approach ${strokes[1]}, around the green ${strokes[2]}, putting ${strokes[3]}.`
-      : 'Log some holes first and I will break down your strokes gained.';
+      ? `These are approximate performance indicators, not measured strokes gained. Lowest estimate is ${labels[index].toLowerCase()} at ${strokes[index]}. Off the tee ${strokes[0]}, approach ${strokes[1]}, around the green ${strokes[2]}, putting ${strokes[3]}.`
+      : 'Record some hole outcomes first and I will break down your performance estimates.';
   }
 
   if (/tempo|rhythm|bpm/.test(text)) {

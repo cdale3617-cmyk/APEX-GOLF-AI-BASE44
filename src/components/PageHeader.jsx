@@ -1,4 +1,4 @@
-export default function PageHeader({ title, subtitle, children }) {
+export default function PageHeader({ title, subtitle, children = null }) {
   return (
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="min-w-0">

@@ -5,7 +5,7 @@
  */
 export const MAX_BAG_CLUBS = 14;
 
-export const CLUB_CATALOG = [
+export const CLUB_CATALOG = /** @type {[string, string, number][]} */ ([
   ['dr', 'Driver', 280],
   ['2w', '2-Wood', 258],
   ['3w', '3-Wood', 245],
@@ -32,7 +32,7 @@ export const CLUB_CATALOG = [
   ['sw', 'S-Wedge', 102],
   ['lw', 'L-Wedge', 88],
   ['pt', 'Putter', 0],
-].map(([id, name, referenceCarry], order) => ({
+]).map(([id, name, referenceCarry], order) => ({
   id, name, referenceCarry, order,
 }));
 

@@ -10,6 +10,8 @@ import { haversineYards } from '@/lib/golfData';
 import { base44 } from '@/api/base44Client';
 import { shouldReverseHole } from '@/lib/holeOrientation';
 import { searchCloudCourses, fetchCloudElements } from '@/lib/cloudCourses';
+import { photonBounds } from '@/lib/courseSearchResults';
+import { findGolfCourses, withTimeout } from '@/lib/courseSearch';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
@@ -36,8 +38,11 @@ const parFor = (yards) => (yards < 240 ? 3 : yards < 480 ? 4 : 5);
 const nearestYards = (points, point) =>
   points.reduce((best, candidate) => Math.min(best, haversineYards(candidate, point)), Number.POSITIVE_INFINITY);
 
-function askOverpass(endpoint, query) {
+function askOverpass(endpoint, query, signal) {
+  if (signal?.aborted) throw new Error('Course lookup aborted.');
   const controller = new AbortController();
+  const abortFromParent = () => controller.abort();
+  signal?.addEventListener('abort', abortFromParent, { once: true });
   const timer = setTimeout(() => controller.abort(), OVERPASS_TIMEOUT_MS);
   return fetch(endpoint, {
     method: 'POST',
@@ -46,25 +51,30 @@ function askOverpass(endpoint, query) {
       'Content-Type': 'application/x-www-form-urlencoded',
       Accept: 'application/json',
     },
-    body: `data=${encodeURIComponent(query)}`,
+    body: 'data=' + encodeURIComponent(query),
   })
     .then(async (response) => {
-      if (!response.ok) throw new Error(`Course data responded ${response.status}`);
+      if (!response.ok) throw new Error('Course data responded ' + response.status);
       const payload = await response.json();
       return payload.elements ?? [];
     })
-    .finally(() => clearTimeout(timer));
+    .finally(() => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abortFromParent);
+    });
 }
 
 /**
  * Asks the mirrors in turn and takes the first answer. They throttle per client,
  * so a burst of parallel requests is exactly what gets a golfer blocked.
  */
-async function runOverpass(query) {
+async function runOverpass(query, signal) {
   for (const endpoint of OVERPASS_ENDPOINTS) {
+    if (signal?.aborted) throw new Error('Course lookup aborted.');
     try {
-      return await askOverpass(endpoint, query);
-    } catch {
+      return await askOverpass(endpoint, query, signal);
+    } catch (error) {
+      if (signal?.aborted) throw error;
       /* next mirror */
     }
   }
@@ -90,33 +100,17 @@ async function sharedCourseElements(course) {
   return null;
 }
 
-const toCourse = (row) => {
-  const bbox = row.boundingbox?.map(Number);
-  const center = bbox
-    ? [(bbox[0] + bbox[1]) / 2, (bbox[2] + bbox[3]) / 2]
-    : [Number(row.lat), Number(row.lon)];
-  return {
-    id: `osm-${row.osm_type}-${row.osm_id}`,
-    name: row.name || row.display_name.split(',')[0],
-    location: row.display_name.split(',').slice(1, 3).join(',').trim(),
-    center,
-    bbox,
-    osmType: row.osm_type,
-    osmId: row.osm_id,
-  };
-};
-
 /**
  * Every mapped course around a searched place, nearest first — so a town or
  * suburb search lists the courses there rather than one guessed course.
  */
-async function coursesNear(lat, lng) {
+async function coursesNear(lat, lng, signal) {
   const elements = await runOverpass(`[out:json][timeout:40];
 (
   way(around:25000,${lat},${lng})[leisure=golf_course];
   relation(around:25000,${lat},${lng})[leisure=golf_course];
 );
-out center tags;`);
+out center tags;`, signal);
 
   return elements
     .filter((element) => element.tags?.name && element.center)
@@ -133,24 +127,27 @@ out center tags;`);
       center: [element.center.lat, element.center.lon],
       osmType: element.type,
       osmId: element.id,
+      sources: ['openstreetmap'],
     }));
 }
 
 /** The course database gives proper course names, locations and hole cards. */
 async function databaseCourses(query) {
-  try {
-    const response = await base44.functions.invoke('getGolfCourseInfo', { action: 'search', term: query });
-    const rows = response?.data?.courses ?? [];
-    return rows.map((row) => ({
-      id: `gca-${row.id}`,
-      apiId: row.id,
-      name: row.name,
-      location: row.location,
-      center: [row.lat, row.lng],
-    }));
-  } catch {
-    return [];
-  }
+  const response = await withTimeout(
+    base44.functions.invoke('getGolfCourseInfo', { action: 'search', term: query }),
+    9000,
+    'The course database timed out.',
+  );
+  if (response?.data?.error) throw new Error('The course database is unavailable.');
+  const rows = response?.data?.courses ?? [];
+  return rows.map((row) => ({
+    id: 'gca-' + row.id,
+    apiId: row.id,
+    name: row.name,
+    location: row.location,
+    center: [Number(row.lat), Number(row.lng)],
+    sources: ['course-card'],
+  })).filter((course) => course.apiId != null && course.name && course.center.every(Number.isFinite));
 }
 
 /** Card par and yardage per hole, cached for the whole app. */
@@ -174,79 +171,44 @@ function withCardPars(holes, card) {
   });
 }
 
-/** Course search: the course database, mapped courses, then everything near a place. */
-export async function searchGolfCourses(term) {
-  const query = term.trim();
-  if (!query) return [];
-
-  const [fromCloud, fromDatabase, rows] = await Promise.all([
-    searchCloudCourses(query),
-    databaseCourses(query),
-    // Photon provides a low-volume, free town lookup without requiring
-    // a personal token. Unlike the previous provider, its public demo API
-    // supports this kind of place search (subject to fair-use limits).
-    fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=20`, {
+async function photonRows(query) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(query) + '&limit=20', {
       headers: { Accept: 'application/json' },
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Town lookup unavailable');
-        const data = await response.json();
-        return (data.features || []).map((feature) => {
-          const props = feature.properties || {};
-          const position = feature.geometry?.coordinates || [];
-          const extent = props.extent;
-          return {
-            osm_type: props.osm_type === 'R' ? 'relation' : props.osm_type === 'W' ? 'way' : 'node',
-            osm_id: props.osm_id,
-            category: props.osm_key,
-            type: props.osm_value,
-            name: props.name,
-            display_name: [props.name, props.city, props.state, props.country].filter(Boolean).join(', '),
-            lat: position[1],
-            lon: position[0],
-            boundingbox: extent?.length === 4
-              ? [extent[3], extent[1], extent[0], extent[2]]
-              : null,
-          };
-        }).filter((row) => Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
-      })
-      .catch(() => []),
-  ]);
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error('Place lookup unavailable');
+    const data = await response.json();
+    return (data.features || []).map((feature) => {
+      const props = feature.properties || {};
+      const position = feature.geometry?.coordinates || [];
+      const extent = props.extent;
+      return {
+        osm_type: props.osm_type === 'R' ? 'relation' : props.osm_type === 'W' ? 'way' : 'node',
+        osm_id: props.osm_id,
+        category: props.osm_key,
+        type: props.osm_value,
+        name: props.name,
+        display_name: [props.name, props.city, props.state, props.country].filter(Boolean).join(', '),
+        lat: position[1],
+        lon: position[0],
+        boundingbox: photonBounds(extent),
+      };
+    }).filter((row) => Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)));
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-  const mapped = rows
-    .filter((row) => row.category === 'leisure' && row.type === 'golf_course')
-    .map(toCourse);
-
-  const named = [...fromCloud, ...fromDatabase, ...mapped]
-    .filter((course, index, list) => {
-      const key = course.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return list.findIndex((other) => other.name.toLowerCase().replace(/[^a-z0-9]/g, '') === key) === index;
-    })
-    .slice(0, 10);
-  // A town is not a golf course. Offer a clearly labelled map-location result
-  // so entering "Yeppoon" moves the satellite map even without hole data.
-  const place = rows.find((row) =>
-    !(row.category === 'leisure' && row.type === 'golf_course') &&
-    Number.isFinite(Number(row.lat)) && Number.isFinite(Number(row.lon)),
-  );
-  const area = place ? {
-    id: `place-${place.osm_id ?? query.toLowerCase().replace(/\s+/g, '-')}`,
-    kind: 'place',
-    name: `View ${(place.display_name || query).split(',')[0]} area`,
-    location: 'Town map • choose a golf course below',
-    center: [Number(place.lat), Number(place.lon)],
-  } : null;
-  if (named.length) return [...named, ...(area ? [area] : [])];
-
-  if (!place) return [];
-
-  // Overpass mirrors can be slow. Give the player the town map within 6 s
-  // rather than leaving the previously selected course frozen indefinitely.
-  const nearby = await Promise.race([
-    coursesNear(Number(place.lat), Number(place.lon)).catch(() => []),
-    new Promise((resolve) => setTimeout(() => resolve([]), 6000)),
-  ]);
-  return [...(area ? [area] : []), ...nearby];
+export async function searchGolfCourses(term) {
+  return findGolfCourses(term, {
+    searchCloud: searchCloudCourses,
+    searchDatabase: databaseCourses,
+    searchPlaces: photonRows,
+    searchNearby: coursesNear,
+  });
 }
 
 function holesFromGreens(elements, course) {

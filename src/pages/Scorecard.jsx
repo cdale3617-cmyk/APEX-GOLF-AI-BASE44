@@ -17,6 +17,7 @@ export default function Scorecard() {
     course,
     resetScorecard,
     saveRound,
+    roundError,
     stats,
     strokes,
     activeHoleNumber,
@@ -43,7 +44,7 @@ export default function Scorecard() {
   return (
     <div className="absolute inset-0 overflow-y-auto px-4 pb-8 pt-4">
       <div className="mx-auto w-full max-w-3xl space-y-4">
-        <PageHeader title="Scorecard & Strokes Gained" subtitle="Track 18 holes against a scratch baseline">
+        <PageHeader title="Scorecard & Performance" subtitle="Self-entered scores and approximate performance indicators">
           <button
             type="button"
             onClick={handleSave}
@@ -76,11 +77,14 @@ export default function Scorecard() {
             Reset
           </button>
         </PageHeader>
+        {roundError && <p role="alert" className="rounded-lg border border-destructive p-3 text-sm text-destructive">{roundError}</p>}
+        {!course && <p className="text-xs text-muted-foreground">Manual card: enter each hole's par before using relative-to-par results.</p>}
 
         <RoundStats stats={stats} shots={shots} clubs={learnedClubs} units={units} />
 
         <section className="glass-panel rounded-2xl p-3">
-          <h3 className="hud-label mb-2 font-bold text-muted-foreground">Strokes Gained Analytics</h3>
+          <h3 className="hud-label mb-2 font-bold text-muted-foreground">Performance Estimates</h3>
+          <p className="mb-2 text-xs text-muted-foreground">Approximate indicators from your entries, not measured strokes gained.</p>
           <StrokesGainedChart strokes={strokes} hasRound={stats.holes > 0} />
         </section>
 

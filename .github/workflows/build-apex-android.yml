@@ -2,6 +2,13 @@ name: Build Apex Golf AI Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_debug_apk:
+        description: Publish the debug APK to GitHub Releases (not a production-signed build)
+        type: boolean
+        default: false
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -14,9 +21,12 @@ on:
       - "package-lock.json"
       - "vite.config.js"
       - "index.html"
+      - "*config*"
+      - "base44/**"
+      - "cloudflare-worker/**"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-android:
@@ -139,16 +149,27 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Provide one direct APK download from GitHub Releases
+  publish-debug-apk:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish_debug_apk
+    needs: build-android
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: APEX-GOLF-AI-ANDROID
+      - name: Provide an explicitly requested debug APK download
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           TAG="apex-golf-ai-android-latest"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" APEX-GOLF-AI.apk --clobber
-            gh release edit "$TAG" --title "APEX Golf AI — Midnight Edition APK" --notes "APEX Golf AI: GPS and courses, Caddie, Club Bag, Scorecard and Shot History, Shot Studio manual tracer/trajectory/CSV, Green Reader tilt aid, Biometrics logging and experimental S24-Lenny pairing."
+            gh release edit "$TAG" --title "APEX Golf AI — Debug APK" --notes "Development debug build, not a production-signed release. Device-local rounds; manual shot tracing; approximate performance indicators; experimental S24-Lenny pairing."
           else
             gh release create "$TAG" APEX-GOLF-AI.apk \
-              --title "APEX Golf AI — Android APK" \
-              --notes "Signed installable Android debug APK of the existing 166-file Base44 Apex Golf AI project. Includes the golf GPS, Caddie, scorecard, bag, swing and course-lab screens. Internet is required for live Base44 services and map imagery."
+              --title "APEX Golf AI — Debug APK" \
+              --notes "Development debug build, not a production-signed release. Internet is required for live Base44 services and map imagery."
           fi

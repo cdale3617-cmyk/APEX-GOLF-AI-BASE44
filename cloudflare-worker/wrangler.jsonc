@@ -1,0 +1,8 @@
+{
+  "name": "apex-golf-courses",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  "r2_buckets": [
+    { "binding": "COURSES_BUCKET", "bucket_name": "apex-golf-course-data" }
+  ]
+}

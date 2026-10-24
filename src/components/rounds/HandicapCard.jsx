@@ -16,19 +16,20 @@ export default function HandicapCard({ rounds }) {
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <Gauge className="h-3.5 w-3.5 text-primary" />
-            <h3 className="hud-label font-bold text-muted-foreground">Handicap Index</h3>
+            <h3 className="hud-label font-bold text-muted-foreground">Handicap Estimate</h3>
           </div>
           <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
             {result.index === null
-              ? `Post ${result.needed} more ${result.needed === 1 ? 'round' : 'rounds'} of 9 holes or more for an index.`
-              : `Best ${result.counted > 8 ? 8 : result.counted} of your last ${result.recent} rounds, scaled to 18 holes.`}
+              ? `Post ${result.needed} more ${result.needed === 1 ? 'round' : 'rounds'} of 9 holes or more for an estimate.`
+              : `Best ${result.selected} of ${result.counted} qualifying rounds, scaled to 18 holes.`}
           </p>
+          <p className="mt-1 text-[10px] text-muted-foreground">Unofficial estimate; excludes course rating and slope.</p>
         </div>
         <div className="shrink-0 text-right">
           <p className="text-3xl font-black leading-none tabular-nums text-primary">
             {formatHandicap(result.index)}
           </p>
-          <p className="hud-label mt-1 text-muted-foreground">Index</p>
+          <p className="hud-label mt-1 text-muted-foreground">Estimate</p>
         </div>
       </div>
 

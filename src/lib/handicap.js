@@ -1,5 +1,6 @@
 /**
- * A WHS-style handicap index built from the rounds saved on this device.
+ * An unofficial relative-to-par estimate, not a WHS Handicap Index.
+ * No course rating, slope, PCC or authorized handicap-system integration.
  * Scores are scaled to 18 holes, then the best rounds of the most recent 20
  * are averaged using the standard table.
  */
@@ -37,6 +38,7 @@ export function handicapIndex(rounds = []) {
       recent: recent.length,
       bestRound,
       needed: 3 - differentials.length,
+      selected: 0,
     };
   }
 
@@ -50,6 +52,7 @@ export function handicapIndex(rounds = []) {
     recent: recent.length,
     bestRound: Number(bestRound.toFixed(1)),
     needed: 0,
+    selected: row.take,
   };
 }
 

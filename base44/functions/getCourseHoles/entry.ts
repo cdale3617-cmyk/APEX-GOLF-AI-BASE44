@@ -1,4 +1,7 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
+import { InputError, parseCourseInput, courseCacheKey, readSmallJson, createLookupLimiter } from './validation.js';
+
+const allowLookup = createLookupLimiter();
 
 /**
  * Hole-by-hole course geometry, cached for the whole app.
@@ -160,7 +163,7 @@ out geom tags;`);
   return queries;
 }
 
-async function lookup(courseKey, name, bbox, center, osmType, osmId, base44) {
+async function lookup(courseKey, bbox, center, osmType, osmId, base44) {
   const candidates = [];
 
   if (bbox) {
@@ -185,7 +188,7 @@ async function lookup(courseKey, name, bbox, center, osmType, osmId, base44) {
   const holeCount = elements.filter((element) => element.tags.golf === 'hole').length;
   await base44.asServiceRole.entities.CourseMap.create({
     course_key: courseKey,
-    name: String(name ?? '').slice(0, 160),
+    name: 'OpenStreetMap course geometry',
     hole_count: holeCount,
     elements,
     fetched_at: new Date().toISOString(),
@@ -194,26 +197,26 @@ async function lookup(courseKey, name, bbox, center, osmType, osmId, base44) {
 }
 
 export default async function (req) {
+  if (req.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405, headers: { Allow: 'POST' } });
   try {
     const base44 = createClientFromRequest(req);
-    const body = await req.json().catch(() => ({}));
-
-    const courseKey = String(body?.courseKey ?? '').slice(0, 120);
-    if (!courseKey) return Response.json({ error: 'courseKey is required' }, { status: 400 });
+    const user = await base44.auth.me().catch(() => null);
+    if (!user?.id) return Response.json({ error: 'Authentication required' }, { status: 401 });
+    const input = parseCourseInput(await readSmallJson(req));
+    const { bbox, center, osmType, osmId } = input;
+    const courseKey = await courseCacheKey(input);
 
     // One lookup per course serves every golfer from then on.
     const cached = await base44.asServiceRole.entities.CourseMap.filter({ course_key: courseKey });
     const hit = cached?.[0];
     if (hit?.elements?.length) return Response.json({ elements: hit.elements, cached: true });
 
-    const bbox = Array.isArray(body?.bbox) && body.bbox.length === 4 ? body.bbox.map(Number) : null;
-    const center = Array.isArray(body?.center) && body.center.length === 2 ? body.center.map(Number) : null;
-    const osmId = body?.osmId ? Number(body.osmId) : null;
-    if (!bbox && !center && !osmId) return Response.json({ elements: [], cached: false });
+    if (!allowLookup(user.id)) return Response.json({ error: 'Too many course lookups; try again shortly' }, { status: 429, headers: { 'Retry-After': '60' } });
 
-    const elements = await lookup(courseKey, body?.name, bbox, center, body?.osmType, osmId, base44);
+    const elements = await lookup(courseKey, bbox, center, osmType, osmId, base44);
     return Response.json({ elements, cached: false });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    if (error instanceof InputError) return Response.json({ error: error.message }, { status: error.status });
+    return Response.json({ error: 'Course map service is temporarily unavailable' }, { status: 503 });
   }
 }
