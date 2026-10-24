@@ -66,6 +66,7 @@ export default function Rangefinder() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
+  const [searchNotice, setSearchNotice] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
@@ -100,16 +101,15 @@ export default function Rangefinder() {
     if (!term || searching) return;
     setSearching(true);
     setSearchError('');
+    setSearchNotice('');
     setResults([]);
     try {
-      const found = await searchGolfCourses(term);
-      if (found.length) {
-        setResults(found);
-        const area = found.find((result) => result.kind === 'place');
-        // The Find action navigates to the searched town immediately.
-        // Course results stay available below for precise hole selection.
-        if (area?.center) focusCourse(area.center[0], area.center[1], term);
-      } else {
+      const { courses: found = [], warnings = [] } = await searchGolfCourses(term);
+      setResults(found);
+      if (warnings.length) setSearchNotice(warnings.join(' '));
+      if (!found.length && warnings.length) {
+        setSearchError(warnings.join(' '));
+      } else if (!found.length) {
         setSearchError('No location or golf course found. Try a nearby town.');
       }
     } catch (error) {
@@ -152,6 +152,7 @@ export default function Rangefinder() {
     }
     setResults([]);
     setSearchError('');
+    setSearchNotice('');
     setSearchOpen(false);
     setCourseSaveMessage('');
     setHudOpen(false);
@@ -340,7 +341,7 @@ export default function Rangefinder() {
                   <button type="button" onClick={() => loadCourse(result)}
                     className="min-w-0 flex-1 rounded-lg px-2.5 py-2 text-left transition active:scale-[0.99]">
                     <p className="truncate text-xs font-bold text-foreground">{result.name}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{result.location || 'Golf course'}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{result.location || 'Golf course'}{result.kind !== 'place' && <span className="text-primary"> · {result.osmId ? (result.apiId ? 'Map + course data' : 'Map listing') : 'Course listing · map may be estimated'}</span>}</p>
                   </button>
                   {result.kind !== 'place' && (
                     <button type="button" onClick={() => toggleSavedCourse(result)}
@@ -355,6 +356,11 @@ export default function Rangefinder() {
             </div>
           )}
 
+          {searchNotice && (
+            <p role="status" className="pointer-events-auto rounded-lg border border-warm/40 bg-warm/10 px-2.5 py-1.5 text-[10px] font-semibold text-warm">
+              {searchNotice}
+            </p>
+          )}
           {searchError && (
             <p className="pointer-events-auto rounded-lg border border-destructive/40 bg-destructive/15 px-2.5 py-1.5 text-[10px] font-semibold text-destructive">
               {searchError}
