@@ -66,7 +66,7 @@ export default function Rangefinder() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
-  const [searchOpen, setSearchOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [hudOpen, setHudOpen] = useState(false);
@@ -219,7 +219,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && (
-        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-2 pb-3' : 'pb-[25vh]'}`}>
+        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-2 pb-3' : 'pb-[22%]'}`}>
           {course && <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
             <div className="min-w-0 flex-1">
               <HoleBar
@@ -265,13 +265,13 @@ export default function Rangefinder() {
             {course ? (
               <button type="button" onClick={() => saveCourse(course)}
                 aria-label={favoriteIds.includes(course.id) ? 'Course saved to favourites' : 'Save current course'}
-                className="glass-hud flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition active:bg-primary/20">
+                className="glass-hud flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition active:bg-primary/20">
                 {favoriteIds.includes(course.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
                 {favoriteIds.includes(course.id) ? 'Course Saved' : 'Save Course'}
               </button>
             ) : null}
             <button type="button" onClick={() => setCoursesOpen(true)}
-              className="glass-hud flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border/80 px-2 py-2 text-xs font-bold text-foreground transition active:bg-muted">
+              className="glass-hud flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg border border-border/80 px-2 py-2 text-xs font-bold text-foreground transition active:bg-muted">
               <Bookmark className="h-4 w-4 text-primary" /> Saved Courses ({favoriteIds.length})
             </button>
           </div>
@@ -405,7 +405,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && hole && !hole.estimated && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[24%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
+        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[21%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
           <DistanceHUD
             distances={distances}
             onLocate={locate}
