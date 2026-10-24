@@ -6,9 +6,8 @@ test('the green pin is precisely the end of the yellow safe-route leg', () => {
   const initial = { tee: [-23.13, 150.74], layup: [-23.128, 150.742], pin: [-23.124, 150.745] };
   for (const coords of [initial, { ...initial, pin: [-23.126, 150.743] }, { ...initial, layup: [-23.129, 150.744] }]) {
     const result = buildShotPlan(coords);
-    assert.equal(result.features.length, 6);
-    const aggressive = result.features.find(x => x.properties.leg === 'aggressive');
-    assert.deepEqual(aggressive.geometry.coordinates.at(-1), [coords.pin[1], coords.pin[0]]);
+    assert.equal(result.features.length, 5);
+    assert.equal(result.features.some(x => x.properties.leg === 'aggressive'), false);
     const green = result.features.find(x => x.properties.leg === 'pin');
     const red = result.features.find(x => x.properties.key === 'pin');
     const yellow = result.features.find(x => x.properties.key === 'layup');
