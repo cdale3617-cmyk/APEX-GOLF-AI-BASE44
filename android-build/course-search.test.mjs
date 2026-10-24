@@ -5,12 +5,14 @@ import { mergeCourseSources, photonBounds } from '../src/lib/courseSearchResults
 test('Photon bounds are converted to south/north/west/east for Overpass queries', () => {
   assert.deepEqual(photonBounds([153.0, -27.5, 153.2, -27.3]), [-27.5, -27.3, 153.0, 153.2]);
   assert.equal(photonBounds(null), null);
+  assert.equal(photonBounds([153.2, -27.3, 153.0, -27.5]), null);
+  assert.equal(photonBounds([153.0, -27.5, 153.2]), null);
 });
 
-test('same nearby course combines card data with OSM geometry and preserves its saved id', () => {
+test('nearby OSM results attach map geometry while preserving course IDs', () => {
   const cards = [{ id: 'gca-17', apiId: '17', name: 'Lakeview Golf Club', location: 'Brisbane', center: [-27.4700, 153.0250], sources: ['course-card'] }];
   const mapped = [{ id: 'osm-relation-44', name: 'Lakeview Golf Club', location: 'Nearby course', center: [-27.4705, 153.0252], osmType: 'relation', osmId: 44, sources: ['openstreetmap'] }];
-  const [course] = mergeCourseSources(cards, mapped);
+  const [course] = mergeCourseSources(cards, [], mapped);
   assert.equal(course.id, 'gca-17');
   assert.equal(course.apiId, '17');
   assert.equal(course.osmType, 'relation');
