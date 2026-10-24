@@ -444,6 +444,7 @@ export default function MapLibreHoleMap({
     const side = Math.min(28, Math.max(8, width * 0.07));
     const top = Math.min(65, Math.max(30, height * 0.10));
     const bottom = Math.min(55, Math.max(25, height * 0.08));
+    const holeBearing = bearingBetween(tee, pin);
     map.fitBounds([
       [Math.min(tee[1], pin[1]), Math.min(tee[0], pin[0])],
       [Math.max(tee[1], pin[1]), Math.max(tee[0], pin[0])],
@@ -451,10 +452,10 @@ export default function MapLibreHoleMap({
       padding: { top, bottom, left: side, right: side },
       maxZoom: 18.5,
       pitch: 0,
-      bearing: bearingBetween(tee, pin),
+      bearing: holeBearing,
       duration: 500,
     });
-  }, [focus?.nonce, holeReady, ready, courseCenter]);
+  }, [focus?.nonce, holeReady, ready, courseCenter, coords.tee?.[0], coords.tee?.[1], coords.pin?.[0], coords.pin?.[1]]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -462,7 +463,7 @@ export default function MapLibreHoleMap({
     const { tee, pin } = latest.current.coords;
     map.easeTo({
       pitch: 0,
-      bearing: pitchOn && holeReady ? bearingBetween(tee, pin) : 0,
+      bearing: holeReady && validPoint(tee) && validPoint(pin) ? bearingBetween(tee, pin) : 0,
       duration: 700,
     });
   }, [pitchOn, holeReady, ready]);
