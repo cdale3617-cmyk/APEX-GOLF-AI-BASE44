@@ -36,8 +36,8 @@ test('coincident endpoints use a safe point camera', () => {
 test('map frames selected hole geometry rather than delayed editable coordinates', () => {
   const map = readFileSync(new URL('../src/components/rangefinder/MapLibreHoleMap.jsx', import.meta.url), 'utf8');
   const page = readFileSync(new URL('../src/pages/Rangefinder.jsx', import.meta.url), 'utf8');
-  assert.match(page, /activeHole={hole}/);
-  assert.match(map, /buildHoleCamera(activeHole/);
-  assert.match(map, /[ready, activeHole, focus?.nonce, holeReady, courseCenter, pitchOn]/);
-  assert.match(map, /new ResizeObserver/);
+  assert.ok(page.includes('activeHole={hole}'));
+  assert.ok(map.includes('buildHoleCamera(activeHole'));
+  assert.ok(map.includes('[ready, activeHole, focus?.nonce, holeReady, courseCenter, pitchOn]'));
+  assert.ok(map.includes('new ResizeObserver'));
 });
