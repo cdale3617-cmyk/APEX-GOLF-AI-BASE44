@@ -9,7 +9,8 @@
 import { haversineYards } from '@/lib/golfData';
 import { base44 } from '@/api/base44Client';
 import { shouldReverseHole } from '@/lib/holeOrientation';
-import { mergeCourseSources, photonBounds } from '@/lib/courseSearchResults';
+import { photonBounds } from '@/lib/courseSearchResults';
+import { findGolfCourses, withTimeout } from '@/lib/courseSearch';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
@@ -98,23 +99,6 @@ async function sharedCourseElements(course) {
   return null;
 }
 
-const toCourse = (row) => {
-  const bbox = row.boundingbox?.map(Number);
-  const center = bbox
-    ? [(bbox[0] + bbox[1]) / 2, (bbox[2] + bbox[3]) / 2]
-    : [Number(row.lat), Number(row.lon)];
-  return {
-    id: `osm-${row.osm_type}-${row.osm_id}`,
-    name: row.name || row.display_name.split(',')[0],
-    location: row.display_name.split(',').slice(1, 3).join(',').trim(),
-    center,
-    bbox,
-    osmType: row.osm_type,
-    osmId: row.osm_id,
-    sources: ['openstreetmap'],
-  };
-};
-
 /**
  * Every mapped course around a searched place, nearest first — so a town or
  * suburb search lists the courses there rather than one guessed course.
@@ -186,19 +170,6 @@ function withCardPars(holes, card) {
   });
 }
 
-function withTimeout(promise, ms, message, onTimeout) {
-  let timer;
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      timer = setTimeout(() => {
-        onTimeout?.();
-        reject(new Error(message));
-      }, ms);
-    }),
-  ]).finally(() => clearTimeout(timer));
-}
-
 async function photonRows(query) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
@@ -230,52 +201,12 @@ async function photonRows(query) {
   }
 }
 
-const PLACE_TYPES = new Set(['city', 'town', 'suburb', 'village', 'municipality', 'hamlet', 'locality']);
-
-/** Search course cards, mapped OSM courses, and nearby courses together. */
 export async function searchGolfCourses(term) {
-  const query = term.trim();
-  if (!query) return { courses: [], warnings: [] };
-
-  const warnings = [];
-  const [databaseResult, photonResult] = await Promise.allSettled([
-    databaseCourses(query),
-    photonRows(query),
-  ]);
-  const fromDatabase = databaseResult.status === 'fulfilled' ? databaseResult.value : [];
-  const rows = photonResult.status === 'fulfilled' ? photonResult.value : [];
-  if (databaseResult.status === 'rejected') warnings.push('Course-card search is unavailable; showing mapped results where possible.');
-  if (photonResult.status === 'rejected') warnings.push('Place search is unavailable; nearby results may be incomplete.');
-
-  const mapped = rows
-    .filter((row) => row.category === 'leisure' && row.type === 'golf_course' && row.osm_id)
-    .map(toCourse);
-  const place = rows.find((row) => row.category === 'place' && PLACE_TYPES.has(row.type));
-  let nearby = [];
-  if (place) {
-    try {
-      const nearbyController = new AbortController();
-      nearby = await withTimeout(
-        coursesNear(Number(place.lat), Number(place.lon), nearbyController.signal),
-        6000,
-        'Nearby search timed out.',
-        () => nearbyController.abort(),
-      );
-    } catch {
-      warnings.push('Nearby course search timed out; showing the results already found.');
-    }
-  }
-
-  const courses = mergeCourseSources(fromDatabase, mapped, nearby);
-  const area = place ? {
-    id: 'place-' + (place.osm_id ?? query.toLowerCase().replace(/\s+/g, '-')),
-    kind: 'place',
-    name: 'View ' + (place.display_name || query).split(',')[0] + ' area',
-    location: 'Town map • choose a golf course below',
-    center: [Number(place.lat), Number(place.lon)],
-  } : null;
-  // Keep the explicit map-area option visible without pushing all course matches out of the list.
-  return { courses: [...courses.slice(0, area ? 9 : 10), ...(area ? [area] : [])], warnings };
+  return findGolfCourses(term, {
+    searchDatabase: databaseCourses,
+    searchPlaces: photonRows,
+    searchNearby: coursesNear,
+  });
 }
 
 function holesFromGreens(elements, course) {
