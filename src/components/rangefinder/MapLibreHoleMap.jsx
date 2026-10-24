@@ -441,9 +441,9 @@ export default function MapLibreHoleMap({
     // Fit with safety margins so the tee/green stay outside the HUD areas.
     const width = map.getContainer().clientWidth || 390;
     const height = map.getContainer().clientHeight || 600;
-    const side = Math.min(95, Math.max(34, width * 0.19));
-    const top = Math.min(190, Math.max(100, height * 0.25));
-    const bottom = Math.min(125, Math.max(75, height * 0.18));
+    const side = Math.min(28, Math.max(8, width * 0.07));
+    const top = Math.min(65, Math.max(30, height * 0.10));
+    const bottom = Math.min(55, Math.max(25, height * 0.08));
     map.fitBounds([
       [Math.min(tee[1], pin[1]), Math.min(tee[0], pin[0])],
       [Math.max(tee[1], pin[1]), Math.max(tee[0], pin[0])],
@@ -451,7 +451,7 @@ export default function MapLibreHoleMap({
       padding: { top, bottom, left: side, right: side },
       maxZoom: 18.5,
       pitch: 0,
-      bearing: 0,
+      bearing: bearingBetween(tee, pin),
       duration: 500,
     });
   }, [focus?.nonce, holeReady, ready, courseCenter]);
@@ -461,7 +461,7 @@ export default function MapLibreHoleMap({
     if (!map || !ready) return;
     const { tee, pin } = latest.current.coords;
     map.easeTo({
-      pitch: pitchOn && holeReady ? 40 : 0,
+      pitch: 0,
       bearing: pitchOn && holeReady ? bearingBetween(tee, pin) : 0,
       duration: 700,
     });
