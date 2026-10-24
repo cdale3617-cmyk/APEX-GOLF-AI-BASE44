@@ -322,3 +322,10 @@ body {
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-left { bottom: 64px !important; }
 .maplibregl-ctrl-attrib { max-width: 62vw; font-size: 8px !important; line-height: 1.2; }
+
+/* Flagship redesign: round map remains 60% and tools 40% at all device widths. */
+.apex-live-round { width: 100%; height: 100%; min-width: 0; }
+.apex-live-round > div { min-width: 0; min-height: 0; }
+.dark .apex-live-round > div:last-child { background: linear-gradient(155deg, #071629 0%, #0d2850 58%, #07172e 100%); }
+.dark .apex-live-round .glass-hud { border-color: rgba(216,177,98,.52); box-shadow: inset 0 1px 0 rgba(255,226,155,.12), 0 3px 12px rgba(0,0,0,.25); }
+.apex-live-round button { touch-action: manipulation; }
