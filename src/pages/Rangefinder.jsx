@@ -26,7 +26,7 @@ import MapLibreHoleMap from '@/components/rangefinder/MapLibreHoleMap';
 import ViewControls from '@/components/rangefinder/ViewControls';
 import ShotLogger from '@/components/scorecard/ShotLogger';
 import { fetchCourseGraphics } from '@/lib/courseGraphics';
-import { getFavoriteCourseIds, saveFavoriteCourse, removeFavoriteCourse } from '@/lib/courses';
+import { allCourses, getFavoriteCourseIds, saveFavoriteCourse, removeFavoriteCourse } from '@/lib/courses';
 import { useGolf } from '@/lib/GolfContext';
 import { searchGolfCourses } from '@/lib/osmCourses';
 import { distanceUnitSpoken, toDisplayDistance, toDisplayWind, windUnit, toDisplayTemp, tempUnit, toDisplayElev, elevUnit } from '@/lib/units';
@@ -290,6 +290,21 @@ export default function Rangefinder() {
                 Find
               </button>
             </div>
+          )}
+
+          {!course && !query.trim() && favoriteIds.length > 0 && (
+            <section aria-label="Saved Courses" className="pointer-events-auto glass-hud rounded-xl border border-primary/30 p-2">
+              <h2 className="mb-1.5 text-xs font-bold text-primary">Saved Courses</h2>
+              <div className="max-h-[32vh] space-y-1 overflow-y-auto">
+                {allCourses().filter((item) => favoriteIds.includes(item.id)).map((item) => (
+                  <button key={item.id} type="button" onClick={() => loadCourse(item)}
+                    className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-border/70 px-2.5 py-2 text-left text-xs font-semibold text-foreground active:bg-primary/15">
+                    <span className="min-w-0 truncate">{item.name}</span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
 
           {results.length > 0 && (
