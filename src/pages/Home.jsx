@@ -29,7 +29,7 @@ export default function Home() {
               READY TO PLAY?
             </p>
             <Link
-              to="/play"
+              to="/play?choose=1"
               className="apex-home-start flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border border-[#d7b568] px-5 py-3 text-left text-sm font-extrabold uppercase tracking-[0.15em] transition-transform active:scale-[0.99] sm:text-base"
             >
               <span>START A ROUND</span>
