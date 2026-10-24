@@ -445,12 +445,15 @@ export default function MapLibreHoleMap({
     const top = Math.min(65, Math.max(30, height * 0.10));
     const bottom = Math.min(55, Math.max(25, height * 0.08));
     const holeBearing = bearingBetween(tee, pin);
+    // Rotate before calculating fit: fitBounds otherwise uses the old map orientation.
+    map.jumpTo({ bearing: holeBearing, pitch: 0 });
+    map.resize();
     map.fitBounds([
       [Math.min(tee[1], pin[1]), Math.min(tee[0], pin[0])],
       [Math.max(tee[1], pin[1]), Math.max(tee[0], pin[0])],
     ], {
       padding: { top, bottom, left: side, right: side },
-      maxZoom: 18.5,
+      maxZoom: 17.3,
       pitch: 0,
       bearing: holeBearing,
       duration: 500,
