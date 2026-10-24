@@ -5,6 +5,7 @@ import { TriangleAlert } from 'lucide-react';
 import { bearingBetween, haversineYards } from '@/lib/golfData';
 import { distanceUnit, toDisplayDistance } from '@/lib/units';
 import { buildShotPlan } from '@/lib/shotPlanGeometry';
+import { buildHoleCamera } from '@/lib/holeCamera';
 
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
@@ -84,6 +85,7 @@ export default function MapLibreHoleMap({
   coords,
   focus,
   courseCenter,
+  activeHole = null,
   holeReady = false,
   units = 'metric',
   gpsFix = null,
@@ -420,52 +422,59 @@ export default function MapLibreHoleMap({
     else paintShotPlan();
   }, [coords, ready, holeReady]);
 
-  // First jump to the new course location, even while hole data is loading.
-  // Then fit just the selected hole, not the whole course or a stale demo map.
-  useEffect(() => {
+  // Navigation frames immutable selected-hole data, not coords which are restored
+  // by a later context effect. Marker drags and ordinary pans do not retrigger it.
+  const frameCameraRef = useRef(null);
+  frameCameraRef.current = (duration = 350) => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    const { tee, pin } = coords;
-    if (!holeReady || !validPoint(tee) || !validPoint(pin)) {
-      const center = focus?.center || courseCenter || tee;
-      if (validPoint(center)) {
-        map.jumpTo({ center: [center[1], center[0]], zoom: 13.8, pitch: 0, bearing: 0 });
-      }
+    const container = map.getContainer();
+    if (!container.clientWidth || !container.clientHeight) return;
+    map.resize();
+    const view = holeReady ? buildHoleCamera(activeHole, {
+      width: container.clientWidth,
+      height: container.clientHeight,
+      pitchOn,
+      bearing: activeHole && validPoint(activeHole.tee) && validPoint(activeHole.pin) ? bearingBetween(activeHole.tee, activeHole.pin) : 0,
+    }) : null;
+    map.stop();
+    if (!view) {
+      const center = focus?.center || courseCenter || latest.current.coords.tee;
+      if (validPoint(center)) map.jumpTo({ center: [center[1], center[0]], zoom: 13.8, pitch: 0, bearing: 0 });
       return;
     }
-    const samePoint = Math.abs(tee[0] - pin[0]) + Math.abs(tee[1] - pin[1]) < 0.00004;
-    if (samePoint) {
-      map.jumpTo({ center: [tee[1], tee[0]], zoom: 17, pitch: 0, bearing: 0 });
-      return;
+    if (view.bounds) {
+      const { bounds, ...options } = view;
+      map.fitBounds(bounds, { ...options, duration });
+    } else {
+      map.jumpTo(view);
     }
-    // Fit with safety margins so the tee/green stay outside the HUD areas.
-    const width = map.getContainer().clientWidth || 390;
-    const height = map.getContainer().clientHeight || 600;
-    const side = Math.min(95, Math.max(34, width * 0.19));
-    const top = Math.min(190, Math.max(100, height * 0.25));
-    const bottom = Math.min(125, Math.max(75, height * 0.18));
-    map.fitBounds([
-      [Math.min(tee[1], pin[1]), Math.min(tee[0], pin[0])],
-      [Math.max(tee[1], pin[1]), Math.max(tee[0], pin[0])],
-    ], {
-      padding: { top, bottom, left: side, right: side },
-      maxZoom: 18.5,
-      pitch: 0,
-      bearing: 0,
-      duration: 500,
-    });
-  }, [focus?.nonce, holeReady, ready, courseCenter]);
+  };
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready) return;
-    const { tee, pin } = latest.current.coords;
-    map.easeTo({
-      pitch: pitchOn && holeReady ? 40 : 0,
-      bearing: pitchOn && holeReady ? bearingBetween(tee, pin) : 0,
-      duration: 700,
+    if (!ready) return undefined;
+    const frame = requestAnimationFrame(() => frameCameraRef.current?.());
+    return () => cancelAnimationFrame(frame);
+  }, [ready, activeHole, focus?.nonce, holeReady, courseCenter, pitchOn]);
+
+  // Android WebView panels can settle their dimensions after the map loads.
+  // Resize and re-fit only when the actual panel dimensions change.
+  useEffect(() => {
+    if (!ready || !holderRef.current || typeof ResizeObserver === 'undefined') return undefined;
+    let frame;
+    let previousWidth = -1;
+    let previousHeight = -1;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width <= 0 || height <= 0 || (width === previousWidth && height === previousHeight)) return;
+      previousWidth = width;
+      previousHeight = height;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => frameCameraRef.current?.(0));
     });
-  }, [pitchOn, holeReady, ready]);
+    observer.observe(holderRef.current);
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  }, [ready]);
 
   useEffect(() => {
     const map = mapRef.current;
