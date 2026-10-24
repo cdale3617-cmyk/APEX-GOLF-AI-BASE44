@@ -66,7 +66,7 @@ export default function Rangefinder() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
-  const [searchOpen, setSearchOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [hudOpen, setHudOpen] = useState(false);
@@ -158,7 +158,7 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'}`}>
+    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,60%)_minmax(0,40%)]'}`}>
       <div className={`${!course ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
@@ -226,7 +226,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && (
-        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 ${!course ? 'pt-24 pb-8' : 'pb-[42vh]'}`}>
+        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-24 pb-8' : 'pb-[25vh]'}`}>
           {course && <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
             <div className="min-w-0 flex-1">
               <HoleBar
@@ -412,7 +412,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && hole && !hole.estimated && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[38%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
+        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[24%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
           <DistanceHUD
             distances={distances}
             onLocate={locate}
