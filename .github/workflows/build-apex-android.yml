@@ -3,7 +3,7 @@ name: Build Apex Golf AI Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, "codex/course-split-50-50-20261023", "codex/auto-single-hole-build69-20261024", "codex/restore-vibrant-home-build76", "codex/s24-course-search-build77"]
+    branches: [main, "codex/course-split-50-50-20261023", "codex/auto-single-hole-build69-20261024", "codex/restore-vibrant-home-build76", "codex/s24-course-search-build77", "codex/fix-tee-green-direction-build78"]
     paths:
       - ".github/workflows/build-apex-android.yml"
       - "android-build/**"
@@ -69,7 +69,7 @@ jobs:
           python android-build/generate_icons.py
 
       - name: Verify GPS, bag management and automatic club gapping
-        run: node --test android-build/caddie-history.test.mjs android-build/shot-plan.test.mjs android-build/launch-import.test.mjs android-build/gps-tracking.test.mjs android-build/auto-gapping.test.mjs android-build/club-bag.test.mjs android-build/course-search.test.mjs
+        run: node --test android-build/caddie-history.test.mjs android-build/shot-plan.test.mjs android-build/launch-import.test.mjs android-build/gps-tracking.test.mjs android-build/auto-gapping.test.mjs android-build/club-bag.test.mjs android-build/course-search.test.mjs android-build/hole-orientation.test.mjs
 
       - name: Verify approved add-on pages are included
         run: |
@@ -144,13 +144,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="apex-golf-ai-s24-course-search-build77"
+          TAG="apex-golf-ai-hole-direction-build78"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" APEX-GOLF-AI.apk --clobber
-            gh release edit "$TAG" --title "APEX Golf AI — Build 77 S24 Course Search APK" --notes "Build 77 preserves the vibrant Home and 60/40 single-hole map and adds full-width search results, immediate status/errors and a public OpenGolfAPI fallback if the Base44 course service cannot load. S24 phone verification still required."
+            gh release edit "$TAG" --title "APEX Golf AI — Build 78 Tee and Green Direction APK" --notes "Build 78 corrects OSM hole endpoint direction against mapped tee and green features; refreshes old hole geometry but keeps saved courses, scores and shot plans. Keeps Build 77 search and the approved 60/40 vibrant UI. Verify actual hole locations before use."
           else
             gh release create "$TAG" APEX-GOLF-AI.apk \
               --target "$GITHUB_SHA" \
-              --title "APEX Golf AI — Build 77 S24 Course Search APK" \
-              --notes "Build 77: S24 search feedback and public OpenGolfAPI fallback; preserves approved Home and 60/40 single-hole map. Internet required; real hole geometry depends on OSM mapping. Confirm on phone."
+              --title "APEX Golf AI — Build 78 Tee and Green Direction APK" \
+              --notes "Build 78: tee-red, target-yellow and green-green marker positions checked against OSM tee/green survey features. Old map cache refreshes without deleting saved courses. Search and 60/40 layout preserved; verify physical positions on S24 and Lenny."
           fi
