@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Eye,
@@ -66,10 +66,15 @@ export default function Rangefinder() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
+  const [searchNotice, setSearchNotice] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [hudOpen, setHudOpen] = useState(false);
+  const roundToolsRef = useRef(null);
+  useEffect(() => {
+    if (hudOpen) roundToolsRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [hudOpen]);
   const [uiHidden, setUiHidden] = useState(false);
   const [graphics, setGraphics] = useState(null);
   const [satellite, setSatellite] = useState(true);
@@ -100,16 +105,15 @@ export default function Rangefinder() {
     if (!term || searching) return;
     setSearching(true);
     setSearchError('');
+    setSearchNotice('');
     setResults([]);
     try {
-      const found = await searchGolfCourses(term);
-      if (found.length) {
-        setResults(found);
-        const area = found.find((result) => result.kind === 'place');
-        // The Find action navigates to the searched town immediately.
-        // Course results stay available below for precise hole selection.
-        if (area?.center) focusCourse(area.center[0], area.center[1], term);
-      } else {
+      const { courses: found = [], warnings = [] } = await searchGolfCourses(term);
+      setResults(found);
+      if (warnings.length) setSearchNotice(warnings.join(' '));
+      if (!found.length && warnings.length) {
+        setSearchError(warnings.join(' '));
+      } else if (!found.length) {
         setSearchError('No location or golf course found. Try a nearby town.');
       }
     } catch (error) {
@@ -152,17 +156,19 @@ export default function Rangefinder() {
     }
     setResults([]);
     setSearchError('');
+    setSearchNotice('');
     setSearchOpen(false);
     setCourseSaveMessage('');
     setHudOpen(false);
   };
 
   return (
-    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,60%)_minmax(0,40%)]'}`}>
+    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1 grid-rows-1' : 'grid-cols-1 grid-rows-[minmax(0,52fr)_minmax(0,48fr)] md:grid-cols-[minmax(0,60%)_minmax(0,40%)] md:grid-rows-1'}`}>
       <div className={`${!course ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
         coords={coords}
+        activeHole={hole}
         focus={{ center: focusCenter, nonce: focusNonce }}
         courseCenter={course?.center}
         holeReady={Boolean(hole && !hole.estimated)}
@@ -181,7 +187,7 @@ export default function Rangefinder() {
         }
       /> : <div className="absolute inset-0 bg-background" />}
       </div>
-      <div className={`relative min-w-0 overflow-hidden bg-background/95 ${!course ? 'h-full w-full' : 'h-full w-full'}`}>
+      <div className="relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/95">
 
       {courseLoading && (
         <div className="pointer-events-none absolute inset-x-0 top-[110px] z-[1050] flex justify-center">
@@ -202,7 +208,7 @@ export default function Rangefinder() {
       )}
 
       {courseError && !courseLoading && (
-        <div className="pointer-events-auto absolute inset-x-3 bottom-24 z-[1050] flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/15 p-2.5 text-[11px] font-semibold text-destructive shadow-xl">
+        <div className="pointer-events-auto relative z-[1050] m-1.5 shrink-0 flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/15 p-2.5 text-[11px] font-semibold text-destructive shadow-xl">
           <span className="flex-1 leading-snug">{courseError}</span>
           {courseId && (
             <button
@@ -227,78 +233,34 @@ export default function Rangefinder() {
         </button>
       )}
 
-      {!uiHidden && (
-        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 ${!course ? 'pt-64 pb-8' : 'pb-28'}`}>
-          {course && <div className="pointer-events-auto flex items-center gap-1.5">
+      {course && (
+        <div data-testid="round-hole-navigation" className="relative z-[1000] shrink-0 border-b border-border/70 bg-background p-1.5">
+          <div className="flex min-w-0 items-center gap-1.5">
             <div className="min-w-0 flex-1">
-              <HoleBar
-                course={course}
-                hole={hole}
-                holeCount={holes.length || 18}
-                onPrev={prevHole}
-                onNext={nextHole}
-                onOpenCourses={() => setCoursesOpen(true)}
-              />
+              <HoleBar course={course} hole={hole} holeCount={holes.length || 18}
+                onPrev={prevHole} onNext={nextHole} onOpenCourses={() => setCoursesOpen(true)} />
             </div>
-            <button
-              type="button"
-              onClick={() => setSearchOpen((open) => !open)}
-              aria-label={searchOpen ? 'Hide search' : 'Search a course'}
-              className={`flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border transition active:scale-95 ${
-                searchOpen
-                  ? 'border-primary/50 bg-primary/15 text-primary'
-                  : 'glass-hud border-border/80 text-muted-foreground'
-              }`}
-            >
+            <button type="button" aria-label={searchOpen ? 'Hide search' : 'Search a course'}
+              onClick={() => { setUiHidden(false); setSearchOpen((open) => !open); }}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60 text-primary">
               <Search className="h-4 w-4" />
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/course-lab')}
-              aria-label="Open the course graphics lab"
-              className="glass-hud flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border-border/80 text-muted-foreground transition hover:text-primary active:scale-95"
-            >
-              <Layers className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setUiHidden(true)}
-              aria-label="Hide panels to see the course"
-              className="glass-hud flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border-border/80 text-muted-foreground transition hover:text-primary active:scale-95"
-            >
-              <EyeOff className="h-4 w-4" />
-            </button>
-          </div>}
-
-          <div className="pointer-events-auto flex items-center gap-2">
-            {course ? (
-              <button type="button" onClick={() => saveCourse(course)}
-                aria-label={favoriteIds.includes(course.id) ? 'Course saved to favourites' : 'Save current course'}
-                className="glass-hud flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition active:bg-primary/20">
-                {favoriteIds.includes(course.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                {favoriteIds.includes(course.id) ? 'Course Saved' : 'Save Course'}
-              </button>
-            ) : null}
-            <button type="button" onClick={() => setCoursesOpen(true)}
-              className="glass-hud flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border/80 px-2 py-2 text-xs font-bold text-foreground transition active:bg-muted">
-              <Bookmark className="h-4 w-4 text-primary" /> Saved Courses ({favoriteIds.length})
-            </button>
           </div>
-          {courseSaveMessage && (
-            <p role="status" className="pointer-events-auto rounded-lg border border-primary/30 bg-background/95 px-3 py-1.5 text-[11px] font-semibold text-primary">
-              {courseSaveMessage}
-            </p>
-          )}
+        </div>
+      )}
 
-          {hole && !hole.estimated && (
-            <p className="pointer-events-auto glass-hud flex items-center gap-2 self-start rounded-lg px-2 py-1 text-[10px] font-semibold text-foreground">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#D94B4B]" /> Tee
-              <span className="h-2.5 w-2.5 rounded-full bg-[#EAB308]" /> Lay-up
-              <span className="h-2.5 w-2.5 rounded-full bg-[#22C55E]" /> Green
-              <span className="text-muted-foreground">· Drag dots or yellow line</span>
-            </p>
+      {!uiHidden && (
+        <div ref={roundToolsRef} data-testid="round-tools-scroll" className={`relative z-[1000] flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 [&>*]:shrink-0 ${!course ? 'pt-64 pb-8' : ''}`}>
+          {hudOpen && hole && !hole.estimated && (
+            <div data-testid="round-distance-details" className="space-y-2">
+              <DistanceHUD distances={distances} onLocate={locate} expanded onToggle={() => setHudOpen(false)} />
+              <ShotLogger compact clubs={clubs} shots={shots} suggestedClubId={distances.club?.id}
+                suggestedDistance={distances.playsLike} onLog={logShot} onRemove={removeShot} onReset={resetShots} />
+              <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <TriangleAlert className="h-3 w-3 shrink-0" /> Edited routes are not verified safe.
+              </p>
+            </div>
           )}
-
           {searchOpen && (
             <div className="pointer-events-auto flex items-center gap-2">
               <div className="relative flex-1">
@@ -334,13 +296,13 @@ export default function Rangefinder() {
           )}
 
           {results.length > 0 && (
-            <div className="pointer-events-auto glass-hud max-h-[42vh] overflow-y-auto rounded-xl p-1.5 shadow-xl">
+            <div className="pointer-events-auto glass-hud rounded-xl p-1.5 shadow-xl">
               {results.slice(0, 10).map((result) => (
                 <div key={result.id} className="flex items-stretch gap-1 rounded-lg transition hover:bg-muted/60">
                   <button type="button" onClick={() => loadCourse(result)}
                     className="min-w-0 flex-1 rounded-lg px-2.5 py-2 text-left transition active:scale-[0.99]">
                     <p className="truncate text-xs font-bold text-foreground">{result.name}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{result.location || 'Golf course'}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{result.location || 'Golf course'}{result.kind !== 'place' && <span className="text-primary"> · {result.osmId ? (result.apiId ? 'Map + course data' : 'Map listing') : 'Course listing · map may be estimated'}</span>}</p>
                   </button>
                   {result.kind !== 'place' && (
                     <button type="button" onClick={() => toggleSavedCourse(result)}
@@ -355,14 +317,61 @@ export default function Rangefinder() {
             </div>
           )}
 
+          {searchNotice && (
+            <p role="status" className="pointer-events-auto rounded-lg border border-warm/40 bg-warm/10 px-2.5 py-1.5 text-[10px] font-semibold text-warm">
+              {searchNotice}
+            </p>
+          )}
           {searchError && (
             <p className="pointer-events-auto rounded-lg border border-destructive/40 bg-destructive/15 px-2.5 py-1.5 text-[10px] font-semibold text-destructive">
               {searchError}
             </p>
           )}
 
+
+          {course && (hole && !hole.estimated
+            ? <GreenDistances graphics={graphics} compact />
+            : <p className="rounded-lg border border-warm/50 p-2 text-[10px] font-semibold text-warm">
+                {hole?.estimated ? 'Estimated layout. GPS distances disabled.' : 'Choose a mapped hole for GPS distances.'}
+              </p>)}
+          {course && <ViewControls compact pitchOn={pitchOn} satellite={satellite}
+            onTogglePitch={() => setPitchOn((on) => !on)} onToggleSatellite={() => setSatellite((on) => !on)}
+            onRecenter={() => goToHole(holeIndex)} />}
+          <details data-testid="round-secondary-tools" open={!course} className="min-w-0 rounded-lg border border-border/70 bg-card/40">
+            <summary className="flex min-h-11 cursor-pointer items-center px-3 text-xs font-semibold text-foreground">Course tools &amp; conditions</summary>
+            <div className="space-y-2 p-1.5">
+          <div className="pointer-events-auto flex items-center gap-2">
+            {course ? (
+              <button type="button" onClick={() => saveCourse(course)}
+                aria-label={favoriteIds.includes(course.id) ? 'Course saved to favourites' : 'Save current course'}
+                className="glass-hud flex min-h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-bold text-primary transition active:bg-primary/20">
+                {favoriteIds.includes(course.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                {favoriteIds.includes(course.id) ? 'Course Saved' : 'Save Course'}
+              </button>
+            ) : null}
+            <button type="button" onClick={() => setCoursesOpen(true)}
+              className="glass-hud flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border/80 px-2 py-2 text-xs font-bold text-foreground transition active:bg-muted">
+              <Bookmark className="h-4 w-4 text-primary" /> Saved Courses ({favoriteIds.length})
+            </button>
+          </div>
+          {courseSaveMessage && (
+            <p role="status" className="pointer-events-auto rounded-lg border border-primary/30 bg-background/95 px-3 py-1.5 text-[11px] font-semibold text-primary">
+              {courseSaveMessage}
+            </p>
+          )}
+
+          {hole && !hole.estimated && (
+            <p className="pointer-events-auto glass-hud flex flex-wrap items-center gap-x-2 gap-y-1 self-start rounded-lg px-2 py-1 text-[10px] font-semibold text-foreground">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#D94B4B]" /> Tee
+              <span className="h-2.5 w-2.5 rounded-full bg-[#EAB308]" /> Lay-up
+              <span className="h-2.5 w-2.5 rounded-full bg-[#22C55E]" /> Green
+              <span className="text-muted-foreground">· Drag dots or yellow line</span>
+            </p>
+          )}
+
+
           {course && <div className="pointer-events-auto glass-hud flex items-center justify-between gap-1.5 rounded-xl px-2.5 py-1.5 shadow-xl">
-            <div className="flex min-w-0 items-center gap-2 text-[10px]">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[10px]">
               <span className="flex items-center gap-1.5" title="Wind">
                 <Wind className="h-3.5 w-3.5 text-primary" />
                 <span className="font-bold text-foreground whitespace-nowrap">
@@ -390,55 +399,30 @@ export default function Rangefinder() {
             </button>
           </div>}
 
-          {course && <div className="pointer-events-auto flex items-start justify-between gap-2">
-            {hole && !hole.estimated
-              ? <GreenDistances graphics={graphics} />
-              : <span className="glass-hud max-w-[165px] rounded-xl border border-warm/60 p-2 text-[10px] font-semibold leading-snug text-foreground">
-                  {hole?.estimated ? 'Estimated hole layout. GPS distances disabled.' : 'Choose a mapped hole for GPS distances.'}
-                </span>}
-            <ViewControls
-              pitchOn={pitchOn}
-              satellite={satellite}
-              onTogglePitch={() => setPitchOn((on) => !on)}
-              onToggleSatellite={() => setSatellite((on) => !on)}
-              onRecenter={() => goToHole(holeIndex)}
-            />
-          </div>}
+
+              {course && <div className="flex gap-2">
+                <button type="button" onClick={() => navigate('/course-lab')} className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg border border-border px-2 text-[11px]">
+                  <Layers className="h-4 w-4 shrink-0" /> Course lab
+                </button>
+                <button type="button" onClick={() => setUiHidden(true)} className="flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg border border-border px-2 text-[11px]">
+                  <EyeOff className="h-4 w-4 shrink-0" /> Hide tools
+                </button>
+              </div>}
+            </div>
+          </details>
         </div>
       )}
 
       {!uiHidden && hole?.estimated && (
-        <div className="pointer-events-none absolute inset-x-2 bottom-2 z-[1000] rounded-lg border border-warm/70 bg-background/95 px-3 py-2 text-center text-[11px] font-semibold text-warm">
+        <div className="pointer-events-none relative z-[1000] shrink-0 rounded-lg border border-warm/70 bg-background/95 px-3 py-2 text-center text-[11px] font-semibold text-warm">
           UNVERIFIED HOLE · Positions are estimated, not safe for shot distances
         </div>
       )}
 
       {!uiHidden && hole && !hole.estimated && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[38%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
-          <DistanceHUD
-            distances={distances}
-            onLocate={locate}
-            expanded={hudOpen}
-            onToggle={() => setHudOpen((open) => !open)}
-          />
-          {hudOpen && (
-            <>
-              <ShotLogger
-                compact
-                clubs={clubs}
-                shots={shots}
-                suggestedClubId={distances.club?.id}
-                suggestedDistance={distances.playsLike}
-                onLog={logShot}
-                onRemove={removeShot}
-                onReset={resetShots}
-              />
-              <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-[10px] text-muted-foreground">
-                <TriangleAlert className="h-3 w-3" />
-                Red dot: tee. Yellow dot: lay-up. Green dot: green. Drag a dot or yellow line to adjust; neither route is verified safe.
-              </p>
-            </>
-          )}
+        <div data-testid="round-distance-dock" className="relative z-[1000] shrink-0 border-t border-warm/40 bg-background p-1">
+          <DistanceHUD distances={distances} onLocate={locate} expanded={false} detailsOpen={hudOpen}
+            onToggle={() => setHudOpen((open) => !open)} />
         </div>
       )}
 
