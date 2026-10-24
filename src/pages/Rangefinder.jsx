@@ -214,7 +214,7 @@ export default function Rangefinder() {
       )}
 
       {(
-        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-2 pb-3' : 'pb-[22%]'}`}>
+        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-2 pb-3' : 'pb-[34%]'}`}>
           {course && <div className="pointer-events-auto flex flex-wrap items-center gap-1">
             <div className="min-w-0 flex-1">
               <button type="button" onClick={() => setCoursesOpen(true)} className="glass-hud flex h-9 w-full min-w-0 items-center justify-center rounded-lg px-1 text-[10px] font-bold text-foreground"><span className="truncate">{course.name} · Hole {hole?.number ?? holeIndex + 1}</span></button>
@@ -388,7 +388,7 @@ export default function Rangefinder() {
       )}
 
       {hole && !hole.estimated && (
-        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[15%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
+        <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[32%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
           <DistanceHUD
             distances={distances}
             onLocate={locate}
