@@ -276,7 +276,7 @@ export default function Rangefinder() {
             </p>
           )}
 
-          {hole && !hole.estimated && (
+          {!course && hole && !hole.estimated && (
             <p className="pointer-events-auto glass-hud flex items-center gap-2 self-start rounded-lg px-2 py-1 text-[10px] font-semibold text-foreground">
               <span className="h-2.5 w-2.5 rounded-full bg-[#D94B4B]" /> Tee
               <span className="h-2.5 w-2.5 rounded-full bg-[#EAB308]" /> Lay-up
@@ -376,7 +376,7 @@ export default function Rangefinder() {
             </button>
           </div>}
 
-          {course && <div className="pointer-events-auto flex flex-wrap items-start justify-between gap-2">
+          {course && <div className="pointer-events-auto flex min-w-0 flex-col gap-1">
             {hole && !hole.estimated
               ? <GreenDistances graphics={graphics} />
               : <span className="glass-hud max-w-[165px] rounded-xl border border-warm/60 p-2 text-[10px] font-semibold leading-snug text-foreground">
