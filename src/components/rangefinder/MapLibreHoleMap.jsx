@@ -94,10 +94,18 @@ export default function MapLibreHoleMap({
   satellite = true,
   onMoveTarget,
   onPinSettled,
+  holeKey = '',
 }) {
   const holderRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef({});
+  const locksRef = useRef({});
+  const holeKeyRef = useRef(holeKey);
+  if (holeKeyRef.current !== holeKey) {
+    holeKeyRef.current = holeKey;
+    try { locksRef.current = JSON.parse(localStorage.getItem(`apex_marker_locks_${holeKey}`) || '{}'); }
+    catch { locksRef.current = {}; }
+  }
   const [ready, setReady] = useState(false);
   const [mapError, setMapError] = useState('');
 
@@ -256,6 +264,34 @@ export default function MapLibreHoleMap({
         draggable: true,
         clickTolerance: 1,
       });
+      const element = marker.getElement();
+      const updateLock = () => {
+        const locked = Boolean(locksRef.current[key]);
+        marker.setDraggable(!locked);
+        element.style.cursor = locked ? 'not-allowed' : 'grab';
+        element.title = locked ? `${name} locked — long press to unlock` : `${name} unlocked — drag, then tap to lock`;
+      };
+      const persistLock = (locked) => {
+        locksRef.current[key] = locked;
+        try { localStorage.setItem(`apex_marker_locks_${holeKeyRef.current}`, JSON.stringify(locksRef.current)); } catch {}
+        updateLock();
+      };
+      let holdTimer;
+      let held = false;
+      element.addEventListener('pointerdown', () => {
+        held = false;
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(() => { held = true; persistLock(false); }, 650);
+      });
+      element.addEventListener('pointermove', () => clearTimeout(holdTimer));
+      element.addEventListener('pointerup', () => clearTimeout(holdTimer));
+      element.addEventListener('pointercancel', () => clearTimeout(holdTimer));
+      element.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (!held && !locksRef.current[key]) persistLock(true);
+        held = false;
+      });
+      updateLock();
       // Red endpoint and green line follow *during* the drag, rather than
       // waiting for React to commit the new coordinates at dragend.
       marker.on('drag', paintShotPlan);
@@ -334,7 +370,7 @@ export default function MapLibreHoleMap({
     function cancel() { endDrag(false); }
 
     const start = (event) => {
-      if (active || !markersRef.current.layup) return;
+      if (active || !markersRef.current.layup || locksRef.current.layup) return;
       if (event.type === 'touchstart' && event.points?.length !== 1) return;
       // Preserve native dragging when the actual TEE / TARGET / PIN dot is grabbed.
       if (event.originalEvent?.target?.closest?.('.maplibregl-marker')) return;
