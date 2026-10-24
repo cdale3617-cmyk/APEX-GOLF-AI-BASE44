@@ -13,7 +13,7 @@ const TOOL_PAGES = ['/more', '/bag', '/caddie', '/rounds', '/swing', '/drills', 
 export default function BottomNav() {
   const { pathname } = useLocation();
   return (
-    <nav aria-label="Primary navigation" className="apex-bottom-nav glass-panel z-30 shrink-0 border-t px-2 pb-[max(0.2rem,env(safe-area-inset-bottom))] pt-0.5">
+    <nav aria-label="Primary navigation" className="apex-bottom-nav glass-panel z-30 shrink-0 border-t px-2 pb-[max(0.1rem,env(safe-area-inset-bottom))] pt-0">
       <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
         {TABS.map(({ to, label, icon: Icon, end }) => {
           const toolsSelected = to === '/more' && TOOL_PAGES.some((page) =>
@@ -26,14 +26,14 @@ export default function BottomNav() {
               end={end}
               aria-label={label}
               className={({ isActive }) =>
-                'flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-0.5 font-semibold transition-colors ' +
+                'flex min-h-10 flex-row items-center justify-center gap-1 rounded-lg px-0.5 py-0 font-semibold transition-colors ' +
                 (isActive || toolsSelected ? 'apex-nav-current' : 'text-muted-foreground hover:text-foreground')
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon className={'h-5 w-5 ' + (isActive || toolsSelected ? 'drop-shadow-[0_0_8px_rgba(0,216,232,.4)]' : '')} aria-hidden="true" />
-                  <span className="text-[11px] tracking-wide">{label}</span>
+                  <Icon className={'h-4 w-4 ' + (isActive || toolsSelected ? 'drop-shadow-[0_0_8px_rgba(0,216,232,.4)]' : '')} aria-hidden="true" />
+                  <span className="text-[10px] tracking-wide">{label}</span>
                 </>
               )}
             </NavLink>
