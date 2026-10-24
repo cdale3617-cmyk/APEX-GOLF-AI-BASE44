@@ -66,7 +66,7 @@ export default function Rangefinder() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(true);
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [hudOpen, setHudOpen] = useState(false);
@@ -158,7 +158,7 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,60%)_minmax(0,40%)]'}`}>
+    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'}`}>
       <div className={`${!course ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
@@ -181,7 +181,7 @@ export default function Rangefinder() {
         }
       /> : <div className="absolute inset-0 bg-background" />}
       </div>
-      <div className={`relative min-w-0 overflow-hidden bg-background/95 ${!course ? 'h-full w-full' : 'h-full w-full'}`}>
+      <div className={`relative min-h-0 min-w-0 overflow-hidden bg-background/95 ${!course ? 'h-full w-full' : 'h-full w-full'}`}>
 
       {courseLoading && (
         <div className="pointer-events-none absolute inset-x-0 top-[110px] z-[1050] flex justify-center">
@@ -195,9 +195,7 @@ export default function Rangefinder() {
       {!course && !courseLoading && !uiHidden && (
         <div className="pointer-events-auto absolute inset-x-3 top-3 z-[1050] mx-auto max-w-md glass-panel rounded-xl border border-primary/40 p-4 text-center shadow-xl">
           <p className="text-sm font-bold text-foreground">Choose a golf course</p>
-          <p className="mt-1 text-xs text-muted-foreground">Tap the search icon above, type a course or town, and select the course you want.</p>
-          <button type="button" onClick={() => setSearchOpen(true)}
-            className="mt-2 min-h-10 rounded-lg border border-primary/50 bg-primary/15 px-4 text-xs font-bold text-primary">Search courses</button>
+          <p className="mt-1 text-xs text-muted-foreground">Use the single search field below to find and select your course.</p>
         </div>
       )}
 
@@ -228,8 +226,8 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && (
-        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 ${!course ? 'pt-64 pb-8' : 'pb-28'}`}>
-          {course && <div className="pointer-events-auto flex items-center gap-1.5">
+        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 ${!course ? 'pt-24 pb-8' : 'pb-[42vh]'}`}>
+          {course && <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
             <div className="min-w-0 flex-1">
               <HoleBar
                 course={course}
@@ -270,7 +268,7 @@ export default function Rangefinder() {
             </button>
           </div>}
 
-          <div className="pointer-events-auto flex items-center gap-2">
+          <div className="pointer-events-auto flex flex-wrap items-center gap-2">
             {course ? (
               <button type="button" onClick={() => saveCourse(course)}
                 aria-label={favoriteIds.includes(course.id) ? 'Course saved to favourites' : 'Save current course'}
@@ -300,7 +298,7 @@ export default function Rangefinder() {
           )}
 
           {searchOpen && (
-            <div className="pointer-events-auto flex items-center gap-2">
+            <div className="pointer-events-auto flex flex-wrap items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -361,8 +359,8 @@ export default function Rangefinder() {
             </p>
           )}
 
-          {course && <div className="pointer-events-auto glass-hud flex items-center justify-between gap-1.5 rounded-xl px-2.5 py-1.5 shadow-xl">
-            <div className="flex min-w-0 items-center gap-2 text-[10px]">
+          {course && <div className="pointer-events-auto glass-hud flex flex-wrap items-center justify-between gap-1.5 rounded-xl px-2.5 py-1.5 shadow-xl">
+            <div className="flex min-w-0 flex-wrap items-center gap-2 text-[10px]">
               <span className="flex items-center gap-1.5" title="Wind">
                 <Wind className="h-3.5 w-3.5 text-primary" />
                 <span className="font-bold text-foreground whitespace-nowrap">
@@ -390,7 +388,7 @@ export default function Rangefinder() {
             </button>
           </div>}
 
-          {course && <div className="pointer-events-auto flex items-start justify-between gap-2">
+          {course && <div className="pointer-events-auto flex flex-wrap items-start justify-between gap-2">
             {hole && !hole.estimated
               ? <GreenDistances graphics={graphics} />
               : <span className="glass-hud max-w-[165px] rounded-xl border border-warm/60 p-2 text-[10px] font-semibold leading-snug text-foreground">
