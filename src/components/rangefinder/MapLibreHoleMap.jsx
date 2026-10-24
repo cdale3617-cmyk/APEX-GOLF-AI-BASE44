@@ -285,9 +285,26 @@ export default function MapLibreHoleMap({
         updateLock();
       };
       let dragged = false;
-      element.addEventListener('pointerdown', () => { dragged = false; });
+      let touchStart = null;
+      let ignoreClick = false;
+      element.addEventListener('pointerdown', (event) => {
+        dragged = false;
+        touchStart = { x: event.clientX, y: event.clientY };
+        event.stopPropagation();
+      });
+      element.addEventListener('pointerup', (event) => {
+        event.stopPropagation();
+        const moved = touchStart && Math.hypot(event.clientX - touchStart.x, event.clientY - touchStart.y) > 12;
+        touchStart = null;
+        if (!dragged && !moved) {
+          persistLock(!Boolean(locksRef.current[key]));
+          ignoreClick = true;
+        }
+      });
+      element.addEventListener('pointercancel', () => { touchStart = null; });
       element.addEventListener('click', (event) => {
         event.stopPropagation();
+        if (ignoreClick) { ignoreClick = false; return; }
         if (!dragged) persistLock(!Boolean(locksRef.current[key]));
       });
       updateLock();
