@@ -40,7 +40,7 @@ export default function GreenDistances({ graphics }) {
   const unit = distanceUnit(units);
 
   return (
-    <div className="glass-hud w-[74px] shrink-0 rounded-xl border-l-2 border-l-primary/70 px-1.5 py-2 text-center shadow-xl">
+    <div className="glass-hud w-[62px] shrink-0 rounded-xl border-l-2 border-l-primary/70 px-1 py-1 text-center shadow-xl">
       <span className="hud-label block font-bold text-muted-foreground">{distances.mode === 'live' ? 'From GPS' : 'From tee'}</span>
 
       <div className="mt-1">
@@ -50,7 +50,7 @@ export default function GreenDistances({ graphics }) {
 
       <div className="my-1 border-y border-border/70 py-1">
         <span className="block text-[8px] font-black uppercase tracking-wide text-primary">Center</span>
-        <span className="block text-lg font-black leading-tight tabular-nums text-foreground">
+        <span className="block text-base font-black leading-tight tabular-nums text-foreground">
           {toDisplayDistance(centre, units)}
         </span>
         <span className="block text-[7px] font-bold uppercase text-primary/80">{unit}</span>
@@ -60,9 +60,9 @@ export default function GreenDistances({ graphics }) {
         <span className="block text-[8px] font-bold uppercase text-muted-foreground">Front</span>
         <span className="block text-xs font-bold tabular-nums text-foreground">{front === null ? '—' : toDisplayDistance(front, units)}</span>
       </div>
-      <div className="mt-2 border-t border-border/70 pt-1.5" aria-label="Approximate pin position">
+      <div className="mt-1 border-t border-border/70 pt-1.5" aria-label="Approximate pin position">
         <span className="block text-[7px] font-semibold uppercase text-muted-foreground">Target*</span>
-        <div className="mt-1 flex gap-0.5">
+        <div className="mt-0.5 flex gap-px">
           {[['F', -10], ['C', 0], ['B', 10]].map(([label, delta]) => (
             <button key={label} type="button" onClick={() => choosePinOffset(delta)}
               title={label === 'F' ? 'Approx. front target' : label === 'B' ? 'Approx. back target' : 'Mapped pin'}
