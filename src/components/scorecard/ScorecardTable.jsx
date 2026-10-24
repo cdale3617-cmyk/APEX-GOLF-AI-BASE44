@@ -10,11 +10,11 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
 
   return (
     <div className="glass-panel overflow-hidden rounded-2xl">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] text-left text-xs">
+      <div className="w-full min-w-0">
+        <table className="w-full table-fixed text-center text-[11px] sm:text-xs">
           <thead className="bg-muted/60 text-[10px] uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-semibold">Hole</th>
+              <th className="w-[21%] px-0.5 py-2 font-semibold">Hole</th>
               <th className="px-3 py-2 font-semibold">Par</th>
               <th className="px-3 py-2 font-semibold">Score</th>
               <th className="px-3 py-2 font-semibold">Putts</th>
@@ -33,24 +33,24 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                     : 'hover:bg-muted/25'
                 }`}
               >
-                <td className="px-3 py-1.5 font-bold text-foreground">
+                <td className="px-0.5 py-1.5 font-bold text-foreground">
                   #{hole.hole}
                   {hole.hole === activeHole && (
-                    <span className="ml-1.5 rounded bg-primary/20 px-1 py-[1px] align-middle text-[9px] font-bold uppercase tracking-wide text-primary">
+                    <span className="block rounded bg-primary/20 px-0.5 py-[1px] text-[8px] font-bold uppercase tracking-wide text-primary">
                       Playing
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-1.5 text-muted-foreground">{hole.par}</td>
-                <td className="px-3 py-1.5">
-                  <div className="flex items-center gap-1">
+                <td className="px-0.5 py-1.5 text-muted-foreground">{hole.par}</td>
+                <td className="px-0.5 py-1.5">
+                  <div className="flex min-w-0 flex-col items-center gap-0.5">
                     <input
                       type="number"
                       inputMode="numeric"
                       value={hole.score || ''}
                       placeholder="–"
                       onChange={(event) => onUpdate(index, { score: Number(event.target.value) || 0 })}
-                      className="w-12 rounded-lg border border-input bg-background/70 p-1 text-center text-xs font-bold tabular-nums text-primary outline-none focus:border-primary"
+                      className="h-9 w-full min-w-0 max-w-12 rounded-lg border border-input bg-background/70 p-1 text-center text-xs font-bold tabular-nums text-primary outline-none focus:border-primary"
                     />
                     {hole.penalties > 0 && (
                       <span
@@ -62,21 +62,21 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                     )}
                   </div>
                 </td>
-                <td className="px-3 py-1.5">
+                <td className="px-0.5 py-1.5">
                   <input
                     type="number"
                     inputMode="numeric"
                     value={hole.putts || ''}
                     placeholder="–"
                     onChange={(event) => onUpdate(index, { putts: Number(event.target.value) || 0 })}
-                    className="w-12 rounded-lg border border-input bg-background/70 p-1 text-center text-xs font-bold tabular-nums text-sky-400 outline-none focus:border-primary"
+                    className="h-9 w-full min-w-0 max-w-12 rounded-lg border border-input bg-background/70 p-1 text-center text-xs font-bold tabular-nums text-sky-400 outline-none focus:border-primary"
                   />
                 </td>
-                <td className="px-3 py-1.5">
+                <td className="px-0.5 py-1.5">
                   <button
                     type="button"
                     onClick={() => onUpdate(index, { fir: !hole.fir })}
-                    className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition ${
+                    className={`w-full rounded-md px-0 py-1 text-[10px] font-bold transition ${
                       hole.fir
                         ? 'border border-primary/40 bg-primary/20 text-primary'
                         : 'border border-border bg-muted/50 text-muted-foreground'
@@ -85,11 +85,11 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                     {hole.fir ? 'YES' : 'NO'}
                   </button>
                 </td>
-                <td className="px-3 py-1.5">
+                <td className="px-0.5 py-1.5">
                   <button
                     type="button"
                     onClick={() => onUpdate(index, { gir: !hole.gir })}
-                    className={`rounded-md px-2 py-0.5 text-[10px] font-bold transition ${
+                    className={`w-full rounded-md px-0 py-1 text-[10px] font-bold transition ${
                       hole.gir
                         ? 'border border-amber-400/40 bg-amber-400/20 text-amber-400'
                         : 'border border-border bg-muted/50 text-muted-foreground'
