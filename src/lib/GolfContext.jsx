@@ -120,7 +120,21 @@ export function GolfProvider({ children }) {
   // The markers always follow the hole that is loaded.
   useEffect(() => {
     if (!hole) return;
-    setCoords(loadShotPlan(courseId, hole.number) || { tee: hole.tee, layup: hole.layup, pin: hole.pin });
+    const savedPlan = loadShotPlan(courseId, hole.number);
+    if (!savedPlan) {
+      setCoords({ tee: hole.tee, layup: hole.layup, pin: hole.pin });
+      return;
+    }
+    // Older builds sometimes saved a plan with tee and pin reversed because
+    // its OSM hole way ran green-to-tee. Reorient in memory while preserving
+    // the user's chosen lay-up point and without overwriting their saved plan.
+    const direct = haversineYards(savedPlan.tee, hole.tee)
+      + haversineYards(savedPlan.pin, hole.pin);
+    const reversed = haversineYards(savedPlan.tee, hole.pin)
+      + haversineYards(savedPlan.pin, hole.tee);
+    setCoords(reversed + 60 < direct
+      ? { tee: savedPlan.pin, layup: savedPlan.layup, pin: savedPlan.tee }
+      : savedPlan);
   }, [hole, courseId]);
 
   // Scorecard pars come from the real holes once they arrive.
