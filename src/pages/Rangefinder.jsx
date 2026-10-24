@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Eye,
   EyeOff,
@@ -78,6 +78,8 @@ export default function Rangefinder() {
   const [favoriteIds, setFavoriteIds] = useState(getFavoriteCourseIds);
   const [courseSaveMessage, setCourseSaveMessage] = useState('');
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const choosingCourse = searchParams.get('choose') === '1';
 
   // Fairway, green, bunker and water shapes for the course being played.
   useEffect(() => {
@@ -156,13 +158,15 @@ export default function Rangefinder() {
     setSearchOpen(false);
     setCourseSaveMessage('');
     setHudOpen(false);
+    if (choosingCourse) setSearchParams({}, { replace: true });
   };
 
   return (
-    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,60%)_minmax(0,40%)]'}`}>
-      <div className={`${!course ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
+    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${(!course || choosingCourse) ? 'grid-cols-1' : 'grid-cols-[minmax(0,60%)_minmax(0,40%)]'}`}>
+      <div className={`${(!course || choosingCourse) ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
+        holeKey={`${courseId || ''}_${hole?.number || holeIndex + 1}`}
         coords={coords}
         focus={{ center: focusCenter, nonce: focusNonce }}
         courseCenter={course?.center}
@@ -181,7 +185,7 @@ export default function Rangefinder() {
             : `Pin moved. ${gpsMode === 'live' ? 'GPS' : 'Tee preview'} plays like ${toDisplayDistance(distances.playsLike, units)} ${distanceUnitSpoken(units)}. Take your ${distances.club.name}.`)
         }
       /> : <div className="absolute inset-0 bg-background" />}
-        {course && <div className="absolute inset-x-1 top-1 z-[1100] flex items-center justify-between gap-1 pointer-events-none">
+        {course && !choosingCourse && <div className="absolute inset-x-1 top-1 z-[1100] flex items-center justify-between gap-1 pointer-events-none">
           <button type="button" onClick={prevHole} aria-label="Previous hole" className="pointer-events-auto glass-hud flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary"><ChevronLeft className="h-5 w-5" /></button>
           <span className="glass-hud rounded-md px-1.5 py-1 text-[10px] font-bold text-foreground">Hole {hole?.number ?? holeIndex + 1}</span>
           <button type="button" onClick={nextHole} aria-label="Next hole" className="pointer-events-auto glass-hud flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary"><ChevronRight className="h-5 w-5" /></button>
@@ -215,7 +219,7 @@ export default function Rangefinder() {
 
       {(
         <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-2 pb-3' : 'pb-[34%]'}`}>
-          {course && <div className="pointer-events-auto flex flex-wrap items-center gap-1">
+          {course && !choosingCourse && <div className="pointer-events-auto flex flex-wrap items-center gap-1">
             <div className="min-w-0 flex-1">
               <button type="button" onClick={() => setCoursesOpen(true)} className="glass-hud flex h-9 w-full min-w-0 items-center justify-center rounded-lg px-1 text-[10px] font-bold text-foreground"><span className="truncate">{course.name} · Hole {hole?.number ?? holeIndex + 1}</span></button>
             </div>
@@ -229,7 +233,7 @@ export default function Rangefinder() {
             </button>
           </div>}
 
-          {!course && <div className="pointer-events-auto flex flex-wrap items-center gap-2">
+          {(!course || choosingCourse) && <div className="pointer-events-auto flex flex-wrap items-center gap-2">
             {course ? (
               <button type="button" onClick={() => saveCourse(course)}
                 aria-label={favoriteIds.includes(course.id) ? 'Course saved to favourites' : 'Save current course'}
@@ -249,7 +253,7 @@ export default function Rangefinder() {
             </p>
           )}
 
-          {!course && hole && !hole.estimated && (
+          {(!course || choosingCourse) && hole && !hole.estimated && (
             <p className="pointer-events-auto glass-hud flex items-center gap-2 self-start rounded-lg px-2 py-1 text-[10px] font-semibold text-foreground">
               <span className="h-2.5 w-2.5 rounded-full bg-[#D94B4B]" /> Tee
               <span className="h-2.5 w-2.5 rounded-full bg-[#EAB308]" /> Lay-up
@@ -258,7 +262,7 @@ export default function Rangefinder() {
             </p>
           )}
 
-          {!course && (
+          {(!course || choosingCourse) && (
             <div className="pointer-events-auto flex flex-wrap items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -292,7 +296,7 @@ export default function Rangefinder() {
             </div>
           )}
 
-          {!course && !query.trim() && favoriteIds.length > 0 && (
+          {(!course || choosingCourse) && !query.trim() && favoriteIds.length > 0 && (
             <section aria-label="Saved Courses" className="pointer-events-auto glass-hud rounded-xl border border-primary/30 p-2">
               <h2 className="mb-1.5 text-xs font-bold text-primary">Saved Courses</h2>
               <div className="max-h-[32vh] space-y-1 overflow-y-auto">
@@ -335,7 +339,7 @@ export default function Rangefinder() {
             </p>
           )}
 
-          {course && <div className="pointer-events-auto glass-hud flex flex-wrap items-center justify-between gap-1 rounded-lg px-1.5 py-1 shadow-xl">
+          {course && !choosingCourse && <div className="pointer-events-auto glass-hud flex flex-wrap items-center justify-between gap-1 rounded-lg px-1.5 py-1 shadow-xl">
             <div className="flex min-w-0 flex-wrap items-center gap-1 text-[9px]">
               <span className="flex items-center gap-1.5" title="Wind">
                 <Wind className="h-3.5 w-3.5 text-primary" />
@@ -364,7 +368,7 @@ export default function Rangefinder() {
             </button>
           </div>}
 
-          {course && <div className="pointer-events-auto flex min-w-0 flex-col gap-1">
+          {course && !choosingCourse && <div className="pointer-events-auto flex min-w-0 flex-col gap-1">
             {hole && !hole.estimated
               ? <GreenDistances graphics={graphics} />
               : <span className="glass-hud max-w-[165px] rounded-xl border border-warm/60 p-2 text-[10px] font-semibold leading-snug text-foreground">
@@ -387,7 +391,7 @@ export default function Rangefinder() {
         </div>
       )}
 
-      {hole && !hole.estimated && (
+      {!choosingCourse && hole && !hole.estimated && (
         <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[32%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
           <DistanceHUD
             distances={distances}
