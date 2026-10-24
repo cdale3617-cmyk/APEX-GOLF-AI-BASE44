@@ -7,6 +7,8 @@
  * ready-to-draw GeoJSON per feature kind.
  */
 
+import { fetchCloudElements } from '@/lib/cloudCourses';
+
 const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass-api.de/api/interpreter',
@@ -74,7 +76,10 @@ async function run(query) {
 /** Every drawn course feature around a course centre, grouped by kind. */
 export async function fetchCourseGraphics(course) {
   const [lat, lng] = course.center;
-  const elements = await run(`[out:json][timeout:30];
+  const cloud = await fetchCloudElements(course);
+  const elements = cloud?.some((element) => element.geometry?.length && element.tags?.golf)
+    ? cloud
+    : await run(`[out:json][timeout:30];
 (
   way(around:1500,${lat},${lng})[golf=fairway];
   way(around:1500,${lat},${lng})[golf=green];
