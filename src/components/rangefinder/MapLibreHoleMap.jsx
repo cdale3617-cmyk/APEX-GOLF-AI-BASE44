@@ -51,7 +51,7 @@ const MARKERS = [
 // small 12-pixel dot is painted over the satellite course.
 const markerElement = (key, color, name) => {
   const hitArea = document.createElement('div');
-  hitArea.style.cssText = 'position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;';
+  hitArea.style.cssText = 'position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;z-index:3;';
   hitArea.setAttribute('title', `Drag ${name} to reposition`);
   hitArea.setAttribute('aria-label', name);
 
@@ -254,6 +254,7 @@ export default function MapLibreHoleMap({
         element: markerElement(key, color, name),
         anchor: 'center',
         draggable: true,
+        clickTolerance: 1,
       });
       // Red endpoint and green line follow *during* the drag, rather than
       // waiting for React to commit the new coordinates at dragend.
