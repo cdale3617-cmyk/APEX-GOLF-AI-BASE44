@@ -234,7 +234,7 @@ export async function searchGolfCourses(term) {
     location: 'Town map • choose a golf course below',
     center: [Number(place.lat), Number(place.lon)],
   } : null;
-  if (named.length) return [...(area ? [area] : []), ...named];
+  if (named.length) return [...named, ...(area ? [area] : [])];
 
   if (!place) return [];
 
@@ -480,7 +480,9 @@ out geom tags;`;
 
   // Nothing mapped hole by hole (or the map servers are down): lay the holes
   // out across the course so the golfer can still play hole to hole.
-  return estimatedHoles(course);
+  // Do not fabricate playable hole coordinates when the mapping service is missing data.
+  // A guessed hole can look convincing but send a golfer to the wrong green.
+  return [];
 }
 
 /** Every hole of a course, with real pars from the course card when known. */
