@@ -1,6 +1,6 @@
 import './Home.css';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Bot, ClipboardList, Crosshair, Ruler, Search } from 'lucide-react';
+import { ArrowRight, Bot, ClipboardList, Crosshair, Ruler } from 'lucide-react';
 
 const QUICK_TOOLS = [
   { to: '/play', title: 'LIVE GPS', detail: 'Hole & distances', icon: Crosshair, tone: 'gps' },
@@ -37,16 +37,6 @@ export default function Home() {
             </Link>
           </div>
         </section>
-
-        <Link
-          to="/play"
-          className="apex-home-search mb-3 flex min-h-14 items-center gap-3 rounded-2xl border px-4 text-sm font-semibold transition-colors active:opacity-80"
-          aria-label="Find a golf course in the rangefinder"
-        >
-          <Search className="h-5 w-5 shrink-0" aria-hidden="true" />
-          <span className="flex-1">Find a golf course</span>
-          <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-        </Link>
 
         <nav aria-label="Home quick tools" className="grid grid-cols-2 gap-3">
           {QUICK_TOOLS.map(({ to, title, detail, icon: Icon, tone }) => (
