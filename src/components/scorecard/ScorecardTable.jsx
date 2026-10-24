@@ -11,15 +11,15 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
   return (
     <div className="glass-panel overflow-hidden rounded-2xl">
       <div className="w-full min-w-0">
-        <table className="w-full table-fixed text-center text-[11px] sm:text-xs">
-          <thead className="bg-muted/60 text-[9px] uppercase tracking-normal text-muted-foreground">
+        <table className="w-full table-fixed text-center text-[10px] sm:text-xs">
+          <thead className="bg-muted/60 text-[8px] uppercase tracking-normal text-muted-foreground">
             <tr>
-              <th className="w-[21%] px-0.5 py-2 font-semibold">Hole</th>
-              <th className="w-[10%] px-0.5 py-2 font-semibold">Par</th>
-              <th className="w-[19%] px-0.5 py-2 font-semibold">Score</th>
-              <th className="w-[19%] px-0.5 py-2 font-semibold">Putts</th>
-              <th className="w-[15%] px-0.5 py-2 font-semibold">FIR</th>
-              <th className="w-[16%] px-0.5 py-2 font-semibold">GIR</th>
+              <th className="w-[14%] px-0.5 py-2 font-semibold">Hole</th>
+              <th className="w-[11%] px-0.5 py-2 font-semibold">Par</th>
+              <th className="w-[20%] px-0.5 py-2 font-semibold">Score</th>
+              <th className="w-[20%] px-0.5 py-2 font-semibold">Putts</th>
+              <th className="w-[17%] px-0.5 py-2 font-semibold">FIR</th>
+              <th className="w-[18%] px-0.5 py-2 font-semibold">GIR</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
@@ -33,16 +33,16 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                     : 'hover:bg-muted/25'
                 }`}
               >
-                <td className="px-0.5 py-1.5 font-bold text-foreground">
+                <td className="px-px py-1.5 font-bold text-foreground">
                   #{hole.hole}
                   {hole.hole === activeHole && (
-                    <span className="block rounded bg-primary/20 px-0.5 py-[1px] text-[8px] font-bold uppercase tracking-wide text-primary">
+                    <span className="block rounded bg-primary/20 px-px py-[1px] text-[7px] font-bold uppercase tracking-wide text-primary">
                       Playing
                     </span>
                   )}
                 </td>
-                <td className="px-0.5 py-1.5 text-muted-foreground">{hole.par}</td>
-                <td className="px-0.5 py-1.5">
+                <td className="px-px py-1.5 text-muted-foreground">{hole.par}</td>
+                <td className="px-px py-1.5">
                   <div className="flex min-w-0 flex-col items-center gap-0.5">
                     <input
                       type="number"
@@ -50,7 +50,7 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                       value={hole.score || ''}
                       placeholder="–"
                       onChange={(event) => onUpdate(index, { score: Number(event.target.value) || 0 })}
-                      className="h-8 w-full min-w-0 max-w-12 rounded-lg border border-input bg-background/70 p-1 text-center text-xs font-bold tabular-nums text-primary outline-none focus:border-primary"
+                      className="h-8 w-full min-w-0 max-w-10 rounded-lg border border-input bg-background/70 p-1 text-center text-xs font-bold tabular-nums text-primary outline-none focus:border-primary"
                     />
                     {hole.penalties > 0 && (
                       <span
@@ -62,7 +62,7 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                     )}
                   </div>
                 </td>
-                <td className="px-0.5 py-1.5">
+                <td className="px-px py-1.5">
                   <input
                     type="number"
                     inputMode="numeric"
@@ -72,7 +72,7 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                     className="h-8 w-full min-w-0 max-w-12 rounded-lg border border-input bg-background/70 p-1 text-center text-xs font-bold tabular-nums text-sky-400 outline-none focus:border-primary"
                   />
                 </td>
-                <td className="px-0.5 py-1.5">
+                <td className="px-px py-1.5">
                   <button
                     type="button"
                     onClick={() => onUpdate(index, { fir: !hole.fir })}
@@ -85,7 +85,7 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                     {hole.fir ? 'YES' : 'NO'}
                   </button>
                 </td>
-                <td className="px-0.5 py-1.5">
+                <td className="px-px py-1.5">
                   <button
                     type="button"
                     onClick={() => onUpdate(index, { gir: !hole.gir })}
