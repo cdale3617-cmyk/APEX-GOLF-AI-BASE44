@@ -86,7 +86,8 @@ export function addCourse(course) {
 }
 
 export function cachedHoles(courseId) {
-  return holeCache[courseId]?.holes ?? null;
+  const holes = holeCache[courseId]?.holes;
+  return Array.isArray(holes) && holes.length && holes.every((hole) => !hole.estimated) ? holes : null;
 }
 
 function rememberHoles(course, holes) {
@@ -112,7 +113,7 @@ export async function loadCourseHoles(course) {
 
   const started = performance.now();
   const holes = await fetchHoles(course);
-  if (!holes.length) throw new Error('No hole layout is mapped for this course yet.');
+  if (!holes.length) throw new Error('No verified hole layout is mapped for this course yet. Try another course or import its hole data.');
 
   const loadMs = Number((performance.now() - started).toFixed(0));
   // An estimated layout is only for this session: never let it stand in for the
