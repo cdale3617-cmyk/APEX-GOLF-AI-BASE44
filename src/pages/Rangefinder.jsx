@@ -158,8 +158,8 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className={`absolute inset-0 flex overflow-hidden ${!course ? 'flex-col' : 'flex-row'}`}>
-      <div className={`${!course ? 'hidden' : 'relative h-full w-[60%] shrink-0 overflow-hidden border-r border-warm/40'}`}>
+    <div className={`absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${!course ? 'grid-cols-1' : 'grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'}`}>
+      <div className={`${!course ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
         coords={coords}
@@ -181,7 +181,7 @@ export default function Rangefinder() {
         }
       /> : <div className="absolute inset-0 bg-background" />}
       </div>
-      <div className={`relative min-w-0 overflow-hidden bg-background/95 ${!course ? 'h-full w-full' : 'h-full w-[40%]'}`}>
+      <div className={`relative min-w-0 overflow-hidden bg-background/95 ${!course ? 'h-full w-full' : 'h-full w-full'}`}>
 
       {courseLoading && (
         <div className="pointer-events-none absolute inset-x-0 top-[110px] z-[1050] flex justify-center">
