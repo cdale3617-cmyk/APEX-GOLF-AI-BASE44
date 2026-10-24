@@ -36,8 +36,11 @@ const parFor = (yards) => (yards < 240 ? 3 : yards < 480 ? 4 : 5);
 const nearestYards = (points, point) =>
   points.reduce((best, candidate) => Math.min(best, haversineYards(candidate, point)), Number.POSITIVE_INFINITY);
 
-function askOverpass(endpoint, query) {
+function askOverpass(endpoint, query, signal) {
+  if (signal?.aborted) throw new Error('Course lookup aborted.');
   const controller = new AbortController();
+  const abortFromParent = () => controller.abort();
+  signal?.addEventListener('abort', abortFromParent, { once: true });
   const timer = setTimeout(() => controller.abort(), OVERPASS_TIMEOUT_MS);
   return fetch(endpoint, {
     method: 'POST',
@@ -46,25 +49,30 @@ function askOverpass(endpoint, query) {
       'Content-Type': 'application/x-www-form-urlencoded',
       Accept: 'application/json',
     },
-    body: `data=${encodeURIComponent(query)}`,
+    body: 'data=' + encodeURIComponent(query),
   })
     .then(async (response) => {
-      if (!response.ok) throw new Error(`Course data responded ${response.status}`);
+      if (!response.ok) throw new Error('Course data responded ' + response.status);
       const payload = await response.json();
       return payload.elements ?? [];
     })
-    .finally(() => clearTimeout(timer));
+    .finally(() => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abortFromParent);
+    });
 }
 
 /**
  * Asks the mirrors in turn and takes the first answer. They throttle per client,
  * so a burst of parallel requests is exactly what gets a golfer blocked.
  */
-async function runOverpass(query) {
+async function runOverpass(query, signal) {
   for (const endpoint of OVERPASS_ENDPOINTS) {
+    if (signal?.aborted) throw new Error('Course lookup aborted.');
     try {
-      return await askOverpass(endpoint, query);
-    } catch {
+      return await askOverpass(endpoint, query, signal);
+    } catch (error) {
+      if (signal?.aborted) throw error;
       /* next mirror */
     }
   }
@@ -111,13 +119,13 @@ const toCourse = (row) => {
  * Every mapped course around a searched place, nearest first — so a town or
  * suburb search lists the courses there rather than one guessed course.
  */
-async function coursesNear(lat, lng) {
+async function coursesNear(lat, lng, signal) {
   const elements = await runOverpass(`[out:json][timeout:40];
 (
   way(around:25000,${lat},${lng})[leisure=golf_course];
   relation(around:25000,${lat},${lng})[leisure=golf_course];
 );
-out center tags;`);
+out center tags;`, signal);
 
   return elements
     .filter((element) => element.tags?.name && element.center)
@@ -178,12 +186,15 @@ function withCardPars(holes, card) {
   });
 }
 
-function withTimeout(promise, ms, message) {
+function withTimeout(promise, ms, message, onTimeout) {
   let timer;
   return Promise.race([
     promise,
     new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error(message)), ms);
+      timer = setTimeout(() => {
+        onTimeout?.();
+        reject(new Error(message));
+      }, ms);
     }),
   ]).finally(() => clearTimeout(timer));
 }
@@ -243,7 +254,13 @@ export async function searchGolfCourses(term) {
   let nearby = [];
   if (place) {
     try {
-      nearby = await withTimeout(coursesNear(Number(place.lat), Number(place.lon)), 6000, 'Nearby search timed out.');
+      const nearbyController = new AbortController();
+      nearby = await withTimeout(
+        coursesNear(Number(place.lat), Number(place.lon), nearbyController.signal),
+        6000,
+        'Nearby search timed out.',
+        () => nearbyController.abort(),
+      );
     } catch {
       warnings.push('Nearby course search timed out; showing the results already found.');
     }
