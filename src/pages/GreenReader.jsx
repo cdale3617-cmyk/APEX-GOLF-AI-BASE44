@@ -95,7 +95,7 @@ export default function GreenReader() {
     setLevelBusy(true);
     setLevelStatus('Place the phone flat with its top pointing toward the hole, then keep it still.');
     try {
-      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      if ('requestPermission' in DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function') {
         const granted = await DeviceMotionEvent.requestPermission();
         if (granted !== 'granted') throw new Error('Motion permission denied.');
       }

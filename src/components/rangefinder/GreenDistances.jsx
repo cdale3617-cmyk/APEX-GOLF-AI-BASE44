@@ -27,7 +27,7 @@ function greenRing(graphics, pin) {
   return best;
 }
 
-export default function GreenDistances({ graphics }) {
+export default function GreenDistances({ graphics, compact = false }) {
   const { coords, units, distances, pinOffsetMetres, choosePinOffset } = useGolf();
   const source = distances.origin;
   const centre = haversineYards(source, coords.pin);
@@ -38,6 +38,31 @@ export default function GreenDistances({ graphics }) {
   const front = spans.length ? Math.max(0, Math.min(...spans)) : null;
   const back = spans.length ? Math.max(...spans) : null;
   const unit = distanceUnit(units);
+
+  if (compact) return (
+    <div className="glass-hud min-w-0 rounded-lg border border-primary/25 p-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-1 text-[9px] font-semibold text-muted-foreground">
+        <span>{distances.mode === 'live' ? 'From GPS' : 'From tee'} · {unit}</span><span>Targets below: ±10 m estimate</span>
+      </div>
+      <div className="grid grid-cols-3 gap-1 text-center">
+        {[['Front', front], ['Center', centre], ['Back', back]].map(([label, yards]) => (
+          <div key={label} className="min-w-0 py-1">
+            <span className="block text-[9px] font-semibold text-muted-foreground">{label}</span>
+            <span className="block text-lg font-black leading-tight tabular-nums text-foreground">{yards === null ? '—' : toDisplayDistance(yards, units)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-1" aria-label="Approximate pin position">
+        {[['F', -10], ['C', 0], ['B', 10]].map(([label, delta]) => (
+          <button key={label} type="button" onClick={() => choosePinOffset(delta)} aria-pressed={pinOffsetMetres === delta}
+            aria-label={label === 'F' ? 'Approximate front target' : label === 'B' ? 'Approximate back target' : 'Mapped pin target'}
+            className={`min-h-11 min-w-0 flex-1 rounded border text-[11px] font-bold ${pinOffsetMetres === delta ? 'border-primary bg-primary/20 text-primary' : 'border-border text-foreground'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="glass-hud grid w-full min-w-0 grid-cols-3 items-center gap-1 rounded-lg border-l-2 border-l-primary/70 p-1 text-center shadow-xl">

@@ -2,7 +2,7 @@ import { ChevronDown, ChevronUp, Crosshair, LocateFixed, Sparkles } from 'lucide
 import { useGolf } from '@/lib/GolfContext';
 import { distanceUnit, distanceUnitLong, toDisplayDistance } from '@/lib/units';
 
-export default function DistanceHUD({ distances, onLocate, expanded = false, onToggle }) {
+export default function DistanceHUD({ distances, onLocate, expanded = false, detailsOpen = false, onToggle }) {
   const { units } = useGolf();
   const direct = toDisplayDistance(distances.direct, units);
   const playsLike = toDisplayDistance(distances.playsLike, units);
@@ -17,34 +17,23 @@ export default function DistanceHUD({ distances, onLocate, expanded = false, onT
 
   if (!expanded) {
     return (
-      <div className="glass-hud min-w-0 rounded-xl border-primary/30 px-2 py-1.5 shadow-2xl">
-        <div className="mb-0.5 text-[9px] font-bold tracking-wide text-primary">{sourceLabel} · {shortUnit}</div>
+      <div className="glass-hud min-w-0 rounded-lg border-primary/30 px-2 py-1">
+        <div className="flex min-w-0 items-center justify-between gap-2 text-[9px] font-bold text-primary">
+          <span className="shrink-0">{sourceLabel} · {shortUnit}</span>
+          <span className="truncate text-[10px] text-foreground">{distances.club.name}</span>
+        </div>
         <div className="flex min-w-0 items-center gap-1">
-        <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-center justify-between gap-1.5 overflow-hidden text-left">
-          <span className="flex items-baseline gap-1">
-            <span className="text-xl font-black leading-none tabular-nums text-primary">{playsLike}</span>
-            <span className="text-[9px] font-bold uppercase tracking-wide text-primary/80">plays</span>
-          </span>
-          <span className="h-6 w-px bg-border" />
-          <span className="flex items-baseline gap-1">
-            <span className="text-sm font-bold tabular-nums text-foreground">{direct}</span>
-            <span className="text-[9px] font-semibold uppercase text-muted-foreground">direct</span>
-          </span>
-          <span className="h-6 w-px bg-border" />
-          <span className="hidden min-w-0 items-center gap-1 sm:flex">
-            <span className="truncate text-xs font-extrabold text-foreground">{distances.club.name}</span>
-            <ChevronUp className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onLocate}
-          aria-label="Locate me"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/70 text-primary transition hover:bg-muted active:scale-95"
-        >
-          <LocateFixed className="h-4 w-4" />
-        </button>
+          <button type="button" onClick={onToggle} aria-expanded={detailsOpen}
+            aria-label={detailsOpen ? 'Hide distance details' : 'Show distance details'}
+            className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 text-left">
+            <span className="min-w-0"><span className="text-xl font-black tabular-nums text-primary">{playsLike}</span><span className="ml-1 text-[9px] text-primary">plays</span></span>
+            <span className="min-w-0"><span className="text-lg font-bold tabular-nums text-foreground">{direct}</span><span className="ml-1 text-[9px] text-muted-foreground">direct</span></span>
+            {detailsOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronUp className="h-4 w-4 shrink-0" />}
+          </button>
+          <button type="button" onClick={onLocate} aria-label="Locate me"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/70 text-primary">
+            <LocateFixed className="h-4 w-4" />
+          </button>
         </div>
       </div>
     );

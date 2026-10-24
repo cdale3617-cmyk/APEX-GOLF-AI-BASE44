@@ -3,7 +3,7 @@
 export const MAX_CADDIE_TURNS = 150;
 const KEY = 'apex_caddie_text_history_v1';
 
-export function appendCaddieTurn(history, { id, question, at, courseName, holeNumber }) {
+export function appendCaddieTurn(history, { id, question, at = null, courseName, holeNumber }) {
   const clean = String(question || '').trim().slice(0, 1000);
   if (!clean) return history;
   const turn = {

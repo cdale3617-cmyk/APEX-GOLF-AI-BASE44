@@ -194,10 +194,12 @@ export default function ShotStudio() {
           </label>
           <div className="grid grid-cols-2 gap-2">
             {[
-              ['Ball speed (km/h)',speed,setSpeed],['Launch angle (degrees)',angle,setAngle],
-              ['Direction (degrees)',direction,setDirection],['Sidespin proxy (rpm)',spin,setSpin],
-              ['Head / tail wind (km/h)',wind,setWind],
-            ].map(([label,value,setValue]) => <label key={label} className="text-xs text-foreground">
+              { label: 'Ball speed (km/h)', value: speed, setValue: setSpeed },
+              { label: 'Launch angle (degrees)', value: angle, setValue: setAngle },
+              { label: 'Direction (degrees)', value: direction, setValue: setDirection },
+              { label: 'Sidespin proxy (rpm)', value: spin, setValue: setSpin },
+              { label: 'Head / tail wind (km/h)', value: wind, setValue: setWind },
+            ].map(({label,value,setValue}) => <label key={label} className="text-xs text-foreground">
               {label}<input type="number" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} className={INPUT} />
             </label>)}
           </div>

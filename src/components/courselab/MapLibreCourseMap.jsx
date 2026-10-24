@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
+/** @type {import('geojson').FeatureCollection} */
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
+/** @type {maplibregl.StyleSpecification} */
 const BASE_STYLE = {
   version: 8,
   sources: {

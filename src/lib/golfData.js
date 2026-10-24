@@ -69,15 +69,16 @@ export const DEFAULT_COORDS = {
   pin: [28.3782, -81.547],
 };
 
-export function createDefaultScorecard() {
-  return Array.from({ length: 18 }, (_, i) => ({
-    hole: i + 1,
-    par: i % 3 === 0 ? 5 : i % 2 === 0 ? 3 : 4,
+export function createDefaultScorecard(holes = []) {
+  const rows = holes.length ? holes : Array.from({ length: 18 }, (_, i) => ({ number: i + 1, par: 4 }));
+  return rows.map((row) => ({
+    hole: row.number,
+    par: row.par ?? 4,
     score: 0,
-    putts: 0,
+    putts: null,
     penalties: 0,
-    fir: true,
-    gir: true,
+    fir: null,
+    gir: null,
   }));
 }
 
@@ -215,27 +216,33 @@ export function computeRoundStats(scorecard) {
   // Penalty strokes are real strokes, so they belong in the total.
   const score = played.reduce((sum, h) => sum + h.score + (h.penalties ?? 0), 0);
   const par = played.reduce((sum, h) => sum + h.par, 0);
-  const putts = played.reduce((sum, h) => sum + h.putts, 0);
-  const fir = played.filter((h) => h.fir).length;
-  const gir = played.filter((h) => h.gir).length;
-  const holes = played.length || 1;
+  const putting = played.filter((h) => Number.isFinite(h.putts));
+  const fairways = played.filter((h) => h.par > 3 && typeof h.fir === 'boolean');
+  const greens = played.filter((h) => typeof h.gir === 'boolean');
+  const putts = putting.reduce((sum, h) => sum + h.putts, 0);
+  const fir = fairways.filter((h) => h.fir).length;
+  const gir = greens.filter((h) => h.gir).length;
   return {
     holes: played.length,
     score,
     par,
     diff: score - par,
     putts,
-    firPct: played.length ? Math.round((fir / holes) * 100) : 0,
-    girPct: played.length ? Math.round((gir / holes) * 100) : 0,
-    avgPutts: played.length ? putts / holes : 0,
+    firRecorded: fairways.length,
+    girRecorded: greens.length,
+    puttsRecorded: putting.length,
+    firPct: fairways.length ? Math.round((fir / fairways.length) * 100) : 0,
+    girPct: greens.length ? Math.round((gir / greens.length) * 100) : 0,
+    avgPutts: putting.length ? putts / putting.length : 0,
   };
 }
 
+/** Legacy heuristic indicators, NOT measured strokes gained. */
 export function strokesGained(stats) {
   if (!stats.holes) return [0, 0, 0, 0];
-  const offTee = (stats.firPct / 100 - 0.6) * 2.5;
-  const approach = (stats.girPct / 100 - 0.6) * 3;
-  const putting = (1.8 - stats.avgPutts) * 2;
+  const offTee = stats.firRecorded === 0 ? 0 : (stats.firPct / 100 - 0.6) * 2.5;
+  const approach = stats.girRecorded === 0 ? 0 : (stats.girPct / 100 - 0.6) * 3;
+  const putting = stats.puttsRecorded === 0 ? 0 : (1.8 - stats.avgPutts) * 2;
   const aroundGreen = (approach + putting) * -0.3;
   return [offTee, approach, aroundGreen, putting].map((v) => Number(v.toFixed(2)));
 }

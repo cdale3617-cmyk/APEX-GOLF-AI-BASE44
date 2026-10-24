@@ -101,7 +101,7 @@ function drawCard(ctx, { courseName, date, stats, strokes, handicap }) {
     { label: 'PUTTS', value: stats.putts ?? 0 },
     { label: 'FAIRWAYS', value: `${stats.firPct ?? 0}%` },
     { label: 'GREENS', value: `${stats.girPct ?? 0}%` },
-    { label: 'STROKES GAINED', value: `${total > 0 ? '+' : ''}${total.toFixed(1)}` },
+    { label: 'PERFORMANCE EST.', value: `${total > 0 ? '+' : ''}${total.toFixed(1)}` },
   ];
   const gap = 20;
   const tileW = (W - PAD * 2 - 120 - gap) / 2;
@@ -127,7 +127,7 @@ function drawCard(ctx, { courseName, date, stats, strokes, handicap }) {
   if (handicap !== null && handicap !== undefined) {
     ctx.fillStyle = COLORS.muted;
     ctx.font = font(500, 26);
-    ctx.fillText('Handicap index', PAD + 60, PAD + 1040);
+    ctx.fillText('Unofficial handicap estimate', PAD + 60, PAD + 1040);
     ctx.fillStyle = COLORS.green;
     ctx.font = font(800, 26);
     ctx.fillText(formatHandicap(handicap), PAD + 300, PAD + 1040);
@@ -143,7 +143,7 @@ function drawCard(ctx, { courseName, date, stats, strokes, handicap }) {
 
   ctx.fillStyle = COLORS.muted;
   ctx.font = font(500, 24);
-  ctx.fillText('Rangefinder • Plays-like yardage • Strokes gained', PAD + 60, H - PAD - 70);
+  ctx.fillText('Rangefinder • Plays-like yardage • Performance estimates', PAD + 60, H - PAD - 70);
 }
 
 export async function shareRoundCard(payload, filename = 'apex-round.png') {

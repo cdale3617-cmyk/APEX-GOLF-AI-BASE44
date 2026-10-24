@@ -90,8 +90,10 @@ export default function Biometrics() {
       deviceRef.current = device;
       valueRef.current = characteristic;
       characteristic.addEventListener('characteristicvaluechanged', (event) => {
-        const value = event.target.value;
+        const value = /** @type {BluetoothRemoteGATTCharacteristic} */ (event.target).value;
+        if (!value || value.byteLength < 2) return;
         const flags = value.getUint8(0);
+        if ((flags & 1) && value.byteLength < 3) return;
         const bpm = flags & 1 ? value.getUint16(1, true) : value.getUint8(1);
         if (bpm >= 30 && bpm <= 230) setHeart(String(bpm));
       });

@@ -19,7 +19,8 @@ import {
   weakestArea,
   windOnShot,
 } from '@/lib/golfData';
-import { HOLE_PARS, addCourse, cachedHoles, getCourse, loadCourseHoles } from '@/lib/courses';
+import { addCourse, cachedHoles, getCourse, loadCourseHoles } from '@/lib/courses';
+import { applyCoursePars, hasRoundData } from '@/lib/roundLifecycle';
 import { addRound, buildRound, loadRounds, removeRound } from '@/lib/roundHistory';
 import { routeAudio } from '@/lib/audioRoute';
 import { answerVoiceQuery, describeScorePatch, parseVoiceIntent } from '@/lib/voiceEngine';
@@ -79,6 +80,7 @@ export function GolfProvider({ children }) {
   const [bpm, setBpm] = useState(stored.bpm ?? 76);
   const [shots, setShots] = useState(stored.shots ?? []);
   const [rounds, setRounds] = useState(loadRounds);
+  const [roundError, setRoundError] = useState('');
   const [lastSwing, setLastSwing] = useState(null);
   const [autoAdvance, setAutoAdvance] = useState(stored.autoAdvance ?? true);
   const [keepScreenAwake, setKeepScreenAwake] = useState(stored.keepScreenAwake ?? false);
@@ -126,7 +128,7 @@ export function GolfProvider({ children }) {
   // Scorecard pars come from the real holes once they arrive.
   useEffect(() => {
     if (!holes.length) return;
-    setScorecard((prev) => prev.map((card, i) => ({ ...card, par: holes[i]?.par ?? HOLE_PARS[i] })));
+    setScorecard((prev) => applyCoursePars(prev, holes));
   }, [holes]);
 
   const learnedClubs = useMemo(() => applyLearnedCarries(clubs, shots), [clubs, shots]);
@@ -267,7 +269,7 @@ export function GolfProvider({ children }) {
         `You are ${formatRelativeToPar(stats.diff)} through ${stats.holes} holes with ${stats.putts} putts, ${stats.firPct} percent fairways and ${stats.girPct} percent greens.`,
       );
       const weak = weakestArea(strokes);
-      if (weak) parts.push(`Biggest leak is ${weak.label.toLowerCase()} at ${weak.value} strokes gained.`);
+      if (weak) parts.push(`Lowest estimated performance indicator is ${weak.label.toLowerCase()} at ${weak.value}. This is not measured strokes gained.`);
     }
 
     const gap = largestGap(learnedClubs);
@@ -288,6 +290,19 @@ export function GolfProvider({ children }) {
 
   /* ---------------- Course & hole navigation (buttons and voice) ---------------- */
   const courseRequestRef = useRef(0);
+
+  const saveRound = useCallback(() => {
+    if (!stats.holes) return false;
+    try {
+      const roundShots = shots.filter((shot) => shot.roundSessionId === roundSessionId);
+      setRounds(addRound(buildRound({ scorecard, courseName: course?.name, courseId, shots: roundShots, roundSessionId })));
+      setRoundError('');
+      return true;
+    } catch (error) {
+      setRoundError(error.message);
+      return false;
+    }
+  }, [course, courseId, scorecard, shots, stats.holes, roundSessionId]);
 
   const openCourse = useCallback(async (nextCourse) => {
     const token = courseRequestRef.current + 1;
@@ -356,10 +371,23 @@ export function GolfProvider({ children }) {
   const selectCourse = useCallback(
     (courseOrId) => {
       const next = typeof courseOrId === 'string' ? getCourse(courseOrId) : addCourse(courseOrId);
-      if (!next) return;
+      if (!next) return false;
+      if (next.id !== courseId) {
+        if (hasRoundData(scorecard, shots, roundSessionId)) {
+          if (!window.confirm(`Save the current scorecard and start a new round at ${next.name}? Cancel keeps your current round.`)) return false;
+          if (stats.holes && !saveRound()) {
+            setCourseError('Could not save your current round. Export it before changing courses.');
+            return false;
+          }
+        }
+        setScorecard(createDefaultScorecard(cachedHoles(next.id) ?? []));
+        setRoundSessionId(newRoundSessionId());
+        setRoundError('');
+      }
       openCourse(next);
+      return true;
     },
-    [openCourse],
+    [openCourse, courseId, scorecard, shots, roundSessionId, stats.holes, saveRound],
   );
 
   // Restore the course the golfer was playing when they put their phone away.
@@ -518,7 +546,7 @@ export function GolfProvider({ children }) {
           return;
         }
         const saved = commitDraft();
-        const landed = intent.hole ? goToHole(intent.hole - 1) : goToHole(holeIndex + intent.delta);
+        const landed = intent.hole ? goToHole(intent.hole - 1) : goToHole(holeIndex + ('delta' in intent ? Number(intent.delta) : 0));
         if (!landed) { reply('No hole is loaded yet. Select a course first.'); return; }
         reply(`${saved ? `${saved} ` : ''}Hole ${landed.number}, par ${landed.par}, ${toDisplayDistance(landed.yards, units)} ${distanceUnitSpoken(units)}.`);
         return;
@@ -829,19 +857,16 @@ export function GolfProvider({ children }) {
   }, [scorecard, autoAdvance, holes, goToHole]);
 
   const resetScorecard = useCallback(() => {
-    setScorecard(createDefaultScorecard());
+    setScorecard(createDefaultScorecard(holes));
     setRoundSessionId(newRoundSessionId());
-  }, []);
+    setRoundError('');
+  }, [holes]);
 
   /* ---------------- Round history (on this device) ---------------- */
-  const saveRound = useCallback(() => {
-    if (!stats.holes) return false;
-    const roundShots = shots.filter((shot) => shot.roundSessionId === roundSessionId);
-    setRounds(addRound(buildRound({ scorecard, courseName: course?.name, shots: roundShots, roundSessionId })));
-    return true;
-  }, [course, scorecard, shots, stats.holes, roundSessionId]);
-
-  const deleteRound = useCallback((id) => setRounds(removeRound(id)), []);
+  const deleteRound = useCallback((id) => {
+    try { setRounds(removeRound(id)); setRoundError(''); }
+    catch (error) { setRoundError(error.message); }
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -864,6 +889,7 @@ export function GolfProvider({ children }) {
       holes,
       courseLoading,
       courseError,
+      roundError,
       activeHoleNumber,
       selectCourse,
       goToHole,
@@ -943,6 +969,7 @@ export function GolfProvider({ children }) {
       holes,
       courseLoading,
       courseError,
+      roundError,
       activeHoleNumber,
       selectCourse,
       goToHole,

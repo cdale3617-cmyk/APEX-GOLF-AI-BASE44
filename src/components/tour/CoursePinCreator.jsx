@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { haversineYards } from '@/lib/golfData';
 
 const labels = ['TEE', 'LAYUP', 'GREEN'];
 const colors = ['#D94B4B', '#EAB308', '#22C55E'];
+/** @returns {maplibregl.StyleSpecification} */
 const makeStyle = () => ({
   version: 8,
   sources: {

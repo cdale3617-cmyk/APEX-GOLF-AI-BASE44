@@ -41,11 +41,19 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                     </span>
                   )}
                 </td>
-                <td className="px-px py-1.5 text-muted-foreground">{hole.par}</td>
+                <td className="px-px py-1.5 text-muted-foreground">
+                  <input type="number" min="3" max="6" aria-label={`Hole ${hole.hole} par`}
+                    value={hole.par} onChange={(event) => {
+                      const par = Number(event.target.value);
+                      if (Number.isInteger(par) && par >= 3 && par <= 6) onUpdate(index, { par });
+                    }} className="h-8 w-full rounded border border-input bg-background/70 text-center" />
+                </td>
                 <td className="px-px py-1.5">
                   <div className="flex min-w-0 flex-col items-center gap-0.5">
                     <input
                       type="number"
+                      aria-label={`Hole ${hole.hole} score`}
+                      min="0"
                       inputMode="numeric"
                       value={hole.score || ''}
                       placeholder="–"
@@ -65,37 +73,42 @@ export default function ScorecardTable({ scorecard, activeHole, onUpdate }) {
                 <td className="px-px py-1.5">
                   <input
                     type="number"
+                      aria-label={`Hole ${hole.hole} putts`}
+                      min="0"
                     inputMode="numeric"
                     value={hole.putts || ''}
                     placeholder="–"
-                    onChange={(event) => onUpdate(index, { putts: Number(event.target.value) || 0 })}
+                     onChange={(event) => onUpdate(index, { putts: event.target.value === '' ? null : Math.max(0, Number(event.target.value)) })}
                     className="h-8 w-full min-w-0 max-w-12 rounded-lg border border-input bg-background/70 p-1 text-center text-xs font-bold tabular-nums text-sky-400 outline-none focus:border-primary"
                   />
                 </td>
                 <td className="px-px py-1.5">
                   <button
                     type="button"
-                    onClick={() => onUpdate(index, { fir: !hole.fir })}
+                    aria-label={`Hole ${hole.hole} fairway: ${hole.par === 3 ? 'not applicable' : hole.fir == null ? 'not recorded' : hole.fir ? 'yes' : 'no'}`}
+                    disabled={hole.par === 3}
+                    onClick={() => onUpdate(index, { fir: hole.fir == null ? true : hole.fir ? false : null })}
                     className={`w-full rounded-md px-0 py-1 text-[9px] font-bold transition ${
                       hole.fir
                         ? 'border border-primary/40 bg-primary/20 text-primary'
                         : 'border border-border bg-muted/50 text-muted-foreground'
                     }`}
                   >
-                    {hole.fir ? 'YES' : 'NO'}
+                    {hole.par === 3 ? 'N/A' : hole.fir == null ? '—' : hole.fir ? 'YES' : 'NO'}
                   </button>
                 </td>
                 <td className="px-px py-1.5">
                   <button
                     type="button"
-                    onClick={() => onUpdate(index, { gir: !hole.gir })}
+                    aria-label={`Hole ${hole.hole} green: ${hole.gir == null ? 'not recorded' : hole.gir ? 'yes' : 'no'}`}
+                    onClick={() => onUpdate(index, { gir: hole.gir == null ? true : hole.gir ? false : null })}
                     className={`w-full rounded-md px-0 py-1 text-[9px] font-bold transition ${
                       hole.gir
                         ? 'border border-amber-400/40 bg-amber-400/20 text-amber-400'
                         : 'border border-border bg-muted/50 text-muted-foreground'
                     }`}
                   >
-                    {hole.gir ? 'YES' : 'NO'}
+                    {hole.gir == null ? '—' : hole.gir ? 'YES' : 'NO'}
                   </button>
                 </td>
               </tr>

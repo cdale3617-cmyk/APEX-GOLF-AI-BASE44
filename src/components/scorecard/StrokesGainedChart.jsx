@@ -24,7 +24,7 @@ export default function StrokesGainedChart({ strokes, hasRound }) {
 
       {!hasRound && (
         <p className="mt-2 text-center text-[11px] font-medium text-muted-foreground">
-          Log a hole to see strokes gained
+          Record hole outcomes to see performance estimates
         </p>
       )}
     </div>

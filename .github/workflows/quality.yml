@@ -1,0 +1,28 @@
+name: Repository quality
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify portable dependency lockfile
+        run: node --test android-build/lockfile-portability.test.mjs
+      - run: npm ci --no-fund
+      - run: npm audit --audit-level=low
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_BASE44_APP_ID: 6ad8bc88f9e44631e3842d43
+          VITE_BASE44_BACKEND_URL: https://base44.app

@@ -16,8 +16,8 @@ export default function RoundStats({ stats, shots = [], clubs = [], units = 'met
   const tiles = [
     { label: 'Total', value: stats.holes ? `${stats.score} (${formatRelativeToPar(stats.diff)})` : '—', tone: 'text-foreground' },
     { label: 'Shot History', value: recentShots.length, tone: 'text-sky-400', history: true },
-    { label: 'FIR %', value: stats.holes ? `${stats.firPct}%` : '—', tone: 'text-primary' },
-    { label: 'GIR %', value: stats.holes ? `${stats.girPct}%` : '—', tone: 'text-amber-400' },
+    { label: 'FIR %', value: stats.firRecorded ? `${stats.firPct}%` : '—', tone: 'text-primary' },
+    { label: 'GIR %', value: stats.girRecorded ? `${stats.girPct}%` : '—', tone: 'text-amber-400' },
   ];
 
   return (

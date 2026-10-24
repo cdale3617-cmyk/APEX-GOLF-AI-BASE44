@@ -1,4 +1,4 @@
-import { CLUB_CATALOG, clubSortValue, clubTemplate, sortClubBag } from './clubCatalog.js';
+import { clubSortValue, clubTemplate, sortClubBag } from './clubCatalog.js';
 
 /**
  * Carries are stored in yards. Re-gap only when the golfer enters a carry,

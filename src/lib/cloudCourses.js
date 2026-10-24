@@ -5,7 +5,7 @@
  */
 const API = 'https://apex-golf-courses.dale-copeland53.workers.dev';
 
-async function getJson(path, timeoutMs = 9000) {
+async function getJson(path, timeoutMs = 9000, strict = false) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -13,10 +13,11 @@ async function getJson(path, timeoutMs = 9000) {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     });
-    if (!response.ok) return null;
+    if (!response.ok) throw new Error('Course cache is unavailable');
     const data = await response.json();
     return data && typeof data === 'object' ? data : null;
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return null;
   } finally {
     clearTimeout(timer);
@@ -32,7 +33,7 @@ const validCenter = (center) =>
 export async function searchCloudCourses(term) {
   const query = term.trim();
   if (!query) return [];
-  const payload = await getJson('/api/search?query=' + encodeURIComponent(query));
+  const payload = await getJson('/api/search?query=' + encodeURIComponent(query), 9000, true);
   const rows = Array.isArray(payload) ? payload : payload?.courses ?? payload?.results;
   if (!Array.isArray(rows)) return [];
   return rows.filter((row) => row && typeof row.name === 'string')
@@ -45,7 +46,7 @@ export async function searchCloudCourses(term) {
         location: String(row.location ?? ''),
         center: center.map(Number),
         ...(Array.isArray(row.bbox) ? { bbox: row.bbox } : {}),
-        ...(row.osmId ? { osmId: row.osmId, osmType: row.osmType } : {}),
+        ...(row.osmId ? { osmId: Number(row.osmId), osmType: row.osmType } : {}),
       };
     }).filter(Boolean).slice(0, 30);
 }

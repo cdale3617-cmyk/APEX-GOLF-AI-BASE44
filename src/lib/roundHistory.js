@@ -2,7 +2,7 @@
  * Finished rounds live on this device, newest first, so the golfer can look
  * back at how a round actually went instead of trusting memory.
  */
-import { computeRoundStats, strokesGained } from '@/lib/golfData';
+import { computeRoundStats, strokesGained } from './golfData.js';
 
 const KEY = 'apex_golf_rounds_v1';
 const MAX_ROUNDS = 40;
@@ -21,17 +21,18 @@ function persist(rounds) {
   try {
     localStorage.setItem(KEY, JSON.stringify(rounds));
   } catch {
-    /* storage blocked — the history still works for this session */
+    throw new Error('Round history could not be saved. Device storage is full or blocked; export your scorecard before leaving.');
   }
   return rounds;
 }
 
-export function buildRound({ scorecard, courseName, shots, roundSessionId }) {
+export function buildRound({ scorecard, courseName, courseId = null, shots, roundSessionId }) {
   const stats = computeRoundStats(scorecard);
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     date: new Date().toISOString(),
     courseName: courseName ?? 'Manual round',
+    courseId,
     holes: stats.holes,
     shots: shots.length,
     // Snapshot each scored hole and each logged shot for later review.
@@ -55,6 +56,11 @@ export function addRound(round) {
     ? existing.find((entry) => entry.roundSessionId === round.roundSessionId)
     : null;
   if (previous) {
+    // Defense in depth: a reused session must never silently relabel a round.
+    const changedCourse = previous.courseId && round.courseId
+      ? previous.courseId !== round.courseId
+      : previous.courseName !== round.courseName;
+    if (changedCourse) throw new Error('Start a new round before saving a different course.');
     const updated = { ...round, id: previous.id, date: previous.date };
     return persist([updated, ...existing.filter((entry) => entry.id !== previous.id)].slice(0, MAX_ROUNDS));
   }

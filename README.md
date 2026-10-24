@@ -53,6 +53,37 @@ base44 dashboard open
 
 This repo syncs to Base44 through git, so publish from the dashboard rather than `base44 deploy` — a CLI deploy ships your local tree directly, bypassing the sync, and the deployed state silently diverges from the repo.
 
+## Repository checks and release boundaries
+
+Run `npm ci`, `npm audit --audit-level=low`, `npm run lint`,
+`npm run typecheck`, `npm test`, and `npm run build` before merging.
+CI runs these checks and builds a debug Android APK on pull requests.
+Application pages, core libraries, API code, and imported UI primitives are
+typechecked. Unused generated `src/components/ui` primitives are excluded from
+the TypeScript root list but remain linted; imported primitives are followed
+and checked by TypeScript.
+
+Round history remains device-local. Saving or deleting now reports blocked/full
+storage instead of claiming success. Export important scorecards before clearing
+app data or uninstalling. Performance indicators and the relative-to-par
+handicap estimate are not measured strokes gained or an official handicap.
+
+`getCourseHoles` now requires a valid Base44 user and validates bounded geometry
+before shared-cache access. Cache keys derive from validated geometry rather
+than caller-supplied names or keys. Its cache-miss limiter is per runtime
+instance; configure platform-wide limits for production abuse protection.
+
+The Worker directory contains a tested replacement API contract, not a recovered
+copy of the deployed Worker. Follow `cloudflare-worker/README.md` to back up
+the live source, confirm R2 bindings/index, and approve deployment separately.
+Base44 backend changes require the dashboard's normal Git-sync publication flow.
+Do not overwrite either live service merely to match a local checkout.
+
+Debug APK publication now requires an explicit manual workflow on `main`.
+It is not a signed production release. Validate GPS, native permissions,
+Bluetooth, motion sensors and S24/Lenovo pairing on the actual hardware;
+browser/unit checks cannot establish those outcomes.
+
 ## Docs & Support
 
 GitHub integration: [https://docs.base44.com/developers/app-code/local-development/github](https://docs.base44.com/developers/app-code/local-development/github)

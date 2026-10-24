@@ -102,7 +102,7 @@ export default function TourSuite() {
                 {savedCourses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
               <button type="button" disabled={!courseToOpen} className={B + ' disabled:opacity-40'}
-                onClick={() => { selectCourse(courseToOpen); navigate('/play'); }}>Open</button>
+                onClick={() => { if (selectCourse(courseToOpen)) navigate('/play'); }}>Open</button>
             </div>
           )}
         </section>
