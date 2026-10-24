@@ -277,34 +277,23 @@ export default function MapLibreHoleMap({
         marker.setDraggable(!locked);
         element.style.opacity = locked ? '0.7' : '1';
         element.style.cursor = locked ? 'not-allowed' : 'grab';
-        element.title = locked ? `${name} locked — long press to unlock` : `${name} unlocked — drag, then tap to lock`;
+        element.title = locked ? `${name} locked — tap to unlock` : `${name} unlocked — drag, then tap to lock`;
       };
       const persistLock = (locked) => {
         locksRef.current[key] = locked;
         try { localStorage.setItem(`apex_marker_locks_${holeKeyRef.current}`, JSON.stringify(locksRef.current)); } catch {}
         updateLock();
       };
-      let holdTimer;
-      let held = false;
       let dragged = false;
-      element.addEventListener('pointerdown', () => {
-        held = false;
-        dragged = false;
-        clearTimeout(holdTimer);
-        holdTimer = setTimeout(() => { held = true; persistLock(false); }, 650);
-      });
-      element.addEventListener('pointermove', () => clearTimeout(holdTimer));
-      element.addEventListener('pointerup', () => clearTimeout(holdTimer));
-      element.addEventListener('pointercancel', () => clearTimeout(holdTimer));
+      element.addEventListener('pointerdown', () => { dragged = false; });
       element.addEventListener('click', (event) => {
         event.stopPropagation();
-        if (!held && !dragged && !locksRef.current[key]) persistLock(true);
-        held = false;
+        if (!dragged) persistLock(!Boolean(locksRef.current[key]));
       });
       updateLock();
       // Red endpoint and green line follow *during* the drag, rather than
       // waiting for React to commit the new coordinates at dragend.
-      marker.on('drag', () => { dragged = true; clearTimeout(holdTimer); paintShotPlan(); });
+      marker.on('drag', () => { dragged = true; paintShotPlan(); });
       marker.on('dragend', () => {
         dragged = true;
         const position = marker.getLngLat();
