@@ -13,6 +13,7 @@ export const HOLE_COUNT = HOLE_PARS.length;
 
 const COURSES_KEY = 'apex_golf_courses_v1';
 const HOLES_KEY = 'apex_golf_holes_v1';
+const HOLE_ALIGNMENT_VERSION = 2;
 const FAVORITES_KEY = 'apex_golf_favourite_courses_v1';
 
 // No demonstration or preinstalled courses: only searches and user-saved courses.
@@ -84,11 +85,14 @@ export function addCourse(course) {
 }
 
 export function cachedHoles(courseId) {
-  return holeCache[courseId]?.holes ?? null;
+  const entry = holeCache[courseId];
+  // Old geometry did not verify which end was the tee. Keep it stored but do
+  // not display potentially reversed tee/green distances on a phone.
+  return entry?.alignmentVersion === HOLE_ALIGNMENT_VERSION ? entry.holes : null;
 }
 
 function rememberHoles(course, holes) {
-  holeCache[course.id] = { name: course.name, saved: Date.now(), holes };
+  holeCache[course.id] = { name: course.name, saved: Date.now(), alignmentVersion: HOLE_ALIGNMENT_VERSION, holes };
   try {
     localStorage.setItem(HOLES_KEY, JSON.stringify(holeCache));
   } catch {
