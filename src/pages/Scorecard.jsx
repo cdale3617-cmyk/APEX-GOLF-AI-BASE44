@@ -3,7 +3,6 @@ import { FileDown, RotateCcw, Save } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import RoundStats from '@/components/scorecard/RoundStats';
 import ScorecardTable from '@/components/scorecard/ScorecardTable';
-import QuickShotActions from '@/components/scorecard/QuickShotActions';
 import ShareRoundButton from '@/components/scorecard/ShareRoundButton';
 import ShotLogger from '@/components/scorecard/ShotLogger';
 import StrokesGainedChart from '@/components/scorecard/StrokesGainedChart';
@@ -15,8 +14,6 @@ export default function Scorecard() {
   const {
     scorecard,
     updateHole,
-    completeHole,
-    autoAdvance,
     course,
     resetScorecard,
     saveRound,
@@ -86,8 +83,6 @@ export default function Scorecard() {
           <h3 className="hud-label mb-2 font-bold text-muted-foreground">Strokes Gained Analytics</h3>
           <StrokesGainedChart strokes={strokes} hasRound={stats.holes > 0} />
         </section>
-
-        <QuickShotActions scorecard={scorecard} activeHole={activeHoleNumber} onUpdate={updateHole} onComplete={completeHole} autoAdvance={autoAdvance} />
 
         <section className="glass-panel rounded-2xl p-3">
           <div className="mb-1 flex items-start justify-between gap-3">
