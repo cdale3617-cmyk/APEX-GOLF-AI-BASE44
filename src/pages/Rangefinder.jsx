@@ -72,7 +72,6 @@ export default function Rangefinder() {
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [hudOpen, setHudOpen] = useState(false);
-  const [uiHidden, setUiHidden] = useState(false);
   const [graphics, setGraphics] = useState(null);
   const [satellite, setSatellite] = useState(true);
   const [pitchOn, setPitchOn] = useState(true);
@@ -214,29 +213,11 @@ export default function Rangefinder() {
         </div>
       )}
 
-      {uiHidden && (
-        <button
-          type="button"
-          onClick={() => setUiHidden(false)}
-          aria-label="Show map controls"
-          className="glass-hud absolute right-3 top-1/2 z-[1100] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-primary shadow-xl transition hover:bg-muted/70 active:scale-95"
-        >
-          <Eye className="h-4 w-4" />
-        </button>
-      )}
-
-      {!uiHidden && (
+      {(
         <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-2 pb-3' : 'pb-[22%]'}`}>
           {course && <div className="pointer-events-auto flex flex-wrap items-center gap-1">
             <div className="min-w-0 flex-1">
-              <HoleBar
-                course={course}
-                hole={hole}
-                holeCount={holes.length || 18}
-                onPrev={prevHole}
-                onNext={nextHole}
-                onOpenCourses={() => setCoursesOpen(true)}
-              />
+              <button type="button" onClick={() => setCoursesOpen(true)} className="glass-hud flex h-9 w-full min-w-0 items-center justify-center rounded-lg px-1 text-[10px] font-bold text-foreground"><span className="truncate">{course.name} · Hole {hole?.number ?? holeIndex + 1}</span></button>
             </div>
             <button
               type="button"
@@ -245,14 +226,6 @@ export default function Rangefinder() {
               className="glass-hud flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border-border/80 text-muted-foreground transition hover:text-primary active:scale-95"
             >
               <Layers className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setUiHidden(true)}
-              aria-label="Hide panels to see the course"
-              className="glass-hud flex h-11 w-10 shrink-0 items-center justify-center rounded-xl border-border/80 text-muted-foreground transition hover:text-primary active:scale-95"
-            >
-              <EyeOff className="h-4 w-4" />
             </button>
           </div>}
 
@@ -393,13 +366,13 @@ export default function Rangefinder() {
         </div>
       )}
 
-      {!uiHidden && hole?.estimated && (
+      {hole?.estimated && (
         <div className="pointer-events-none absolute inset-x-2 bottom-2 z-[1000] rounded-lg border border-warm/70 bg-background/95 px-3 py-2 text-center text-[11px] font-semibold text-warm">
           UNVERIFIED HOLE · Positions are estimated, not safe for shot distances
         </div>
       )}
 
-      {!uiHidden && hole && !hole.estimated && (
+      {hole && !hole.estimated && (
         <div className="absolute inset-x-0 bottom-0 z-[1000] max-h-[15%] overflow-y-auto border-t border-warm/40 bg-background p-1 shadow-[0_-8px_24px_rgba(0,0,0,0.25)]">
           <DistanceHUD
             distances={distances}
