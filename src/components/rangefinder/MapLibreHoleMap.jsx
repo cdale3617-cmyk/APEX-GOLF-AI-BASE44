@@ -278,8 +278,10 @@ export default function MapLibreHoleMap({
       };
       let holdTimer;
       let held = false;
+      let dragged = false;
       element.addEventListener('pointerdown', () => {
         held = false;
+        dragged = false;
         clearTimeout(holdTimer);
         holdTimer = setTimeout(() => { held = true; persistLock(false); }, 650);
       });
@@ -288,14 +290,15 @@ export default function MapLibreHoleMap({
       element.addEventListener('pointercancel', () => clearTimeout(holdTimer));
       element.addEventListener('click', (event) => {
         event.stopPropagation();
-        if (!held && !locksRef.current[key]) persistLock(true);
+        if (!held && !dragged && !locksRef.current[key]) persistLock(true);
         held = false;
       });
       updateLock();
       // Red endpoint and green line follow *during* the drag, rather than
       // waiting for React to commit the new coordinates at dragend.
-      marker.on('drag', paintShotPlan);
+      marker.on('drag', () => { dragged = true; clearTimeout(holdTimer); paintShotPlan(); });
       marker.on('dragend', () => {
+        dragged = true;
         const position = marker.getLngLat();
         paintShotPlan();
         latest.current.onMoveTarget(key, { lat: position.lat, lng: position.lng });
