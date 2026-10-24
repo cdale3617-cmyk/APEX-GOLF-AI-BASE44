@@ -158,8 +158,8 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className="absolute inset-0 flex overflow-hidden">
-      <div className="relative h-full w-[60%] shrink-0 overflow-hidden border-r border-warm/40">
+    <div className={`absolute inset-0 flex overflow-hidden ${!course ? 'flex-col' : 'flex-row'}`}>
+      <div className={`${!course ? 'hidden' : 'relative h-full w-[60%] shrink-0 overflow-hidden border-r border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
         key={courseId}
         coords={coords}
@@ -181,7 +181,7 @@ export default function Rangefinder() {
         }
       /> : <div className="absolute inset-0 bg-background" />}
       </div>
-      <div className="relative h-full w-[40%] min-w-0 overflow-hidden bg-background/95">
+      <div className={`relative min-w-0 overflow-hidden bg-background/95 ${!course ? 'h-full w-full' : 'h-full w-[40%]'}`}>
 
       {courseLoading && (
         <div className="pointer-events-none absolute inset-x-0 top-[110px] z-[1050] flex justify-center">
@@ -193,7 +193,7 @@ export default function Rangefinder() {
       )}
 
       {!course && !courseLoading && !uiHidden && (
-        <div className="pointer-events-auto absolute inset-x-3 top-[38%] z-[900] glass-panel rounded-xl border border-primary/40 p-3 text-center shadow-xl">
+        <div className="pointer-events-auto mx-auto mt-6 w-[calc(100%-1.5rem)] max-w-md glass-panel rounded-xl border border-primary/40 p-4 text-center shadow-xl">
           <p className="text-sm font-bold text-foreground">Choose a golf course</p>
           <p className="mt-1 text-xs text-muted-foreground">Tap the search icon above, type a course or town, and select the course you want.</p>
           <button type="button" onClick={() => setSearchOpen(true)}
@@ -228,7 +228,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && (
-        <div className="absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 pb-44">
+        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-2 overflow-y-auto overscroll-contain p-1.5 ${!course ? 'pt-44 pb-8' : 'pb-44'}`}>
           <div className="pointer-events-auto flex items-center gap-1.5">
             <div className="min-w-0 flex-1">
               <HoleBar
