@@ -66,7 +66,7 @@ export default function Rangefinder() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(true);
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [hudOpen, setHudOpen] = useState(false);
@@ -192,13 +192,6 @@ export default function Rangefinder() {
         </div>
       )}
 
-      {!course && !courseLoading && !uiHidden && (
-        <div className="pointer-events-auto absolute inset-x-3 top-3 z-[1050] mx-auto max-w-md glass-panel rounded-xl border border-primary/40 p-4 text-center shadow-xl">
-          <p className="text-sm font-bold text-foreground">Choose a golf course</p>
-          <p className="mt-1 text-xs text-muted-foreground">Use the single search field below to find and select your course.</p>
-        </div>
-      )}
-
       {courseError && !courseLoading && (
         <div className="pointer-events-auto absolute inset-x-3 bottom-24 z-[1050] flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/15 p-2.5 text-[11px] font-semibold text-destructive shadow-xl">
           <span className="flex-1 leading-snug">{courseError}</span>
@@ -226,7 +219,7 @@ export default function Rangefinder() {
       )}
 
       {!uiHidden && (
-        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-24 pb-8' : 'pb-[25vh]'}`}>
+        <div className={`absolute inset-x-0 top-0 bottom-0 z-[1000] flex flex-col gap-1 overflow-y-auto overscroll-contain p-1 ${!course ? 'pt-2 pb-3' : 'pb-[25vh]'}`}>
           {course && <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
             <div className="min-w-0 flex-1">
               <HoleBar
