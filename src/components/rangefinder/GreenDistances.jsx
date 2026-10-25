@@ -27,7 +27,7 @@ function greenRing(graphics, pin) {
   return best;
 }
 
-export default function GreenDistances({ graphics, compact = false }) {
+export default function GreenDistances({ graphics, compact = false, sidebar = false }) {
   const { coords, units, distances, pinOffsetMetres, choosePinOffset } = useGolf();
   const source = distances.origin;
   const centre = haversineYards(source, coords.pin);
@@ -38,6 +38,29 @@ export default function GreenDistances({ graphics, compact = false }) {
   const front = spans.length ? Math.max(0, Math.min(...spans)) : null;
   const back = spans.length ? Math.max(...spans) : null;
   const unit = distanceUnit(units);
+
+  if (sidebar) return (
+    <div className="glass-hud min-w-0 flex-1 rounded-xl border border-primary/30 px-1 py-2 text-center">
+      <p className="text-[10px] font-bold uppercase text-muted-foreground">{distances.mode === 'live' ? 'From GPS' : 'From tee'}</p>
+      {[['Back', back], ['Center', centre], ['Front', front]].map(([label, yards]) => (
+        <div key={label} className="py-2">
+          <p className={`text-[10px] font-bold uppercase ${label === 'Center' ? 'text-primary' : 'text-muted-foreground'}`}>{label}</p>
+          <p className={`${label === 'Center' ? 'text-3xl text-foreground' : 'text-xl text-muted-foreground'} font-black tabular-nums leading-tight`}>{yards === null ? '—' : toDisplayDistance(yards, units)}</p>
+          {label === 'Center' && <p className="text-[10px] font-bold uppercase text-primary">{unit}</p>}
+        </div>
+      ))}
+      <p className="text-[9px] uppercase text-muted-foreground">Target*</p>
+      <div className="mt-1 flex gap-px" aria-label="Approximate pin position">
+        {[['F', -10], ['C', 0], ['B', 10]].map(([label, delta]) => (
+          <button key={label} type="button" onClick={() => choosePinOffset(delta)}
+            aria-label={label === 'F' ? 'Approximate front target' : label === 'B' ? 'Approximate back target' : 'Mapped pin target'}
+            aria-pressed={pinOffsetMetres === delta}
+            className={`min-h-10 min-w-0 flex-1 rounded border text-[10px] font-bold ${pinOffsetMetres === delta ? 'border-primary bg-primary/20 text-primary' : 'border-border text-foreground'}`}>{label}</button>
+        ))}
+      </div>
+      <span className="sr-only">Targets use ±10 m estimates, not measured green edges.</span>
+    </div>
+  );
 
   if (compact) return (
     <div className="glass-hud min-w-0 rounded-lg border border-primary/25 p-1.5">

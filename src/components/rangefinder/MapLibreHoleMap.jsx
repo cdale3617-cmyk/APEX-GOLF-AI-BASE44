@@ -127,19 +127,25 @@ export default function MapLibreHoleMap({
 
   useEffect(() => {
     let map;
+    const initialHole = { ...activeHole, ...coords };
+    const initialView = holeReady ? buildHoleCamera(initialHole, {
+      width: holderRef.current.clientWidth, height: holderRef.current.clientHeight, pitchOn,
+      bearing: bearingBetween(initialHole.tee, initialHole.pin),
+    }) : null;
     try {
       map = new maplibregl.Map({
         container: holderRef.current,
         style: baseStyle(satellite, offline),
-        center: (() => {
+        center: initialView?.center ?? (() => {
           const point = focus?.center || courseCenter || coords.tee;
           return [point[1], point[0]];
         })(),
-        zoom: holeReady ? 16.2 : 13.8,
-        pitch: 0,
-        bearing: 0,
+        zoom: initialView?.zoom ?? 16.2,
+        pitch: initialView?.pitch ?? 0,
+        bearing: initialView?.bearing ?? 0,
         attributionControl: { compact: true },
       });
+      if (initialView) map.jumpTo(initialView);
     } catch (error) {
       // A device without working 3D graphics must never take the whole app down.
       setMapError(
@@ -483,8 +489,9 @@ export default function MapLibreHoleMap({
     else paintShotPlan();
   }, [coords, ready, holeReady]);
 
-  // Navigation frames immutable selected-hole data, not coords which are restored
-  // by a later context effect. Marker drags and ordinary pans do not retrigger it.
+  // The parent only enables the map for coordinates keyed to this exact hole.
+  // Frame those displayed points, including restored plans, on navigation.
+  // Marker drags and ordinary pans do not retrigger automatic framing.
   const frameCameraRef = useRef(null);
   frameCameraRef.current = (duration = 350) => {
     const map = mapRef.current;
@@ -492,11 +499,12 @@ export default function MapLibreHoleMap({
     const container = map.getContainer();
     if (!container.clientWidth || !container.clientHeight) return;
     map.resize();
-    const view = holeReady ? buildHoleCamera(activeHole, {
+    const displayedHole = { ...activeHole, ...latest.current.coords };
+    const view = holeReady ? buildHoleCamera(displayedHole, {
       width: container.clientWidth,
       height: container.clientHeight,
       pitchOn,
-      bearing: activeHole && validPoint(activeHole.tee) && validPoint(activeHole.pin) ? bearingBetween(activeHole.tee, activeHole.pin) : 0,
+      bearing: validPoint(displayedHole.tee) && validPoint(displayedHole.pin) ? bearingBetween(displayedHole.tee, displayedHole.pin) : 0,
     }) : null;
     map.stop();
     if (!view) {
@@ -504,14 +512,7 @@ export default function MapLibreHoleMap({
       if (validPoint(center)) map.jumpTo({ center: [center[1], center[0]], zoom: 13.8, pitch: 0, bearing: 0 });
       return;
     }
-    if (view.bounds) {
-      const { bounds, ...options } = view;
-      // fitBounds calculates against the current orientation; rotate first.
-      map.jumpTo({ bearing: view.bearing, pitch: view.pitch });
-      map.fitBounds(bounds, { ...options, duration });
-    } else {
-      map.jumpTo(view);
-    }
+    map.easeTo({ ...view, duration });
   };
 
   useEffect(() => {
