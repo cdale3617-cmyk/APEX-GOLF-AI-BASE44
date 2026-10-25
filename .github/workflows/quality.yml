@@ -29,6 +29,8 @@ jobs:
       - name: Install browser for offline-course integration check
         run: npx playwright-core install --with-deps chromium
       - name: Verify phone course downloads, offline play, and safe refresh
+        env:
+          PLAYWRIGHT_VIDEO: '1'
         run: |
           npm run preview -- --host 127.0.0.1 --port 4173 &
           for i in {1..30}; do
@@ -36,3 +38,10 @@ jobs:
             sleep 1
           done
           npm run test:browser
+      - name: Preserve phone-browser video and layout screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: phone-browser-evidence
+          path: browser-evidence/
+          if-no-files-found: ignore

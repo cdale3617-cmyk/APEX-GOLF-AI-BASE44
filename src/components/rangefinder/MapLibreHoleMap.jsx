@@ -438,13 +438,14 @@ export default function MapLibreHoleMap({
     if (holeReady) paintShotPlan();
   }, [coords, units, gpsFix, gpsMode, holeReady, ready]);
 
-  // Course turf: fairway, green, bunker, water shapes from OpenStreetMap.
+  // Replace every layer, including empty ones. Never leave the previous hole
+  // visible while the next hole's artwork is loading or unavailable.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready || !graphics) return;
-    Object.entries(graphics).forEach(([id, data]) => {
+    if (!map || !ready) return;
+    FILLS.forEach(({ id }) => {
       const source = map.getSource(id);
-      if (source?.setData) source.setData(data);
+      if (source?.setData) source.setData(graphics?.[id] ?? EMPTY);
     });
   }, [graphics, ready]);
 
@@ -548,7 +549,7 @@ export default function MapLibreHoleMap({
   }, [satellite, offline, ready]);
 
   return (
-    <div className="relative h-full w-full">
+    <div data-testid="hole-map-canvas" data-map-ready={ready} className="relative h-full w-full">
       <div ref={holderRef} className="h-full w-full" />
       {mapError && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/95 p-6">

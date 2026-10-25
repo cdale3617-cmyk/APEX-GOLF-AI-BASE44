@@ -9,6 +9,7 @@
 
 import { fetchCloudElements } from '@/lib/cloudCourses';
 import { getOfflinePack } from './offlineCourseStorage.js';
+import { holeGraphicsBounds, selectHoleGraphics } from './holeGraphics.js';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
@@ -41,8 +42,11 @@ function kindOf(tags = {}) {
   return null;
 }
 
-async function ask(endpoint, query) {
+async function ask(endpoint, query, signal) {
   const controller = new AbortController();
+  const abort = () => controller.abort();
+  signal?.addEventListener('abort', abort, { once: true });
+  if (signal?.aborted) controller.abort();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const response = await fetch(endpoint, {
@@ -59,14 +63,16 @@ async function ask(endpoint, query) {
     return payload.elements ?? [];
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', abort);
   }
 }
 
 /** Mirrors are throttled per client, so they are asked one at a time. */
-async function run(query) {
+async function run(query, signal = undefined) {
   for (const endpoint of OVERPASS_ENDPOINTS) {
+    if (signal?.aborted) throw new DOMException('Hole map request cancelled', 'AbortError');
     try {
-      return await ask(endpoint, query);
+      return await ask(endpoint, query, signal);
     } catch {
       /* next mirror */
     }
@@ -100,6 +106,10 @@ export async function fetchCourseGraphics(course, { refresh = false } = {}) {
 );
 out geom tags;`);
 
+  return graphicsFromElements(elements);
+}
+
+function graphicsFromElements(elements) {
   const buckets = { rough: [], fairway: [], tee: [], green: [], bunker: [], water: [], hole: [] };
 
   elements.forEach((element) => {
@@ -119,10 +129,30 @@ out geom tags;`);
 
     buckets[kind].push({
       type: 'Feature',
-      properties: { name: element.tags?.name ?? '' },
+      properties: { name: element.tags?.name ?? '', holeNumber: Number(element.tags?.ref) || null },
       geometry,
     });
   });
 
   return Object.fromEntries(Object.entries(buckets).map(([kind, features]) => [kind, collection(features)]));
+}
+
+/** Live play never requests the whole course's vector artwork. */
+export async function fetchHoleGraphics(course, hole, { signal = undefined } = {}) {
+  const bounds = holeGraphicsBounds(hole);
+  if (!course?.id || !bounds || signal?.aborted) return null;
+  try {
+    const downloaded = await getOfflinePack(course.id);
+    if (signal?.aborted) return null;
+    if (downloaded) return selectHoleGraphics(downloaded.graphics, hole);
+  } catch { /* Storage may be unavailable; online play can still fetch this hole. */ }
+  if (signal?.aborted) return null;
+  // Offline hole-only play must not attempt any remote providers.
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return null;
+  const box = [bounds.south, bounds.west, bounds.north, bounds.east].join(',');
+  const elements = await run(`[out:json][timeout:15];
+(way(${box})[golf];way(${box})[natural=water];);
+out geom tags;`, signal);
+  if (signal?.aborted) return null;
+  return selectHoleGraphics(graphicsFromElements(elements), hole);
 }
