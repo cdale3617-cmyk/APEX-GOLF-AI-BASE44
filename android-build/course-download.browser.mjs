@@ -84,11 +84,14 @@ try {
   console.log('PASS offline reopen, hole navigation, actual pars and score saving without map requests');
 
   await go('/courses');
+  await page.getByRole('button', { name: 'Update', exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Update', exact: true }).isDisabled(), true);
   offline = false; unavailable = true;
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'onLine', { get: () => true, configurable: true });
     window.dispatchEvent(new Event('online'));
   });
+  await page.getByText('Your offline course library', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Update', exact: true }).click();
   await page.getByRole('alert').waitFor();
   assert.equal((await stored()).savedAt, first.savedAt);
