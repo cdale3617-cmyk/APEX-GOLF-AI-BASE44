@@ -59,22 +59,27 @@ const go = (path) => page.goto(base + path, { waitUntil: 'domcontentloaded' });
 const checkHoleView = (minimumSpan = 0.45) => page.waitForFunction((fraction) => {
   const map = document.querySelector('[data-testid="play-map-panel"]')?.getBoundingClientRect();
   if (!map) return false;
-  const points = ['Tee', 'Lay-up', 'Green'].map((label) => {
-    const rect = document.querySelector(`.maplibregl-marker[aria-label="${label}"]`)?.getBoundingClientRect();
+  const points = ['tee', 'layup', 'pin'].map((key) => {
+    const rect = document.querySelector(`.maplibregl-marker[data-marker-key="${key}"]`)?.getBoundingClientRect();
     return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null;
   });
-  return points.every((p) => p && p.x > map.left + 10 && p.x < map.right - 10 &&
+  return document.querySelector('[data-rendered-plan-points]')?.getAttribute('data-rendered-plan-points') === '3' &&
+    points.every((p) => p && p.x > map.left + 10 && p.x < map.right - 10 &&
     p.y > map.top + 10 && p.y < map.bottom - 10) &&
     points[0].y - points[2].y > map.height * fraction;
 }, minimumSpan).catch(async (error) => {
   console.log('HOLE_VIEW_DIAGNOSTICS', JSON.stringify(await page.evaluate(() => ({
     map: document.querySelector('[data-testid="play-map-panel"]')?.getBoundingClientRect().toJSON(),
     canvas: document.querySelector('.maplibregl-canvas')?.getBoundingClientRect().toJSON(),
+    renderedPlanPoints: document.querySelector('[data-rendered-plan-points]')?.getAttribute('data-rendered-plan-points'),
     markers: [...document.querySelectorAll('.maplibregl-marker')].map((el) => ({
       label: el.getAttribute('aria-label'), title: el.getAttribute('title'), rect: el.getBoundingClientRect().toJSON(),
     })),
   }))));
   throw error;
+});
+page.on('console', (message) => {
+  if (message.type() === 'error') console.log('BROWSER_CONSOLE_ERROR', message.text());
 });
 const stored = () => page.evaluate(() => new Promise((resolve, reject) => {
   const open = indexedDB.open('apex-offline-courses', 1);

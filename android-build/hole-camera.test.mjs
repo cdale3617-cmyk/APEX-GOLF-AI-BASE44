@@ -60,3 +60,10 @@ test('geometry keys distinguish course, hole and new mapping revisions', () => {
   assert.notEqual(holeGeometryKey('a', { ...hole, number: 1 }), holeGeometryKey('a', { ...hole, number: 2 }));
   assert.notEqual(holeGeometryKey('a', hole), holeGeometryKey('a', { ...hole, pin: [-23.16, 150.73] }));
 });
+
+test('draggable markers are absolutely positioned, not offset by normal document flow', () => {
+  const source = readFileSync(new URL('../src/components/rangefinder/MapLibreHoleMap.jsx', import.meta.url), 'utf8');
+  assert.ok(source.includes("hitArea.style.cssText = 'position:absolute;"));
+  assert.ok(source.includes('hitArea.dataset.markerKey = key'));
+  assert.ok(source.includes("map.queryRenderedFeatures({ layers: ['shot-plan-dots'] })"));
+});

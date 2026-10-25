@@ -55,7 +55,8 @@ const MARKERS = [
 // small 12-pixel dot is painted over the satellite course.
 const markerElement = (key, color, name) => {
   const hitArea = document.createElement('div');
-  hitArea.style.cssText = 'position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;z-index:10;pointer-events:auto;';
+  hitArea.style.cssText = 'position:absolute;width:64px;height:64px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;z-index:10;pointer-events:auto;';
+  hitArea.dataset.markerKey = key;
   hitArea.setAttribute('title', `Drag ${name} to reposition`);
   hitArea.setAttribute('aria-label', name);
 
@@ -228,6 +229,11 @@ export default function MapLibreHoleMap({
       });
 
       setReady(true);
+    });
+    map.on('idle', () => {
+      if (!holderRef.current || !map.getLayer('shot-plan-dots')) return;
+      const points = map.queryRenderedFeatures({ layers: ['shot-plan-dots'] });
+      holderRef.current.dataset.renderedPlanPoints = String(new Set(points.map((point) => point.properties.key).filter(Boolean)).size);
     });
 
     return () => {
