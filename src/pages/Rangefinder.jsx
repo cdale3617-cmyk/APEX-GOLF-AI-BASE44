@@ -25,7 +25,7 @@ import HoleBar from '@/components/rangefinder/HoleBar';
 import MapLibreHoleMap from '@/components/rangefinder/MapLibreHoleMap';
 import ViewControls from '@/components/rangefinder/ViewControls';
 import ShotLogger from '@/components/scorecard/ShotLogger';
-import { fetchCourseGraphics } from '@/lib/courseGraphics';
+import { fetchHoleGraphics } from '@/lib/courseGraphics';
 import { allCourses, getFavoriteCourseIds, saveFavoriteCourse, removeFavoriteCourse } from '@/lib/courses';
 import { useGolf } from '@/lib/GolfContext';
 import { searchGolfCourses } from '@/lib/osmCourses';
@@ -80,7 +80,8 @@ export default function Rangefinder() {
     if (hudOpen) roundToolsRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [hudOpen]);
   const [uiHidden, setUiHidden] = useState(false);
-  const [graphics, setGraphics] = useState(null);
+  const [holeGraphics, setHoleGraphics] = useState(null);
+  const [graphicsLoading, setGraphicsLoading] = useState(false);
   const [satellite, setSatellite] = useState(true);
   const [pitchOn, setPitchOn] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState(getFavoriteCourseIds);
@@ -88,23 +89,34 @@ export default function Rangefinder() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const choosingCourse = searchParams.get('choose') === '1';
+  const activeGraphicsKey = JSON.stringify([courseId, hole?.number, hole?.tee, hole?.pin, hole?.layup]);
+  const graphics = holeGraphics?.key === activeGraphicsKey ? holeGraphics.data : null;
 
-  // Fairway, green, bunker and water shapes for the course being played.
+  // Load only the selected hole. Moving on cancels the previous provider request
+  // and makes its artwork ineligible immediately, even before this effect runs.
   useEffect(() => {
-    if (!course?.center) return undefined;
+    if (!course?.center || !hole || hole.estimated) {
+      setGraphicsLoading(false);
+      return undefined;
+    }
     let live = true;
-    setGraphics(null);
-    fetchCourseGraphics(course)
+    const controller = new AbortController();
+    setGraphicsLoading(true);
+    fetchHoleGraphics(course, hole, { signal: controller.signal })
       .then((drawn) => {
-        if (live) setGraphics(drawn);
+        if (live) setHoleGraphics({ key: activeGraphicsKey, data: drawn });
       })
       .catch(() => {
-        if (live) setGraphics(null);
+        if (live) setHoleGraphics(null);
+      })
+      .finally(() => {
+        if (live) setGraphicsLoading(false);
       });
     return () => {
       live = false;
+      controller.abort();
     };
-  }, [course]);
+  }, [course, hole, activeGraphicsKey, online]);
 
   const runSearch = async () => {
     const term = query.trim();
@@ -170,8 +182,10 @@ export default function Rangefinder() {
   };
 
   return (
-    <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${(!course || choosingCourse) ? 'grid-cols-1 grid-rows-1' : 'grid-cols-1 grid-rows-[minmax(0,52fr)_minmax(0,48fr)] md:grid-cols-[minmax(0,60%)_minmax(0,40%)] md:grid-rows-1'}`}>
-      <div className={`${(!course || choosingCourse) ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
+    <div data-testid="live-round-layout" className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${(!course || choosingCourse) ? 'grid-cols-1 grid-rows-1' : 'grid-cols-1 grid-rows-[minmax(0,60fr)_minmax(0,40fr)]'}`}>
+      <div data-testid="play-map-panel" data-active-hole={hole?.number ?? ''}
+        data-vector-features={Object.values(graphics ?? {}).reduce((sum, data) => sum + data.features.length, 0)}
+        className={`${(!course || choosingCourse) ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-b border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
         offline={!online}
         key={courseId}
@@ -195,13 +209,18 @@ export default function Rangefinder() {
             : `Pin moved. ${gpsMode === 'live' ? 'GPS' : 'Tee preview'} plays like ${toDisplayDistance(distances.playsLike, units)} ${distanceUnitSpoken(units)}. Take your ${distances.club.name}.`)
         }
       /> : <div className="absolute inset-0 bg-background" />}
+        {graphicsLoading && hole && <div role="status" aria-label="Hole map loading" className="pointer-events-none absolute inset-x-0 top-12 z-[1050] flex justify-center">
+          <span className="glass-hud flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px]">
+            <Loader2 className="h-3 w-3 animate-spin" />Loading hole {hole.number} map…
+          </span>
+        </div>}
         {course && !choosingCourse && <div className="absolute inset-x-1 top-1 z-[1100] flex items-center justify-between gap-1 pointer-events-none">
           <button type="button" onClick={prevHole} aria-label="Previous hole" className="pointer-events-auto glass-hud flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary"><ChevronLeft className="h-5 w-5" /></button>
           <span className="glass-hud rounded-md px-1.5 py-1 text-[10px] font-bold text-foreground">Hole {hole?.number ?? holeIndex + 1}</span>
           <button type="button" onClick={nextHole} aria-label="Next hole" className="pointer-events-auto glass-hud flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary"><ChevronRight className="h-5 w-5" /></button>
         </div>}
       </div>
-      <div className="relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/95">
+      <div data-testid="play-controls-panel" className="apex-play-controls relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-y-auto overscroll-contain bg-background/95">
 
       {courseLoading && (
         <div className="pointer-events-none absolute inset-x-0 top-[110px] z-[1050] flex justify-center">

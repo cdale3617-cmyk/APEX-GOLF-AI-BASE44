@@ -57,6 +57,15 @@ This repo syncs to Base44 through git, so publish from the dashboard rather than
 
 ### Offline course downloads
 
+Live Play uses a lengthways split within the area between the app header and
+bottom navigation: 60% map above, 40% controls below, on phones and wide screens.
+Short control panels scroll instead of clipping buttons. Searching and selecting
+a course does not require downloading it first. Live vector requests are scoped
+to the selected hole; changing holes cancels the previous request, clears old
+artwork, and frames the next hole. Downloaded vectors are clipped to the same
+selected-hole area; complete hole metadata remains available for navigation
+and scoring. Satellite imagery itself can still show neighbouring terrain.
+
 Open Tools → Course Downloads (or the link in Saved Courses) while connected.
 Search by course or town, download a mapped course, and wait for its on-device
 verification. Downloads are separate IndexedDB records with actual hole

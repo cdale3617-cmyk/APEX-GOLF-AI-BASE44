@@ -6,8 +6,9 @@ const page = readFileSync(new URL('../src/pages/Rangefinder.jsx', import.meta.ur
 
 test('portrait live-round layout gives the course picker a usable full-width row', () => {
   assert.ok(
-    page.includes('grid-cols-1 grid-rows-[minmax(0,52fr)_minmax(0,48fr)] md:grid-cols-[minmax(0,60%)_minmax(0,40%)] md:grid-rows-1'),
-    'phones should stack map and tools; the 60/40 split belongs at md and wider',
+    page.includes('grid-cols-1 grid-rows-[minmax(0,60fr)_minmax(0,40fr)]') &&
+      !page.includes('md:grid-cols-'),
+    'the Play area should stack a 60% map over 40% controls, including wide screens',
   );
 
   const fixedControls = 3 * 40 + 3 * 6; // Search, layers, hide buttons and row gaps.

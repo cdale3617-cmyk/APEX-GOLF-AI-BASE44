@@ -1,11 +1,17 @@
 import { chromium } from 'playwright-core';
 import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+
+await mkdir('browser-evidence', { recursive: true });
 
 const browser = await chromium.launch({
   ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
   args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
-const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+const context = await browser.newContext({
+  viewport: { width: 390, height: 844 }, serviceWorkers: 'block',
+  ...(process.env.PLAYWRIGHT_VIDEO === '1' ? { recordVideo: { dir: 'browser-evidence', size: { width: 390, height: 844 } } } : {}),
+});
 await context.addInitScript(() => {
   if (localStorage.getItem('course-download-browser-test')) return;
   localStorage.clear();
@@ -25,6 +31,7 @@ const elements = [
 ];
 const base = 'http://localhost:4173';
 let offline = false, unavailable = false, mapRequestsOffline = 0;
+const holeQueries = [];
 await context.route('**/*', async (route) => {
   const url = new URL(route.request().url());
   if (url.origin === base && !url.pathname.startsWith('/api/')) return route.continue();
@@ -37,7 +44,11 @@ await context.route('**/*', async (route) => {
     contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64'),
   });
   if (unavailable && !url.pathname.includes('public-settings')) return route.fulfill({ status: 503, body: '{}' });
-  return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ elements, courses: [], features: [] }) });
+  const query = new URLSearchParams(route.request().postData() || '').get('data');
+  if (query?.includes('[golf];way(')) holeQueries.push(query);
+  return route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    elements, courses: [{ id: 'offline-test-course', name: 'Offline Test Course', location: 'Test Town', center: [-23.1, 150.7] }], features: [],
+  }) });
 });
 const page = await context.newPage();
 const errors = [];
@@ -54,6 +65,37 @@ const stored = () => page.evaluate(() => new Promise((resolve, reject) => {
   };
 }));
 try {
+  // The live search flow must work without downloading an offline pack first.
+  await go('/play?choose=1');
+  await page.getByPlaceholder('Search golf course or city…').fill('Offline Test Course');
+  await page.getByRole('button', { name: 'Find', exact: true }).click();
+  await page.getByRole('button', { name: /^Offline Test Course/ }).first().click();
+  await page.getByText(/Hole 1\/2/).first().waitFor();
+  assert.equal(await stored(), undefined);
+  await page.waitForFunction(() => document.querySelector('[data-testid="play-map-panel"]')?.getAttribute('data-vector-features') === '1');
+  await page.waitForFunction(() => document.querySelector('[data-testid="hole-map-canvas"]')?.getAttribute('data-map-ready') === 'true');
+  for (const [width, height] of [[390, 844], [320, 640], [844, 390], [1280, 800]]) {
+    await page.setViewportSize({ width, height });
+    await page.waitForFunction(() => {
+      const area = document.querySelector('[data-testid="live-round-layout"]')?.getBoundingClientRect();
+      const map = document.querySelector('[data-testid="play-map-panel"]')?.getBoundingClientRect();
+      const controls = document.querySelector('[data-testid="play-controls-panel"]')?.getBoundingClientRect();
+      return area && map && controls && Math.abs(map.height / area.height - 0.6) < 0.005 &&
+        Math.abs(controls.height / area.height - 0.4) < 0.005 && Math.abs(controls.top - map.bottom) < 2;
+    });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    if (width === 390 || width === 844) await page.screenshot({ path: `browser-evidence/play-${width}x${height}.png` });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Next hole', exact: true }).first().click();
+  await page.getByText(/Hole 2\/2/).first().waitFor();
+  assert.equal(await page.getByTestId('play-map-panel').getAttribute('data-vector-features'), '0');
+  await page.getByRole('button', { name: 'Previous hole', exact: true }).first().click();
+  await page.waitForFunction(() => document.querySelector('[data-testid="play-map-panel"]')?.getAttribute('data-vector-features') === '1');
+  assert.ok(holeQueries.length >= 2);
+  assert.ok(holeQueries.every((query) => !query.includes('around:1500')));
+  console.log('PASS searched course without download, 60/40 lengthways layout at four sizes, selected-hole artwork and navigation');
+
   await go('/courses');
   await page.getByLabel('Search courses or towns').fill('Test Town');
   await page.getByRole('button', { name: 'Find', exact: true }).click();
@@ -113,6 +155,7 @@ try {
   assert.deepEqual(errors, []);
   console.log('PASS refresh failure, storage failure, removal preserving saved rounds and phone layout');
 } finally {
+  await page.screenshot({ path: 'browser-evidence/final-state.png' }).catch(() => {});
   await context.close();
   await browser.close();
 }
