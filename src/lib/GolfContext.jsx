@@ -20,6 +20,7 @@ import {
   windOnShot,
 } from '@/lib/golfData';
 import { addCourse, cachedHoles, getCourse, loadCourseHoles } from '@/lib/courses';
+import { getOfflinePack } from '@/lib/offlineCourseStorage';
 import { applyCoursePars, hasRoundData } from '@/lib/roundLifecycle';
 import { addRound, buildRound, loadRounds, removeRound } from '@/lib/roundHistory';
 import { routeAudio } from '@/lib/audioRoute';
@@ -324,12 +325,8 @@ export function GolfProvider({ children }) {
     setFocusCenter(initial ? initial.tee : center);
     setFocusNonce((n) => n + 1);
     setGpsStatus(initial ? `Course Set • ${nextCourse.name}` : `Viewing ${nextCourse.name} • Loading holes`);
-    if (initial) {
-      setCourseLoading(false);
-      return;
-    }
-
-    setCourseLoading(true);
+    // A downloaded update can be newer than the small legacy cache.
+    setCourseLoading(!initial);
     try {
       const loaded = await loadCourseHoles(nextCourse);
       if (token !== courseRequestRef.current) return;
@@ -392,7 +389,18 @@ export function GolfProvider({ children }) {
 
   // Restore the course the golfer was playing when they put their phone away.
   useEffect(() => {
-    if (!courseId || holes.length) return;
+    if (!courseId) return;
+    if (holes.length) {
+      const token = courseRequestRef.current;
+      let live = true;
+      getOfflinePack(courseId).then((pack) => {
+        if (live && pack && token === courseRequestRef.current) {
+          setHoles(pack.holes);
+          setHoleIndex((index) => Math.min(index, pack.holes.length - 1));
+        }
+      }).catch(() => { /* Keep the existing local layout if IDB is unavailable. */ });
+      return () => { live = false; };
+    }
     const saved = getCourse(courseId);
     if (saved) openCourse(saved);
     // eslint-disable-next-line react-hooks/exhaustive-deps

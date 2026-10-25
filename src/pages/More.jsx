@@ -3,6 +3,7 @@ import { ChevronRight, Clock3, Flag, Map, PersonStanding, Target, Gauge, ScanEye
 import PageHeader from '@/components/PageHeader';
 
 const TOOLS = [
+  { path: '/courses', title: 'Course Downloads', detail: 'Find, download and manage offline course data', icon: Map },
   { path: '/caddie', title: 'AI Caddie', detail: 'Hands-free golf advice and conversation', icon: Bot },
   { path: '/bag', title: 'My Bag', detail: 'Clubs, carry distances and automatic gapping', icon: Ruler },
   { path: '/pairing', title: 'S24 to Lenny Pairing', detail: 'Local Wi-Fi live round display via WebRTC; manual pairing codes', icon: Smartphone },
