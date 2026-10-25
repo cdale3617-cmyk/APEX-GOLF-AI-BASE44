@@ -164,6 +164,13 @@ export default function MapLibreHoleMap({
     mapRef.current = map;
 
     map.on('load', () => {
+      // On the narrow portrait map the expanded credits cover playable points.
+      // Keep the native info toggle and every attribution link accessible.
+      const attribution = map.getContainer().querySelector('.maplibregl-ctrl-attrib');
+      if (map.getContainer().clientWidth <= 640 && attribution?.classList.contains('maplibregl-compact')) {
+        attribution.classList.remove('maplibregl-compact-show');
+        attribution.removeAttribute('open');
+      }
       FILLS.forEach(({ id, color, opacity }) => {
         map.addSource(id, { type: 'geojson', data: EMPTY });
         map.addLayer({

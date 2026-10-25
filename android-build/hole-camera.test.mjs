@@ -77,3 +77,11 @@ test('production builds explicitly bundle the MapLibre 6 worker and APK verifies
   assert.ok(workflow.includes('assets/public/assets/maplibre-gl-worker-'));
   assert.ok(vite.includes("worker: { format: 'es' }"));
 });
+
+test('narrow-map credits keep their native toggle and do not sit over the tee', () => {
+  const source = readFileSync(new URL('../src/components/rangefinder/MapLibreHoleMap.jsx', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  assert.ok(source.includes("attribution.removeAttribute('open')"));
+  assert.ok(source.includes("clientWidth <= 640"));
+  assert.ok(css.includes('.maplibregl-ctrl-bottom-left { bottom: 8px !important; }'));
+});

@@ -63,7 +63,10 @@ const checkHoleView = (minimumSpan = 0.45) => page.waitForFunction((fraction) =>
     const rect = document.querySelector(`.maplibregl-marker[data-marker-key="${key}"]`)?.getBoundingClientRect();
     return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null;
   });
+  const attribution = document.querySelector('.maplibregl-ctrl-attrib')?.getBoundingClientRect();
   return document.querySelector('[data-rendered-plan-points]')?.getAttribute('data-rendered-plan-points') === '3' &&
+    (!attribution || points.every((p) => p && (p.x < attribution.left || p.x > attribution.right ||
+      p.y < attribution.top || p.y > attribution.bottom))) &&
     points.every((p) => p && p.x > map.left + 10 && p.x < map.right - 10 &&
     p.y > map.top + 10 && p.y < map.bottom - 10) &&
     points[0].y - points[2].y > map.height * fraction;
@@ -101,6 +104,11 @@ try {
   assert.equal(await stored(), undefined);
   await page.waitForFunction(() => document.querySelector('[data-testid="play-map-panel"]')?.getAttribute('data-vector-features') === '1');
   await page.waitForFunction(() => document.querySelector('[data-testid="hole-map-canvas"]')?.getAttribute('data-map-ready') === 'true');
+  await page.locator('.maplibregl-ctrl-attrib summary').click();
+  await page.waitForFunction(() => document.querySelector('.maplibregl-ctrl-attrib')?.hasAttribute('open'));
+  assert.ok(await page.locator('.maplibregl-ctrl-attrib a').count() > 0);
+  await page.locator('.maplibregl-ctrl-attrib summary').click();
+  await page.waitForFunction(() => !document.querySelector('.maplibregl-ctrl-attrib')?.hasAttribute('open'));
   for (const [width, height] of [[390, 844], [320, 640], [844, 390], [1280, 800]]) {
     await page.setViewportSize({ width, height });
     await page.waitForFunction(() => {
