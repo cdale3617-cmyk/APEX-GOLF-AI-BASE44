@@ -67,3 +67,13 @@ test('draggable markers are absolutely positioned, not offset by normal document
   assert.ok(source.includes('hitArea.dataset.markerKey = key'));
   assert.ok(source.includes("map.queryRenderedFeatures({ layers: ['shot-plan-dots'] })"));
 });
+
+test('production builds explicitly bundle the MapLibre 6 worker and APK verifies its presence', () => {
+  const source = readFileSync(new URL('../src/components/rangefinder/MapLibreHoleMap.jsx', import.meta.url), 'utf8');
+  const workflow = readFileSync(new URL('../.github/workflows/build-apex-android.yml', import.meta.url), 'utf8');
+  const vite = readFileSync(new URL('../vite.config.js', import.meta.url), 'utf8');
+  assert.ok(source.includes("from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'"));
+  assert.ok(source.includes('maplibregl.setWorkerUrl(mapWorkerUrl)'));
+  assert.ok(workflow.includes('assets/public/assets/maplibre-gl-worker-'));
+  assert.ok(vite.includes("worker: { format: 'es' }"));
+});

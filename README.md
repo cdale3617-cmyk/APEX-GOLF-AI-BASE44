@@ -69,6 +69,9 @@ and scoring. The camera fits the actual rotated tee/target/pin positions rather
 than a wide geographic rectangle, including restored local shot plans. No
 whole-course overview is shown while the first hole loads. Satellite imagery
 itself can still show neighbouring terrain; source mapping is not a survey.
+MapLibre's module worker is explicitly bundled for Vite/Capacitor. Browser CI
+requires all three route points to be rendered, and Android CI checks that the
+worker JavaScript is inside the APK, not just that the archive can be opened.
 
 Open Tools → Course Downloads (or the link in Saved Courses) while connected.
 Search by course or town, download a mapped course, and wait for its on-device

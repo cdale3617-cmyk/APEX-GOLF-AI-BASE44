@@ -372,9 +372,9 @@ export default function Rangefinder() {
           )}
 
 
-          {course && <div className="glass-hud min-w-0 space-y-2 rounded-xl p-2 text-[11px]">
+          {course && <div className="glass-hud min-w-0 space-y-2 rounded-xl p-2 text-xs">
             <p className="flex items-center gap-1.5"><Wind className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <span className="font-bold">{toDisplayWind(env.windSpeed, units)} {windUnit(units)} {env.windFromDeg}°</span></p>
+              <span className="font-bold">{toDisplayWind(env.windSpeed, units)} {windUnit(units)} {env.windDir}</span></p>
             <p className="flex items-center gap-1.5"><Thermometer className="h-3.5 w-3.5 text-warm" />{toDisplayTemp(env.temp, units)}{tempUnit(units)}</p>
             <p className="flex items-center gap-1.5"><Mountain className="h-3.5 w-3.5 text-cool" />{env.elevDelta >= 0 ? '+' : ''}{toDisplayElev(env.elevDelta, units)} {elevUnit(units)}</p>
             <button type="button" onClick={() => setEnvOpen(true)} className="flex min-h-10 items-center gap-1 text-primary"><SlidersHorizontal className="h-3.5 w-3.5" />Edit</button>

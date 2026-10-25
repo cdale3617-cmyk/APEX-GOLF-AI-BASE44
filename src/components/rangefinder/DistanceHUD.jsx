@@ -17,7 +17,7 @@ export default function DistanceHUD({ distances, onLocate, expanded = false, det
 
   if (sidebar && !expanded) return (
     <div className="glass-hud min-w-0 rounded-xl p-1.5">
-      <p className="text-[9px] font-bold text-primary">{sourceLabel} · {shortUnit}</p>
+      <p className="text-[11px] font-bold text-primary">{sourceLabel} · {shortUnit}</p>
       <div className="flex min-w-0 items-center gap-1">
         <button type="button" onClick={onToggle} aria-expanded={detailsOpen}
           aria-label={detailsOpen ? 'Hide distance details' : 'Show distance details'}

@@ -43,7 +43,7 @@ await context.route('**/*', async (route) => {
   }
   if (url.hostname === 'fonts.googleapis.com') return route.fulfill({ contentType: 'text/css', body: '' });
   if (/arcgisonline.com|cartocdn.com/.test(url.hostname)) return route.fulfill({
-    contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64'),
+    contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOQ0JMEAADBAGDVwUpfAAAAAElFTkSuQmCC', 'base64'),
   });
   if (unavailable && !url.pathname.includes('public-settings')) return route.fulfill({ status: 503, body: '{}' });
   const query = new URLSearchParams(route.request().postData() || '').get('data');

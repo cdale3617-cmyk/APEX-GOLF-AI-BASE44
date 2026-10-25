@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
+import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { TriangleAlert } from 'lucide-react';
 import { bearingBetween, haversineYards } from '@/lib/golfData';
 import { distanceUnit, toDisplayDistance } from '@/lib/units';
 import { buildShotPlan } from '@/lib/shotPlanGeometry';
 import { buildHoleCamera } from '@/lib/holeCamera';
+
+// MapLibre 6 expects a sibling worker module. Vite must bundle it explicitly;
+// otherwise the production website/APK requests a file that does not exist.
+maplibregl.setWorkerUrl(mapWorkerUrl);
 
 /** @type {import('geojson').FeatureCollection} */
 const EMPTY = { type: 'FeatureCollection', features: [] };
