@@ -106,7 +106,10 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-testid="hole-map-canvas"]')?.getAttribute('data-map-ready') === 'true');
   await page.locator('.maplibregl-ctrl-attrib summary').click();
   await page.waitForFunction(() => document.querySelector('.maplibregl-ctrl-attrib')?.hasAttribute('open'));
-  assert.ok(await page.locator('.maplibregl-ctrl-attrib a').count() > 0);
+  const credits = page.locator('.maplibregl-ctrl-attrib-inner');
+  assert.equal(await credits.isVisible(), true);
+  const creditText = await credits.innerText();
+  for (const name of ['Esri', 'OpenStreetMap', 'CARTO']) assert.ok(creditText.includes(name));
   await page.locator('.maplibregl-ctrl-attrib summary').click();
   await page.waitForFunction(() => !document.querySelector('.maplibregl-ctrl-attrib')?.hasAttribute('open'));
   for (const [width, height] of [[390, 844], [320, 640], [844, 390], [1280, 800]]) {
