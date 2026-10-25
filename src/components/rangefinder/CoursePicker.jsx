@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Bookmark, BookmarkCheck, MapPin } from 'lucide-react';
 import { allCourses, courseSummary } from '@/lib/courses';
 import { useGolf } from '@/lib/GolfContext';
+import { Link } from 'react-router-dom';
 import { distanceUnit, toDisplayDistance } from '@/lib/units';
 
 export default function CoursePicker({ open, onOpenChange, activeCourseId, onSelect, favoriteIds = [], onToggleFavorite }) {
@@ -62,6 +63,10 @@ export default function CoursePicker({ open, onOpenChange, activeCourseId, onSel
           })}
         </div>
 
+        <Link to="/courses" onClick={() => onOpenChange(false)}
+          className="flex min-h-11 items-center justify-center rounded-xl border border-primary/40 bg-primary/10 px-3 text-sm font-semibold text-primary">
+          Download courses for offline play
+        </Link>
         <p className="text-[10px] leading-snug text-muted-foreground">
           Saved Courses keeps course names and locations on this device. Verified hole layouts are
           cached separately when available; satellite imagery and uncached holes may need internet.

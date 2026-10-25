@@ -7,6 +7,7 @@
  */
 
 import { fetchHoles } from '@/lib/osmCourses';
+import { getOfflinePack } from './offlineCourseStorage.js';
 
 export const HOLE_PARS = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 3, 4, 4, 5, 3, 4, 4, 5];
 export const HOLE_COUNT = HOLE_PARS.length;
@@ -108,6 +109,12 @@ export function cacheCourseHoles(course, holes) {
 }
 
 export async function loadCourseHoles(course) {
+  try {
+    const downloaded = await getOfflinePack(course.id);
+    if (downloaded) return downloaded.holes;
+  } catch {
+    // Normal play still works with the legacy cache or online data when IDB is blocked.
+  }
   const cached = cachedHoles(course.id);
   if (cached?.length) return cached;
 

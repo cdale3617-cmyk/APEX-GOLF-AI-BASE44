@@ -29,9 +29,11 @@ import { fetchCourseGraphics } from '@/lib/courseGraphics';
 import { allCourses, getFavoriteCourseIds, saveFavoriteCourse, removeFavoriteCourse } from '@/lib/courses';
 import { useGolf } from '@/lib/GolfContext';
 import { searchGolfCourses } from '@/lib/osmCourses';
+import { useOnline } from '@/lib/useOnline';
 import { distanceUnitSpoken, toDisplayDistance, toDisplayWind, windUnit, toDisplayTemp, tempUnit, toDisplayElev, elevUnit } from '@/lib/units';
 
 export default function Rangefinder() {
+  const online = useOnline();
   const {
     coords,
     units,
@@ -171,6 +173,7 @@ export default function Rangefinder() {
     <div className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${(!course || choosingCourse) ? 'grid-cols-1 grid-rows-1' : 'grid-cols-1 grid-rows-[minmax(0,52fr)_minmax(0,48fr)] md:grid-cols-[minmax(0,60%)_minmax(0,40%)] md:grid-rows-1'}`}>
       <div className={`${(!course || choosingCourse) ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
       {course || focusCenter ? <MapLibreHoleMap
+        offline={!online}
         key={courseId}
         holeKey={`${courseId || ''}_${hole?.number || holeIndex + 1}`}
         coords={coords}
