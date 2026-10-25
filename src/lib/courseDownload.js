@@ -13,7 +13,14 @@ export async function downloadOfflineCourse(course, { loadHoles, loadGraphics, s
     onProgress({ step: 2, label: 'Downloading available vector map features…' });
     let graphics = null;
     try { graphics = await loadGraphics(course); } catch { /* Hole data is still useful offline. */ }
-    const pack = createOfflinePack(course, holes, graphics);
+    let pack;
+    try {
+      pack = createOfflinePack(course, holes, graphics);
+    } catch {
+      // An oversized or malformed *optional* vector layer must not discard
+      // valid mapped holes or overwrite an existing download.
+      pack = createOfflinePack(course, holes);
+    }
     onProgress({ step: 3, label: 'Saving and verifying the offline copy…' });
     const verified = await save(pack);
     onProgress({ step: 4, label: 'Download verified on this device.' });

@@ -59,6 +59,20 @@ test('unavailable graphics still allow an honestly labelled hole-only download',
   assert.equal(pack.graphics, null);
 });
 
+test('invalid or oversized optional graphics fall back to verified hole data', async () => {
+  for (const graphics of [
+    { green: { type: 'Polygon', features: [] } },
+    { fairway: { type: 'FeatureCollection', features: [{ type: 'Feature', properties: { note: 'x'.repeat(8 * 1024 * 1024) } }] } },
+  ]) {
+    const pack = await downloadOfflineCourse(course, {
+      loadHoles: async () => holes, loadGraphics: async () => graphics,
+      save: async (value) => value,
+    });
+    assert.equal(pack.graphics, null);
+    assert.equal(pack.holes.length, 2);
+  }
+});
+
 test('failed refresh leaves the previous download untouched', async () => {
   const previous = createOfflinePack(course, holes);
   let saved = previous;
