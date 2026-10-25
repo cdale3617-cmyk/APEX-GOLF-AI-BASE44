@@ -66,7 +66,16 @@ const checkHoleView = (minimumSpan = 0.45) => page.waitForFunction((fraction) =>
   return points.every((p) => p && p.x > map.left + 10 && p.x < map.right - 10 &&
     p.y > map.top + 10 && p.y < map.bottom - 10) &&
     points[0].y - points[2].y > map.height * fraction;
-}, minimumSpan);
+}, minimumSpan).catch(async (error) => {
+  console.log('HOLE_VIEW_DIAGNOSTICS', JSON.stringify(await page.evaluate(() => ({
+    map: document.querySelector('[data-testid="play-map-panel"]')?.getBoundingClientRect().toJSON(),
+    canvas: document.querySelector('.maplibregl-canvas')?.getBoundingClientRect().toJSON(),
+    markers: [...document.querySelectorAll('.maplibregl-marker')].map((el) => ({
+      label: el.getAttribute('aria-label'), title: el.getAttribute('title'), rect: el.getBoundingClientRect().toJSON(),
+    })),
+  }))));
+  throw error;
+});
 const stored = () => page.evaluate(() => new Promise((resolve, reject) => {
   const open = indexedDB.open('apex-offline-courses', 1);
   open.onerror = () => reject(open.error);
@@ -100,7 +109,13 @@ try {
     await checkHoleView();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.equal(await page.getByTestId('play-controls-panel').evaluate((el) => el.scrollWidth > el.clientWidth + 1), false);
-    if (width === 390 || width === 844) await page.screenshot({ path: `browser-evidence/play-${width}x${height}.png` });
+    if (width === 390 || width === 844) {
+      const layoutShot = await page.screenshot({ path: `browser-evidence/play-${width}x${height}.png` });
+      if (width === 390 && process.env.PLAYWRIGHT_VIDEO) {
+        const encoded = layoutShot.toString('base64');
+        for (let i = 0; i < encoded.length; i += 16000) console.log('BROWSER_PHONE_PNG_CHUNK ' + encoded.slice(i, i + 16000));
+      }
+    }
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Next hole', exact: true }).first().click();
@@ -189,7 +204,14 @@ try {
   assert.deepEqual(errors, []);
   console.log('PASS refresh failure, storage failure, removal preserving saved rounds and phone layout');
 } finally {
-  await page.screenshot({ path: 'browser-evidence/final-state.png' }).catch(() => {});
+  // CI contains only mocked course data. Emit the small screenshot in chunks
+  // as well as the video artifact so failed visual checks can be inspected
+  // through the read-only logs API (which caps artifact responses at 1 MB).
+  const finalShot = await page.screenshot({ path: 'browser-evidence/final-state.png' }).catch(() => null);
+  if (process.env.PLAYWRIGHT_VIDEO && finalShot) {
+    const encoded = finalShot.toString('base64');
+    for (let i = 0; i < encoded.length; i += 16000) console.log('BROWSER_FINAL_PNG_CHUNK ' + encoded.slice(i, i + 16000));
+  }
   await context.close();
   await browser.close();
 }
