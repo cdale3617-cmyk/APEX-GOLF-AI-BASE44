@@ -11,7 +11,7 @@ import { buildHoleCamera } from '@/lib/holeCamera';
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
 /** @returns {maplibregl.StyleSpecification} */
-const baseStyle = (satellite) => ({
+const baseStyle = (satellite, offline) => ({
   version: 8,
   sources: {
     dark: {
@@ -30,8 +30,9 @@ const baseStyle = (satellite) => ({
     },
   },
   layers: [
-    { id: 'dark', type: 'raster', source: 'dark', paint: { 'raster-opacity': satellite ? 0 : 1 } },
-    { id: 'satellite', type: 'raster', source: 'satellite', paint: { 'raster-opacity': satellite ? 1 : 0 } },
+    { id: 'background', type: 'background', paint: { 'background-color': '#0a170d' } },
+    { id: 'dark', type: 'raster', source: 'dark', layout: { visibility: offline ? 'none' : 'visible' }, paint: { 'raster-opacity': satellite ? 0 : 1 } },
+    { id: 'satellite', type: 'raster', source: 'satellite', layout: { visibility: offline ? 'none' : 'visible' }, paint: { 'raster-opacity': satellite ? 1 : 0 } },
   ],
 });
 
@@ -96,6 +97,7 @@ export default function MapLibreHoleMap({
   graphics,
   pitchOn = true,
   satellite = true,
+  offline = false,
   onMoveTarget,
   onPinSettled,
   holeKey = '',
@@ -128,7 +130,7 @@ export default function MapLibreHoleMap({
     try {
       map = new maplibregl.Map({
         container: holderRef.current,
-        style: baseStyle(satellite),
+        style: baseStyle(satellite, offline),
         center: (() => {
           const point = focus?.center || courseCenter || coords.tee;
           return [point[1], point[0]];
@@ -541,7 +543,9 @@ export default function MapLibreHoleMap({
     if (!map || !ready) return;
     map.setPaintProperty('satellite', 'raster-opacity', satellite ? 1 : 0);
     map.setPaintProperty('dark', 'raster-opacity', satellite ? 0 : 1);
-  }, [satellite, ready]);
+    map.setLayoutProperty('satellite', 'visibility', offline ? 'none' : 'visible');
+    map.setLayoutProperty('dark', 'visibility', offline ? 'none' : 'visible');
+  }, [satellite, offline, ready]);
 
   return (
     <div className="relative h-full w-full">
