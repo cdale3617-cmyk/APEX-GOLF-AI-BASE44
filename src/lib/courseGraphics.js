@@ -8,6 +8,7 @@
  */
 
 import { fetchCloudElements } from '@/lib/cloudCourses';
+import { getOfflinePack } from './offlineCourseStorage.js';
 
 const OVERPASS_ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
@@ -74,7 +75,14 @@ async function run(query) {
 }
 
 /** Every drawn course feature around a course centre, grouped by kind. */
-export async function fetchCourseGraphics(course) {
+export async function fetchCourseGraphics(course, { refresh = false } = {}) {
+  if (!refresh) {
+    try {
+      const downloaded = await getOfflinePack(course.id);
+      // A hole-only pack deliberately avoids pretending unavailable vector data exists.
+      if (downloaded) return downloaded.graphics;
+    } catch { /* Use online mapping if offline storage is unavailable. */ }
+  }
   const [lat, lng] = course.center;
   const cloud = await fetchCloudElements(course);
   const elements = cloud?.some((element) => element.geometry?.length && element.tags?.golf)

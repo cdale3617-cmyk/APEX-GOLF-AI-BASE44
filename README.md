@@ -55,6 +55,22 @@ This repo syncs to Base44 through git, so publish from the dashboard rather than
 
 ## Repository checks and release boundaries
 
+### Offline course downloads
+
+Open Tools → Course Downloads (or the link in Saved Courses) while connected.
+Search by course or town, download a mapped course, and wait for its on-device
+verification. Downloads are separate IndexedDB records with actual hole
+coordinates, available vector features, an update action that preserves the
+previous pack if it fails, and a remove action that does not delete rounds.
+An unmapped course is not marked downloaded. Check any derived par against the
+course card; OSM coverage varies, especially for layouts with missing holes.
+The app hides online raster tiles while offline and uses saved vector features
+and mapped hole positions. **Satellite imagery is not included.** The installed
+Android app bundles its screens, but reopening the *website* offline is not
+guaranteed; browser storage can be evicted, and uninstalling the app deletes
+its local downloads. These packs use OpenStreetMap, not Garmin's licensed
+catalogue. User-mapped JSON imports/exports remain separate in Tour Suite.
+
 Run `npm ci`, `npm audit --audit-level=low`, `npm run lint`,
 `npm run typecheck`, `npm test`, and `npm run build` before merging.
 CI runs these checks and builds a debug Android APK on pull requests.

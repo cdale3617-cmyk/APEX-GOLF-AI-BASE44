@@ -26,3 +26,13 @@ jobs:
         env:
           VITE_BASE44_APP_ID: 6ad8bc88f9e44631e3842d43
           VITE_BASE44_BACKEND_URL: https://base44.app
+      - name: Install browser for offline-course integration check
+        run: npx playwright-core install --with-deps chromium
+      - name: Verify phone course downloads, offline play, and safe refresh
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 &
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:browser

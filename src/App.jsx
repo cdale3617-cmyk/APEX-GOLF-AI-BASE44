@@ -17,6 +17,7 @@ import Scorecard from '@/pages/Scorecard';
 import Swing from '@/pages/Swing';
 import Rounds from '@/pages/Rounds';
 import More from '@/pages/More';
+import CourseLibrary from '@/pages/CourseLibrary';
 import Drills from '@/pages/Drills';
 import CourseLab from '@/pages/CourseLab';
 import TourSuite from '@/pages/TourSuite';
@@ -75,6 +76,7 @@ const AuthenticatedApp = () => {
         <Route path="/swing" element={<Swing />} />
         <Route path="/rounds" element={<Rounds />} />
         <Route path="/more" element={<More />} />
+        <Route path="/courses" element={<CourseLibrary />} />
         <Route path="/drills" element={<Drills />} />
         <Route path="/course-lab" element={<CourseLab />} />
         <Route path="/tour-suite" element={<TourSuite />} />

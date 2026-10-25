@@ -8,7 +8,7 @@ const TABS = [
   { to: '/more', label: 'Tools', icon: LayoutGrid },
 ];
 
-const TOOL_PAGES = ['/more', '/bag', '/caddie', '/rounds', '/swing', '/drills', '/course-lab', '/green-reader', '/tour-suite', '/shot-history', '/shot-studio', '/biometrics', '/pairing'];
+const TOOL_PAGES = ['/more', '/courses', '/bag', '/caddie', '/rounds', '/swing', '/drills', '/course-lab', '/green-reader', '/tour-suite', '/shot-history', '/shot-studio', '/biometrics', '/pairing'];
 
 export default function BottomNav() {
   const { pathname } = useLocation();

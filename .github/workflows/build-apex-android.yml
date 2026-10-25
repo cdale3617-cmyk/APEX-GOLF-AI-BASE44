@@ -43,7 +43,7 @@ jobs:
           cache: npm
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
@@ -145,7 +145,7 @@ jobs:
           ls -lh APEX-GOLF-AI.apk
 
       - name: Preserve installable APK in Actions
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: APEX-GOLF-AI-ANDROID
           path: APEX-GOLF-AI.apk
@@ -159,7 +159,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: APEX-GOLF-AI-ANDROID
       - name: Provide an explicitly requested debug APK download
