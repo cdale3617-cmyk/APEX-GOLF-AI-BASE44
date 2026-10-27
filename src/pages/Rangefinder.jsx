@@ -30,12 +30,14 @@ import { allCourses, getFavoriteCourseIds, saveFavoriteCourse, removeFavoriteCou
 import { useGolf } from '@/lib/GolfContext';
 import { searchGolfCourses } from '@/lib/osmCourses';
 import { useOnline } from '@/lib/useOnline';
+import { holeGeometryKey } from '@/lib/holeCamera';
 import { distanceUnitSpoken, toDisplayDistance, toDisplayWind, windUnit, toDisplayTemp, tempUnit, toDisplayElev, elevUnit } from '@/lib/units';
 
 export default function Rangefinder() {
   const online = useOnline();
   const {
     coords,
+    coordsHoleKey,
     units,
     gpsFix,
     gpsMode,
@@ -71,7 +73,7 @@ export default function Rangefinder() {
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
   const [searchNotice, setSearchNotice] = useState('');
-  const [searchOpen, setSearchOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(!courseId);
   const [envOpen, setEnvOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [hudOpen, setHudOpen] = useState(false);
@@ -83,13 +85,13 @@ export default function Rangefinder() {
   const [holeGraphics, setHoleGraphics] = useState(null);
   const [graphicsLoading, setGraphicsLoading] = useState(false);
   const [satellite, setSatellite] = useState(true);
-  const [pitchOn, setPitchOn] = useState(true);
+  const [pitchOn, setPitchOn] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState(getFavoriteCourseIds);
   const [courseSaveMessage, setCourseSaveMessage] = useState('');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const choosingCourse = searchParams.get('choose') === '1';
-  const activeGraphicsKey = JSON.stringify([courseId, hole?.number, hole?.tee, hole?.pin, hole?.layup]);
+  const activeGraphicsKey = holeGeometryKey(courseId, hole);
   const graphics = holeGraphics?.key === activeGraphicsKey ? holeGraphics.data : null;
 
   // Load only the selected hole. Moving on cancels the previous provider request
@@ -182,11 +184,11 @@ export default function Rangefinder() {
   };
 
   return (
-    <div data-testid="live-round-layout" className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${(!course || choosingCourse) ? 'grid-cols-1 grid-rows-1' : 'grid-cols-1 grid-rows-[minmax(0,60fr)_minmax(0,40fr)]'}`}>
+    <div data-testid="live-round-layout" className={`apex-live-round absolute inset-0 grid min-h-0 min-w-0 overflow-hidden ${(!course || choosingCourse) ? 'grid-cols-1 grid-rows-1' : 'grid-cols-[minmax(0,60fr)_minmax(0,40fr)] grid-rows-1'}`}>
       <div data-testid="play-map-panel" data-active-hole={hole?.number ?? ''}
         data-vector-features={Object.values(graphics ?? {}).reduce((sum, data) => sum + data.features.length, 0)}
-        className={`${(!course || choosingCourse) ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-b border-warm/40'}`}>
-      {course || focusCenter ? <MapLibreHoleMap
+        className={`${(!course || choosingCourse) ? 'hidden' : 'relative h-full min-h-0 min-w-0 overflow-hidden border-r border-warm/40'}`}>
+      {hole && !hole.estimated && coordsHoleKey === activeGraphicsKey ? <MapLibreHoleMap
         offline={!online}
         key={courseId}
         holeKey={`${courseId || ''}_${hole?.number || holeIndex + 1}`}
@@ -194,7 +196,7 @@ export default function Rangefinder() {
         activeHole={hole}
         focus={{ center: focusCenter, nonce: focusNonce }}
         courseCenter={course?.center}
-        holeReady={Boolean(hole && !hole.estimated)}
+        holeReady={Boolean(hole && !hole.estimated && coordsHoleKey === activeGraphicsKey)}
         units={units}
         gpsFix={gpsFix}
         gpsMode={gpsMode}
@@ -208,16 +210,18 @@ export default function Rangefinder() {
             ? 'Pin moved on an estimated layout. Distances are not verified.'
             : `Pin moved. ${gpsMode === 'live' ? 'GPS' : 'Tee preview'} plays like ${toDisplayDistance(distances.playsLike, units)} ${distanceUnitSpoken(units)}. Take your ${distances.club.name}.`)
         }
-      /> : <div className="absolute inset-0 bg-background" />}
+      /> : <div role="status" className="absolute inset-0 flex items-center justify-center bg-background p-3 text-center text-xs text-muted-foreground">
+        {courseError || (hole?.estimated ? 'Mapped hole positions unavailable' : 'Loading selected hole…')}
+      </div>}
         {graphicsLoading && hole && <div role="status" aria-label="Hole map loading" className="pointer-events-none absolute inset-x-0 top-12 z-[1050] flex justify-center">
           <span className="glass-hud flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px]">
             <Loader2 className="h-3 w-3 animate-spin" />Loading hole {hole.number} map…
           </span>
         </div>}
         {course && !choosingCourse && <div className="absolute inset-x-1 top-1 z-[1100] flex items-center justify-between gap-1 pointer-events-none">
-          <button type="button" onClick={prevHole} aria-label="Previous hole" className="pointer-events-auto glass-hud flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary"><ChevronLeft className="h-5 w-5" /></button>
+          <button type="button" onClick={prevHole} aria-label="Previous hole" className="pointer-events-auto glass-hud flex h-11 w-11 items-center justify-center rounded-lg border border-border text-primary"><ChevronLeft className="h-5 w-5" /></button>
           <span className="glass-hud rounded-md px-1.5 py-1 text-[10px] font-bold text-foreground">Hole {hole?.number ?? holeIndex + 1}</span>
-          <button type="button" onClick={nextHole} aria-label="Next hole" className="pointer-events-auto glass-hud flex h-9 w-9 items-center justify-center rounded-lg border border-border text-primary"><ChevronRight className="h-5 w-5" /></button>
+          <button type="button" onClick={nextHole} aria-label="Next hole" className="pointer-events-auto glass-hud flex h-11 w-11 items-center justify-center rounded-lg border border-border text-primary"><ChevronRight className="h-5 w-5" /></button>
         </div>}
       </div>
       <div data-testid="play-controls-panel" className="apex-play-controls relative flex h-full w-full min-h-0 min-w-0 flex-col overflow-y-auto overscroll-contain bg-background/95">
@@ -261,11 +265,11 @@ export default function Rangefinder() {
         <div data-testid="round-hole-navigation" className="relative z-[1000] shrink-0 border-b border-border/70 bg-background p-1.5">
           <div className="flex min-w-0 items-center gap-1.5">
             <div className="min-w-0 flex-1">
-              <HoleBar course={course} hole={hole} holeCount={holes.length || 18}
+              <HoleBar compact course={course} hole={hole} holeCount={holes.length || 18}
                 onPrev={prevHole} onNext={nextHole} onOpenCourses={() => setCoursesOpen(true)} />
             </div>
             <button type="button" aria-label={searchOpen ? 'Hide search' : 'Search a course'}
-              onClick={() => { setUiHidden(false); setSearchOpen((open) => !open); }}
+              onClick={() => { setUiHidden(false); setSearchOpen(true); setSearchParams({ choose: '1' }); }}
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/60 text-primary">
               <Search className="h-4 w-4" />
             </button>
@@ -368,14 +372,23 @@ export default function Rangefinder() {
           )}
 
 
-          {course && (hole && !hole.estimated
-            ? <GreenDistances graphics={graphics} compact />
+          {course && <div className="glass-hud min-w-0 space-y-2 rounded-xl p-2 text-xs">
+            <p className="flex items-center gap-1.5"><Wind className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="font-bold">{toDisplayWind(env.windSpeed, units)} {windUnit(units)} {env.windDir}</span></p>
+            <p className="flex items-center gap-1.5"><Thermometer className="h-3.5 w-3.5 text-warm" />{toDisplayTemp(env.temp, units)}{tempUnit(units)}</p>
+            <p className="flex items-center gap-1.5"><Mountain className="h-3.5 w-3.5 text-cool" />{env.elevDelta >= 0 ? '+' : ''}{toDisplayElev(env.elevDelta, units)} {elevUnit(units)}</p>
+            <button type="button" onClick={() => setEnvOpen(true)} className="flex min-h-10 items-center gap-1 text-primary"><SlidersHorizontal className="h-3.5 w-3.5" />Edit</button>
+          </div>}
+          {course && <div className="flex min-w-0 items-start gap-1">
+            {hole && !hole.estimated
+            ? <GreenDistances graphics={graphics} sidebar />
             : <p className="rounded-lg border border-warm/50 p-2 text-[10px] font-semibold text-warm">
                 {hole?.estimated ? 'Estimated layout. GPS distances disabled.' : 'Choose a mapped hole for GPS distances.'}
-              </p>)}
-          {course && <ViewControls compact pitchOn={pitchOn} satellite={satellite}
+              </p>}
+            <ViewControls pitchOn={pitchOn} satellite={satellite}
             onTogglePitch={() => setPitchOn((on) => !on)} onToggleSatellite={() => setSatellite((on) => !on)}
-            onRecenter={() => goToHole(holeIndex)} />}
+            onRecenter={() => goToHole(holeIndex)} />
+          </div>}
           <details data-testid="round-secondary-tools" open={!course} className="min-w-0 rounded-lg border border-border/70 bg-card/40">
             <summary className="flex min-h-11 cursor-pointer items-center px-3 text-xs font-semibold text-foreground">Course tools &amp; conditions</summary>
             <div className="space-y-2 p-1.5">
@@ -460,7 +473,7 @@ export default function Rangefinder() {
 
       {!choosingCourse && !uiHidden && hole && !hole.estimated && (
         <div data-testid="round-distance-dock" className="relative z-[1000] shrink-0 border-t border-warm/40 bg-background p-1">
-          <DistanceHUD distances={distances} onLocate={locate} expanded={false} detailsOpen={hudOpen}
+          <DistanceHUD sidebar distances={distances} onLocate={locate} expanded={false} detailsOpen={hudOpen}
             onToggle={() => setHudOpen((open) => !open)} />
         </div>
       )}

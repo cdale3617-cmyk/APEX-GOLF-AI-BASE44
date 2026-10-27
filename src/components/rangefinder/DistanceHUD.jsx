@@ -2,7 +2,7 @@ import { ChevronDown, ChevronUp, Crosshair, LocateFixed, Sparkles } from 'lucide
 import { useGolf } from '@/lib/GolfContext';
 import { distanceUnit, distanceUnitLong, toDisplayDistance } from '@/lib/units';
 
-export default function DistanceHUD({ distances, onLocate, expanded = false, detailsOpen = false, onToggle }) {
+export default function DistanceHUD({ distances, onLocate, expanded = false, detailsOpen = false, onToggle, sidebar = false }) {
   const { units } = useGolf();
   const direct = toDisplayDistance(distances.direct, units);
   const playsLike = toDisplayDistance(distances.playsLike, units);
@@ -14,6 +14,19 @@ export default function DistanceHUD({ distances, onLocate, expanded = false, det
   const sourceLabel = distances.mode === 'live'
     ? `GPS ±${Math.round(distances.accuracy ?? 0)}m`
     : 'TEE PREVIEW';
+
+  if (sidebar && !expanded) return (
+    <div className="glass-hud min-w-0 rounded-xl p-1.5">
+      <p className="text-[11px] font-bold text-primary">{sourceLabel} · {shortUnit}</p>
+      <div className="flex min-w-0 items-center gap-1">
+        <button type="button" onClick={onToggle} aria-expanded={detailsOpen}
+          aria-label={detailsOpen ? 'Hide distance details' : 'Show distance details'}
+          className="min-h-11 min-w-0 flex-1 text-left text-3xl font-black tabular-nums text-primary">{playsLike}</button>
+        <button type="button" onClick={onLocate} aria-label="Locate me" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-primary"><LocateFixed className="h-4 w-4" /></button>
+      </div>
+      <p className="text-[9px] text-muted-foreground">{direct} {shortUnit} direct · plays-like above</p>
+    </div>
+  );
 
   if (!expanded) {
     return (

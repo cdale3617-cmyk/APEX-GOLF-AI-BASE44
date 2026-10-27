@@ -29,6 +29,7 @@ import { checkGpsPosition, courseGpsMode, selectShotOrigin } from '@/lib/gpsTrac
 import { distanceUnitSpoken, toDisplayDistance, toDisplayTemp, tempUnit, toDisplayWind, windUnit } from '@/lib/units';
 import { offsetTarget } from '@/lib/targetPin';
 import { loadShotPlan, saveShotPlan } from '@/lib/shotPlanStore';
+import { holeGeometryKey } from '@/lib/holeCamera';
 import { autoGapCarry, DEFAULT_GAP_REFERENCE_ID, preferredGapReference } from '@/lib/autoGapping';
 import { addClubToBag, removeClubFromBag, sortClubBag } from '@/lib/clubCatalog';
 import { appendCaddieTurn, answerCaddieTurn, loadCaddieHistory, saveCaddieHistory } from '@/lib/caddieHistory';
@@ -69,13 +70,14 @@ export function GolfProvider({ children }) {
   const [coords, setCoords] = useState(() => {
     const restored = cachedHoles(startCourseId);
     const start = restored?.[stored.holeIndex ?? 0] ?? restored?.[0];
-    if (start) return { tee: start.tee, layup: start.layup, pin: start.pin };
+    if (start) return loadShotPlan(startCourseId, start.number) || { tee: start.tee, layup: start.layup, pin: start.pin };
     // Never initialise on the unrelated demo map while fetching the selected course.
     const center = getCourse(startCourseId)?.center;
     const position = Array.isArray(center) && center.length === 2 ? center : DEFAULT_COORDS.tee;
     return { tee: position, layup: position, pin: position };
   });
   const hole = holes[holeIndex] ?? null;
+  const [coordsHoleKey, setCoordsHoleKey] = useState(() => holeGeometryKey(courseId, hole));
   const [scorecard, setScorecard] = useState(stored.scorecard ?? createDefaultScorecard());
   const [roundSessionId, setRoundSessionId] = useState(stored.roundSessionId ?? newRoundSessionId);
   const [bpm, setBpm] = useState(stored.bpm ?? 76);
@@ -124,6 +126,7 @@ export function GolfProvider({ children }) {
   useEffect(() => {
     if (!hole) return;
     setCoords(loadShotPlan(courseId, hole.number) || { tee: hole.tee, layup: hole.layup, pin: hole.pin });
+    setCoordsHoleKey(holeGeometryKey(courseId, hole));
   }, [hole, courseId]);
 
   // Scorecard pars come from the real holes once they arrive.
@@ -356,13 +359,15 @@ export function GolfProvider({ children }) {
       const normalized = ((index % holes.length) + holes.length) % holes.length;
       const next = holes[normalized];
       setHoleIndex(normalized);
+      setCoords(loadShotPlan(courseId, next.number) || { tee: next.tee, layup: next.layup, pin: next.pin });
+      setCoordsHoleKey(holeGeometryKey(courseId, next));
       setPinOffsetMetres(0);
       setFocusCenter(next.tee);
       setFocusNonce((n) => n + 1);
       setGpsStatus(`Hole ${next.number} • Par ${next.par}`);
       return next;
     },
-    [holes],
+    [holes, courseId],
   );
 
   const selectCourse = useCallback(
@@ -917,6 +922,7 @@ export function GolfProvider({ children }) {
       caddie,
       updateCaddie,
       coords,
+      coordsHoleKey,
       scorecard,
       bpm,
       setBpm,
@@ -996,6 +1002,7 @@ export function GolfProvider({ children }) {
       caddie,
       updateCaddie,
       coords,
+      coordsHoleKey,
       scorecard,
       bpm,
       distances,

@@ -4,18 +4,17 @@ import { readFileSync } from 'node:fs';
 
 const page = readFileSync(new URL('../src/pages/Rangefinder.jsx', import.meta.url), 'utf8');
 
-test('portrait live-round layout gives the course picker a usable full-width row', () => {
+test('portrait live-round layout matches the left-map/right-sidebar reference', () => {
   assert.ok(
-    page.includes('grid-cols-1 grid-rows-[minmax(0,60fr)_minmax(0,40fr)]') &&
-      !page.includes('md:grid-cols-'),
-    'the Play area should stack a 60% map over 40% controls, including wide screens',
+    page.includes('grid-cols-[minmax(0,60fr)_minmax(0,40fr)] grid-rows-1'),
+    'all widths must show a full-height 60% left map and 40% right sidebar',
   );
 
-  const fixedControls = 3 * 40 + 3 * 6; // Search, layers, hide buttons and row gaps.
+  const fixedControls = 44; // Search button; previous/next live on the map.
   const horizontalPadding = 2 * 6; // p-1.5 on the controls pane.
-  const pickerMinimum = 80; // Previous/next buttons plus a visible course selector.
+  const pickerMinimum = 60;
   for (const viewportWidth of [320, 360, 390, 412, 767]) {
-    const usableWidth = viewportWidth - horizontalPadding - fixedControls;
+    const usableWidth = viewportWidth * 0.4 - horizontalPadding - fixedControls;
     assert.ok(
       usableWidth >= pickerMinimum,
       `${viewportWidth}px viewport leaves only ${usableWidth}px for the course picker`,
@@ -42,9 +41,10 @@ test('previous and next hole actions have explicit labels and 44-pixel targets',
   assert.ok(bar.includes('h-11 w-12'));
 });
 
-test('large optional tools are collapsed and green/view controls use compact variants', () => {
+test('sidebar uses vertical green/view controls while optional tools stay collapsed', () => {
   assert.ok(page.includes('data-testid="round-secondary-tools" open={!course}'));
-  assert.ok(page.includes('<GreenDistances graphics={graphics} compact />'));
-  assert.ok(page.includes('<ViewControls compact'));
+  assert.ok(page.includes('<GreenDistances graphics={graphics} sidebar />'));
+  assert.ok(page.includes('<ViewControls pitchOn'));
+  assert.ok(page.includes('<HoleBar compact'));
   assert.ok(!page.includes('max-h-[42vh] overflow-y-auto'));
 });

@@ -23,7 +23,9 @@ await context.addInitScript(() => {
 const elements = [
   ...[0, 1].map((i) => ({ type: 'way', id: 100 + i,
     tags: { golf: 'hole', ref: String(i + 1), par: String(i ? 5 : 3) },
-    geometry: [{ lat: -23.1 + i * 0.004, lon: 150.7 }, { lat: -23.098 + i * 0.004, lon: 150.702 }] })),
+    geometry: i
+      ? [{ lat: -23.094, lon: 150.702 }, { lat: -23.096, lon: 150.7 }]
+      : [{ lat: -23.1, lon: 150.7 }, { lat: -23.098, lon: 150.702 }] })),
   { type: 'way', id: 200, tags: { golf: 'fairway' }, geometry: [
     { lat: -23.1, lon: 150.7 }, { lat: -23.097, lon: 150.7 },
     { lat: -23.097, lon: 150.703 }, { lat: -23.1, lon: 150.7 },
@@ -41,7 +43,7 @@ await context.route('**/*', async (route) => {
   }
   if (url.hostname === 'fonts.googleapis.com') return route.fulfill({ contentType: 'text/css', body: '' });
   if (/arcgisonline.com|cartocdn.com/.test(url.hostname)) return route.fulfill({
-    contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64'),
+    contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOQ0JMEAADBAGDVwUpfAAAAAElFTkSuQmCC', 'base64'),
   });
   if (unavailable && !url.pathname.includes('public-settings')) return route.fulfill({ status: 503, body: '{}' });
   const query = new URLSearchParams(route.request().postData() || '').get('data');
@@ -54,6 +56,34 @@ const page = await context.newPage();
 const errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
 const go = (path) => page.goto(base + path, { waitUntil: 'domcontentloaded' });
+const checkHoleView = (minimumSpan = 0.45) => page.waitForFunction((fraction) => {
+  const map = document.querySelector('[data-testid="play-map-panel"]')?.getBoundingClientRect();
+  if (!map) return false;
+  const points = ['tee', 'layup', 'pin'].map((key) => {
+    const rect = document.querySelector(`.maplibregl-marker[data-marker-key="${key}"]`)?.getBoundingClientRect();
+    return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : null;
+  });
+  const attribution = document.querySelector('.maplibregl-ctrl-attrib')?.getBoundingClientRect();
+  return document.querySelector('[data-rendered-plan-points]')?.getAttribute('data-rendered-plan-points') === '3' &&
+    (!attribution || points.every((p) => p && (p.x < attribution.left || p.x > attribution.right ||
+      p.y < attribution.top || p.y > attribution.bottom))) &&
+    points.every((p) => p && p.x > map.left + 10 && p.x < map.right - 10 &&
+    p.y > map.top + 10 && p.y < map.bottom - 10) &&
+    points[0].y - points[2].y > map.height * fraction;
+}, minimumSpan).catch(async (error) => {
+  console.log('HOLE_VIEW_DIAGNOSTICS', JSON.stringify(await page.evaluate(() => ({
+    map: document.querySelector('[data-testid="play-map-panel"]')?.getBoundingClientRect().toJSON(),
+    canvas: document.querySelector('.maplibregl-canvas')?.getBoundingClientRect().toJSON(),
+    renderedPlanPoints: document.querySelector('[data-rendered-plan-points]')?.getAttribute('data-rendered-plan-points'),
+    markers: [...document.querySelectorAll('.maplibregl-marker')].map((el) => ({
+      label: el.getAttribute('aria-label'), title: el.getAttribute('title'), rect: el.getBoundingClientRect().toJSON(),
+    })),
+  }))));
+  throw error;
+});
+page.on('console', (message) => {
+  if (message.type() === 'error') console.log('BROWSER_CONSOLE_ERROR', message.text());
+});
 const stored = () => page.evaluate(() => new Promise((resolve, reject) => {
   const open = indexedDB.open('apex-offline-courses', 1);
   open.onerror = () => reject(open.error);
@@ -74,27 +104,62 @@ try {
   assert.equal(await stored(), undefined);
   await page.waitForFunction(() => document.querySelector('[data-testid="play-map-panel"]')?.getAttribute('data-vector-features') === '1');
   await page.waitForFunction(() => document.querySelector('[data-testid="hole-map-canvas"]')?.getAttribute('data-map-ready') === 'true');
+  await page.locator('.maplibregl-ctrl-attrib summary').click();
+  await page.waitForFunction(() => document.querySelector('.maplibregl-ctrl-attrib')?.hasAttribute('open'));
+  const credits = page.locator('.maplibregl-ctrl-attrib-inner');
+  assert.equal(await credits.isVisible(), true);
+  const creditText = await credits.innerText();
+  for (const name of ['Esri', 'OpenStreetMap', 'CARTO']) assert.ok(creditText.includes(name));
+  await page.locator('.maplibregl-ctrl-attrib summary').click();
+  await page.waitForFunction(() => !document.querySelector('.maplibregl-ctrl-attrib')?.hasAttribute('open'));
   for (const [width, height] of [[390, 844], [320, 640], [844, 390], [1280, 800]]) {
     await page.setViewportSize({ width, height });
     await page.waitForFunction(() => {
       const area = document.querySelector('[data-testid="live-round-layout"]')?.getBoundingClientRect();
       const map = document.querySelector('[data-testid="play-map-panel"]')?.getBoundingClientRect();
       const controls = document.querySelector('[data-testid="play-controls-panel"]')?.getBoundingClientRect();
-      return area && map && controls && Math.abs(map.height / area.height - 0.6) < 0.005 &&
-        Math.abs(controls.height / area.height - 0.4) < 0.005 && Math.abs(controls.top - map.bottom) < 2;
+      return area && map && controls && Math.abs(map.width / area.width - 0.6) < 0.005 &&
+        Math.abs(controls.width / area.width - 0.4) < 0.005 && Math.abs(controls.left - map.right) < 2 &&
+        Math.abs(map.height - area.height) < 2 && Math.abs(controls.height - area.height) < 2;
     });
+    await checkHoleView();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-    if (width === 390 || width === 844) await page.screenshot({ path: `browser-evidence/play-${width}x${height}.png` });
+    assert.equal(await page.getByTestId('play-controls-panel').evaluate((el) => el.scrollWidth > el.clientWidth + 1), false);
+    if (width === 390 || width === 844) {
+      const layoutShot = await page.screenshot({ path: `browser-evidence/play-${width}x${height}.png` });
+      if (width === 390 && process.env.PLAYWRIGHT_VIDEO) {
+        const encoded = layoutShot.toString('base64');
+        for (let i = 0; i < encoded.length; i += 16000) console.log('BROWSER_PHONE_PNG_CHUNK ' + encoded.slice(i, i + 16000));
+      }
+    }
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole('button', { name: 'Next hole', exact: true }).first().click();
   await page.getByText(/Hole 2\/2/).first().waitFor();
+  await checkHoleView();
   assert.equal(await page.getByTestId('play-map-panel').getAttribute('data-vector-features'), '0');
   await page.getByRole('button', { name: 'Previous hole', exact: true }).first().click();
   await page.waitForFunction(() => document.querySelector('[data-testid="play-map-panel"]')?.getAttribute('data-vector-features') === '1');
+  await checkHoleView();
+  await page.getByRole('button', { name: 'Switch to 3D view' }).click();
+  await checkHoleView(0.2);
+  await page.getByRole('button', { name: 'Switch to flat view' }).click();
+  await checkHoleView();
+  // A restored, user-edited plan must be framed too, not the old mapped points.
+  await page.evaluate(() => localStorage.setItem('apex_shot_plans_v1', JSON.stringify({
+    'offline-test-course/1': {
+      tee: [-23.099, 150.701], layup: [-23.098, 150.702], pin: [-23.097, 150.703],
+    },
+  })));
+  await go('/play');
+  await checkHoleView();
+  assert.equal(await page.getByPlaceholder('Search golf course or city…').count(), 0);
+  await page.evaluate(() => localStorage.removeItem('apex_shot_plans_v1'));
+  await go('/play');
+  await checkHoleView();
   assert.ok(holeQueries.length >= 2);
   assert.ok(holeQueries.every((query) => !query.includes('around:1500')));
-  console.log('PASS searched course without download, 60/40 lengthways layout at four sizes, selected-hole artwork and navigation');
+  console.log('PASS reference-matching left60/right40 full-height layout at four sizes; full tee-target-green camera, reversed-hole navigation, 3D, restored plans and hidden search');
 
   await go('/courses');
   await page.getByLabel('Search courses or towns').fill('Test Town');
@@ -155,7 +220,14 @@ try {
   assert.deepEqual(errors, []);
   console.log('PASS refresh failure, storage failure, removal preserving saved rounds and phone layout');
 } finally {
-  await page.screenshot({ path: 'browser-evidence/final-state.png' }).catch(() => {});
+  // CI contains only mocked course data. Emit the small screenshot in chunks
+  // as well as the video artifact so failed visual checks can be inspected
+  // through the read-only logs API (which caps artifact responses at 1 MB).
+  const finalShot = await page.screenshot({ path: 'browser-evidence/final-state.png' }).catch(() => null);
+  if (process.env.PLAYWRIGHT_VIDEO && finalShot) {
+    const encoded = finalShot.toString('base64');
+    for (let i = 0; i < encoded.length; i += 16000) console.log('BROWSER_FINAL_PNG_CHUNK ' + encoded.slice(i, i + 16000));
+  }
   await context.close();
   await browser.close();
 }

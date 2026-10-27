@@ -57,14 +57,21 @@ This repo syncs to Base44 through git, so publish from the dashboard rather than
 
 ### Offline course downloads
 
-Live Play uses a lengthways split within the area between the app header and
-bottom navigation: 60% map above, 40% controls below, on phones and wide screens.
-Short control panels scroll instead of clipping buttons. Searching and selecting
+Live Play matches the supplied portrait reference within the area between the
+app header and bottom navigation: a full-height 60% map on the left and 40%
+controls on the right, on phones and wide screens. The sidebar scrolls without
+replacing the map. Searching and selecting
 a course does not require downloading it first. Live vector requests are scoped
 to the selected hole; changing holes cancels the previous request, clears old
 artwork, and frames the next hole. Downloaded vectors are clipped to the same
 selected-hole area; complete hole metadata remains available for navigation
-and scoring. Satellite imagery itself can still show neighbouring terrain.
+and scoring. The camera fits the actual rotated tee/target/pin positions rather
+than a wide geographic rectangle, including restored local shot plans. No
+whole-course overview is shown while the first hole loads. Satellite imagery
+itself can still show neighbouring terrain; source mapping is not a survey.
+MapLibre's module worker is explicitly bundled for Vite/Capacitor. Browser CI
+requires all three route points to be rendered, and Android CI checks that the
+worker JavaScript is inside the APK, not just that the archive can be opened.
 
 Open Tools → Course Downloads (or the link in Saved Courses) while connected.
 Search by course or town, download a mapped course, and wait for its on-device
